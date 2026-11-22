@@ -1,0 +1,15 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "automerge": false,
+  "github-actions": {
+    "managerFilePatterns": [
+      "/^(ci|releases|automation|pages|deployments|code-scanning)\\/[^/]+\\.yml$/"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "unset-sh-tooling",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/workflows.mjs --check && node --test \"scripts/*.test.mjs\" \"checks/*.test.mjs\"",
+    "workflows": "node scripts/workflows.mjs --write",
+    "docs:export": "node scripts/export-docs.mjs"
+  },
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unset-sh/tooling.git"
+  }
+}

@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # This repository's own check, through the workflow it ships, as it is on the commit being checked.
+    uses: ./.github/workflows/ci-check.yml
+    permissions:
+      contents: read
+
+  actionlint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check workflow syntax
+        # GitHub documents job.workflow_repository and job.workflow_sha, but actionlint 1.7.12's
+        # job type does not include them. Ignore only those two properties on that exact job type.
+        # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#job-context
+        # Read 2026-11-22. Runtime release guards still refuse empty or unexpected identity fields.
+        run: |
+          curl --fail --location --silent --show-error https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= -ignore 'property "workflow_(repository|sha)" is not defined in object type \{check_run_id: number; container:' .github/workflows/*.yml
