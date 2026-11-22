@@ -40,19 +40,19 @@ function commit(root) {
   return git(root, "rev-parse", "HEAD");
 }
 
-function fixture(t) {
+function fixture(t, directory = "docs") {
   const base = mkdtempSync(join(realpathSync(tmpdir()), "docs-export-"));
   t.after(() => rmSync(base, { recursive: true, force: true }));
   const root = join(base, "repo");
   mkdirSync(root);
   git(root, "init", "--object-format=sha1", "-b", "main");
   put(root, "LICENSE", "Fixture licence\n");
-  put(root, "docs/site/_index.md", "---\ntitle: Developer tooling\n---\nCommitted docs.\n");
-  put(root, "docs/site/guides/check.md", "Check a repository.\n");
-  put(root, "docs/site/assets/sample.bin", Buffer.from([0, 255, 13, 10]));
+  put(root, `${directory}/_index.md`, "---\ntitle: Developer tooling\n---\nCommitted docs.\n");
+  put(root, `${directory}/guides/check.md`, "Check a repository.\n");
+  put(root, `${directory}/assets/sample.bin`, Buffer.from([0, 255, 13, 10]));
   put(root, "notes/private.md", "Do not export notes.\n");
   put(root, "artifacts/private.json", "Do not export artifacts.\n");
-  put(root, "docs/internal.md", "Not part of the published section.\n");
+  put(root, "internal/document.md", "Not part of the published section.\n");
   return { base, root, revision: commit(root), out: join(base, "export") };
 }
 
@@ -65,13 +65,13 @@ function snapshot(path) {
 
 test("export uses the exact requested commit, ignoring later commits, dirty and staged files", (t) => {
   const f = fixture(t);
-  const original = readFileSync(join(f.root, "docs/site/_index.md"));
-  put(f.root, "docs/site/_index.md", "Later committed docs.\n");
+  const original = readFileSync(join(f.root, "docs/_index.md"));
+  put(f.root, "docs/_index.md", "Later committed docs.\n");
   commit(f.root);
-  put(f.root, "docs/site/_index.md", "Dirty docs.\n");
-  put(f.root, "docs/site/staged.md", "Staged only.\n");
-  git(f.root, "add", "docs/site/staged.md");
-  put(f.root, "docs/site/untracked.md", "Untracked only.\n");
+  put(f.root, "docs/_index.md", "Dirty docs.\n");
+  put(f.root, "docs/staged.md", "Staged only.\n");
+  git(f.root, "add", "docs/staged.md");
+  put(f.root, "docs/untracked.md", "Untracked only.\n");
   put(f.root, "LICENSE", "Dirty licence.\n");
   exportDocs(f);
   assert.deepEqual(readFileSync(join(f.out, "tooling/_index.md")), original);
@@ -92,7 +92,7 @@ test("provenance names the source revision and hashes every exported source file
   assert.equal(provenance.schemaVersion, 1);
   assert.equal(provenance.repository, "unset-sh/tooling");
   assert.equal(provenance.revision, f.revision);
-  assert.equal(provenance.directory, "docs/site");
+  assert.equal(provenance.directory, "docs");
   assert.equal(provenance.section, "tooling");
   assert.deepEqual(provenance.files.map(({ path }) => path), ["LICENSE", "_index.md", "assets/sample.bin", "guides/check.md"]);
   for (const { path, sha256 } of provenance.files) {
@@ -102,18 +102,28 @@ test("provenance names the source revision and hashes every exported source file
 
 test("a caller repository selects its own section and provenance", (t) => {
   for (const [repository, section] of [["unset-sh/.github", "github"], ["unset-sh/profile-recipes", "profile-recipes"]]) {
-    const f = fixture(t);
+    const f = fixture(t, "docs/site");
+    put(f.root, "docs/not-exported.md", "Outside the existing consumer export root.\n");
+    f.revision = commit(f.root);
     const returned = exportDocs({ ...f, repository });
     assert.deepEqual(readdirSync(f.out), [section]);
     const provenance = JSON.parse(readFileSync(join(f.out, section, "source.json"), "utf8"));
     assert.deepEqual(returned, provenance);
     assert.equal(provenance.repository, repository);
     assert.equal(provenance.section, section);
+    assert.equal(provenance.directory, "docs/site");
+    assert.ok(!provenance.files.some(({ path }) => path === "not-exported.md"));
     assert.equal(provenance.revision, f.revision);
     for (const { path, sha256 } of provenance.files) {
       assert.equal(sha256, createHash("sha256").update(readFileSync(join(f.out, section, path))).digest("hex"));
     }
   }
+});
+
+test("tooling requires its explicit docs root and never guesses a legacy layout", (t) => {
+  const f = fixture(t, "docs/site");
+  assert.throws(() => exportDocs(f), /docs\/_index\.md/);
+  assert.equal(existsSync(f.out), false);
 });
 
 test("unsupported or unsafe repository names are refused without mutation", (t) => {
@@ -160,7 +170,7 @@ test("only a full commit object is accepted as a revision", (t) => {
 
 test("local replace refs cannot change the committed tree being exported", (t) => {
   const f = fixture(t);
-  put(f.root, "docs/site/_index.md", "Replacement content.\n");
+  put(f.root, "docs/_index.md", "Replacement content.\n");
   const newer = commit(f.root);
   git(f.root, "replace", f.revision, newer);
   exportDocs(f);
@@ -168,7 +178,7 @@ test("local replace refs cannot change the committed tree being exported", (t) =
 });
 
 test("missing index or licence fails before creating output", (t) => {
-  for (const path of ["docs/site/_index.md", "LICENSE"]) {
+  for (const path of ["docs/_index.md", "LICENSE"]) {
     const f = fixture(t);
     git(f.root, "rm", path);
     const revision = commit(f.root);
@@ -178,7 +188,7 @@ test("missing index or licence fails before creating output", (t) => {
 });
 
 test("committed symlinks and submodules are refused before any writes", (t) => {
-  for (const path of ["docs/site/link.md", "LICENSE"]) {
+  for (const path of ["docs/link.md", "LICENSE"]) {
     const f = fixture(t);
     if (path === "LICENSE") rmSync(join(f.root, path));
     symlinkSync("/outside", join(f.root, path));
@@ -187,7 +197,7 @@ test("committed symlinks and submodules are refused before any writes", (t) => {
     assert.equal(existsSync(f.out), false);
   }
   const f = fixture(t);
-  git(f.root, "update-index", "--add", "--cacheinfo", `160000,${f.revision},docs/site/submodule`);
+  git(f.root, "update-index", "--add", "--cacheinfo", `160000,${f.revision},docs/submodule`);
   git(f.root, "commit", "-m", "Submodule fixture");
   const revision = git(f.root, "rev-parse", "HEAD");
   assert.throws(() => exportDocs({ ...f, revision }), /regular|submodule/i);
@@ -197,7 +207,7 @@ test("committed symlinks and submodules are refused before any writes", (t) => {
 test("unsafe committed filenames and reserved provenance paths are refused", (t) => {
   for (const name of ["bad name.md", "bad\nname.md", "bad\\name.md", "bad:name.md", "CON.md", "trail.", ".hidden.md", "source.json"]) {
     const f = fixture(t);
-    put(f.root, `docs/site/${name}`, "Unsafe.\n");
+    put(f.root, `docs/${name}`, "Unsafe.\n");
     const revision = commit(f.root);
     assert.throws(() => exportDocs({ ...f, revision }), /name|path|reserved/i, name);
     assert.equal(existsSync(f.out), false);
@@ -205,7 +215,7 @@ test("unsafe committed filenames and reserved provenance paths are refused", (t)
 });
 
 test("case-folded file and ancestor collisions are refused", (t) => {
-  for (const name of ["docs/site/GUIDES/check.md", "docs/site/GUIDES"]) {
+  for (const name of ["docs/GUIDES/check.md", "docs/GUIDES"]) {
     const f = fixture(t);
     const blob = git(f.root, "rev-parse", `${f.revision}:LICENSE`);
     git(f.root, "update-index", "--add", "--cacheinfo", `100644,${blob},${name}`);
@@ -218,10 +228,10 @@ test("case-folded file and ancestor collisions are refused", (t) => {
 
 test("a source licence matching the root is kept, and a conflicting one is refused", (t) => {
   const f = fixture(t);
-  put(f.root, "docs/site/LICENSE", "Fixture licence\n");
+  put(f.root, "docs/LICENSE", "Fixture licence\n");
   exportDocs({ ...f, revision: commit(f.root) });
   assert.equal(readFileSync(join(f.out, "tooling/LICENSE"), "utf8"), "Fixture licence\n");
-  put(f.root, "docs/site/LICENSE", "Different licence\n");
+  put(f.root, "docs/LICENSE", "Different licence\n");
   const out = join(f.base, "conflict");
   assert.throws(() => exportDocs({ ...f, revision: commit(f.root), out }), /LICENSE|licence/i);
   assert.equal(existsSync(out), false);
@@ -259,7 +269,7 @@ test("output must be an absolute path", (t) => {
 });
 
 test("CLI exports and rejects missing, unknown and duplicate arguments", (t) => {
-  const f = fixture(t);
+  const f = fixture(t, "docs/site");
   const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: gitEnv });
   const success = run("--root", f.root, "--repository", "unset-sh/.github", "--revision", f.revision, "--out", f.out);
   assert.equal(success.status, 0, success.stderr);

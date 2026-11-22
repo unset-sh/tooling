@@ -2,7 +2,7 @@ name: self-release
 
 # This repository's own release, through the release workflow it ships. The workflow files themselves are
 # attached and attested, so a repository that is about to call the commit of a release can check that the
-# commit went through the owner's approval, and not only that a tag names it (docs/site/release-reference.md,
+# commit went through the owner's approval, and not only that a tag names it (docs/release-reference.md,
 # "Verify a workflow version").
 
 on:
