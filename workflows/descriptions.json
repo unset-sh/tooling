@@ -132,8 +132,8 @@
     {
       "repository": "docs",
       "path": ".github/workflows/site.yml",
-      "reviewedCommit": "648dbfd8681bc00a043746c113b189d7c51aaa84",
-      "reviewedSha256": "51390322476e72602df5ebe90e61e0861604617613c340c7d5edca172b75118e",
+      "reviewedCommit": "af4cd59a83d70c8b505727d0a7b01c21786fb09c",
+      "reviewedSha256": "5ca763e39e9c3201789eb62c827178a57458ad7475fafbd6fa11db20a8a2b781",
       "purpose": "Refresh supported upstream content and registered maps, build the organisation documentation site and publish it on GitHub Pages.",
       "steps": [
         "On main-branch pushes, manual runs and the hourly schedule, call the pinned shared refresh workflow to generate and validate the registered organisation and workflow maps.",

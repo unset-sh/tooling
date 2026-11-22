@@ -190,9 +190,9 @@ Refresh supported upstream content and registered maps, build the organisation d
 - A validated map artifact for this run and a checked Pages artifact, followed by the published documentation site when deployment succeeds.
 - Brand, organisation-map and workflow-map updates used by this build; the workflow does not commit these updates back to the repository.
 
-[Reviewed source at 648dbfd8681b](https://github.com/unset-sh/docs/blob/648dbfd8681bc00a043746c113b189d7c51aaa84/.github/workflows/site.yml).
+[Reviewed source at af4cd59a83d7](https://github.com/unset-sh/docs/blob/af4cd59a83d70c8b505727d0a7b01c21786fb09c/.github/workflows/site.yml).
 
-Source SHA-256: `51390322476e72602df5ebe90e61e0861604617613c340c7d5edca172b75118e`.
+Source SHA-256: `5ca763e39e9c3201789eb62c827178a57458ad7475fafbd6fa11db20a8a2b781`.
 
 #### Additional reviewed version 1
 
