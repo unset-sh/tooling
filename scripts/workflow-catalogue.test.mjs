@@ -283,3 +283,16 @@ test("catalogue size is bounded while collecting many individually valid workflo
   f.repository("web", sha("a"), Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`ci${i}.yml`, { on: "push", jobs }])));
   await assert.rejects(f.collect(), /size limit/);
 });
+
+test("source provenance and parser input retain UTF-8 BOM and CRLF bytes", async () => {
+  const f = fixture();
+  const source = '\uFEFF{\r\n  "on": "push",\r\n  "jobs": { "test": {} }\r\n}\r\n';
+  f.repository("web", sha("a"), { "ci.yml": source });
+  let parserInput;
+  const result = await f.collect({ parseYaml: (input) => {
+    parserInput = input;
+    return JSON.parse(input.replace(/^\uFEFF/, ""));
+  } });
+  assert.equal(parserInput, source);
+  assert.equal(result.workflows[0].sha256, createHash("sha256").update(Buffer.from(source)).digest("hex"));
+});

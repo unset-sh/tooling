@@ -14,7 +14,7 @@ This guide describes the **unreleased implementation at version 0.0.0**. The org
 
 ## Before you start
 
-Work from the root of a checkout of `unset-sh/tooling`, with Git and Node 26.12.0 available. Select a reviewed source commit whose implementation and documentation have been checked. It must already contain the public pages under `docs/` and the root `LICENSE`; uncommitted edits are never copied into an export.
+Work from the root of a checkout of `unset-sh/tooling`, with Git and Node 26.12.0 available. Select a reviewed source commit whose implementation and documentation have been checked. Tooling's source must contain public pages under `docs/`; other consumers, including `.github`, must contain them under `docs/site/`. Every source needs a root `LICENSE`. Uncommitted edits are never copied into an export.
 
 The output must be an absolute path to a directory that does not yet exist. Its parent directory must already exist. Choose a fresh destination for each export so the command cannot mix sections from different revisions.
 
@@ -37,7 +37,7 @@ node scripts/export-docs.mjs --revision FULL_40_SHA --out /absolute/fresh-output
 
 Here, `FULL_40_SHA` must name the checked commit in `/absolute/github-checkout`, not the tooling checkout. The repository argument identifies the source in provenance and determines the section name. Use the actual source repository; it is not a way to choose an arbitrary destination.
 
-The exporter reads the selected commit's `docs/` tree and licence through Git. It does not copy the working directory, repository README, or unrelated Markdown files. A dirty checkout therefore cannot add unpublished edits to an export of a committed revision. The exporter refuses unsafe paths, symbolic links, reserved section names, and existing output destinations.
+The exporter reads the selected commit's documentation tree and licence through Git: `docs/` for tooling, or `docs/site/` for other consumers such as the `.github` example above. It does not copy the working directory, repository README, or unrelated Markdown files. A dirty checkout therefore cannot add unpublished edits to an export of a committed revision. The exporter refuses unsafe paths, symbolic links, reserved section names, and existing output destinations.
 
 ## Inspect the result
 

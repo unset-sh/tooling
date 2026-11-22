@@ -183,7 +183,9 @@ function gitObjects(read) {
     requireValue(bytes.length === entry.size && bytes.toString("base64") === encoded &&
       createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex") === entry.sha,
     "Invalid workflow blob content");
-    try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+    // Keep a leading BOM in the text so re-encoding for SHA-256 preserves every source byte.
+    // https://nodejs.org/download/release/v26.12.0/docs/api/util.html#new-textdecoderencoding-options
+    try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes); }
     catch { fail("Workflow source must be UTF-8"); }
   }
   return { files, source };
