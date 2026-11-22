@@ -62,3 +62,13 @@ test("a successful refresh uploads only the fixed validated snapshot and returns
   assert.doesNotMatch(workflow, /always\(\)|continue-on-error:|overwrite: true/);
   assert.ok(job.indexOf("refresh-maps.mjs") < job.indexOf("uses: actions/upload-artifact@"));
 });
+
+test("the map guide documents every input and uses the repository's current download action pin", () => {
+  const guide = readText("docs/map-refresh.md");
+  for (const input of inputsOf(workflow)) assert.ok(guide.includes(`\`${input}\``), `Map guide omits ${input}`);
+  assert.ok(guide.includes("`artifact-name`"));
+  const release = readText(".github/workflows/releases-package.yml");
+  const download = /uses: (actions\/download-artifact@[a-f0-9]{40} # v\d+\.\d+\.\d+)/.exec(release)?.[1];
+  assert.ok(download);
+  assert.ok(guide.includes(download), "The illustrative caller uses the maintained download-action pin");
+});

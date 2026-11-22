@@ -1,6 +1,6 @@
 ---
 title: "Developer tooling"
-description: "Use and maintain the shared checks, protected releases, and documentation exports for unset.sh."
+description: "Use and maintain the shared checks, protected releases, map refreshes, and documentation exports for unset.sh."
 weight: 50
 type: docs
 cascade:
@@ -21,7 +21,7 @@ The implementation described here is **unreleased, at version 0.0.0**. No consum
 
 | Repository | Responsibility |
 | --- | --- |
-| `unset-sh/tooling` | Shared checks, protected releases, documentation-export and workflow-catalogue helpers, and their tests |
+| `unset-sh/tooling` | Shared checks, protected releases, map-refresh, documentation-export and workflow-catalogue helpers, and their tests |
 | `unset-sh/.github` | Organisation profile, community defaults, repository map, and native workflow-picker templates |
 | Each consumer | Events, permissions, pinned callers, project checks, build commands, and release approval |
 | `unset-sh/agent-kit` | Shared agent instructions and agent working notes and artifacts |
@@ -34,6 +34,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 - [Prepare a repository to use shared workflows](use-workflows.md): preserve the repository's checks while adding a pinned caller.
 - [Release workflow reference](release-reference.md): inspect inputs, approval requirements, publication boundaries, and verification.
 - [Export the public documentation](export-docs.md): package an exact source revision for a reviewed import.
+- [Refresh every published map](map-refresh.md): register map generators and connect their complete snapshot to the build.
 - [Manage a documentation publishing key](manage-docs-publishing-key.md): operate the separate credential used by an existing source publisher.
 - [Organisation workflow map](https://docs.unset.sh/workflows/): find declared triggers, jobs, and exact reusable-workflow connections across public repositories.
 
@@ -41,6 +42,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 
 - [How workflow sources become GitHub entry points](workflow-layout.md): follow authored category files through generation and consumer execution.
 - [Maintain the workflow catalogue](workflow-map.md): understand collection, source provenance, refresh failures, and the distinction between declared configuration and runtime results.
+- [Refresh every published map](map-refresh.md#follow-a-successful-run): follow the shared job's collection, validation, and artifact boundary.
 - [Release workflow reference](release-reference.md#permissions-and-publication-boundary): understand the separation between consumer builds and protected publication.
 - [Export the public documentation](export-docs.md#use-the-workflow-artifact): understand the consumer checkout, central helper revision, and artifact boundary.
 - [Prepare a repository to use shared workflows](use-workflows.md#planned-automatic-adoption): distinguish a reviewed pin update from the proposed automatic adoption pipeline.
