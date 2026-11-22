@@ -5,7 +5,7 @@ weight: 15
 type: docs
 params:
   doc_kind: guide
-  checked_source_revision: "aad4a03c5db3d6d762c59543e1340744a941828a"
+  checked_source_revision: "c7a291f820c5fc7b8ceb732954e0141c8c31b2e3"
 ---
 
 The documentation exporter packages a repository's selected public pages from an exact Git commit. Use it to prepare a reviewed import into `unset-sh/docs`, or download the equivalent artifact from a caller of the reusable documentation-export workflow.
@@ -14,7 +14,7 @@ This guide describes the **unreleased implementation at version 0.0.0**. The org
 
 ## Before you start
 
-Work from the root of a checkout of `unset-sh/tooling`, with Git and Node 26.12.0 available. Select a reviewed source commit whose implementation and documentation have been checked. It must already contain the public pages under `docs/site/` and the root `LICENSE`; uncommitted edits are never copied into an export.
+Work from the root of a checkout of `unset-sh/tooling`, with Git and Node 26.12.0 available. Select a reviewed source commit whose implementation and documentation have been checked. Tooling's source must contain public pages under `docs/`; other consumers, including `.github`, must contain them under `docs/site/`. Every source needs a root `LICENSE`. Uncommitted edits are never copied into an export.
 
 The output must be an absolute path to a directory that does not yet exist. Its parent directory must already exist. Choose a fresh destination for each export so the command cannot mix sections from different revisions.
 
@@ -37,7 +37,7 @@ node scripts/export-docs.mjs --revision FULL_40_SHA --out /absolute/fresh-output
 
 Here, `FULL_40_SHA` must name the checked commit in `/absolute/github-checkout`, not the tooling checkout. The repository argument identifies the source in provenance and determines the section name. Use the actual source repository; it is not a way to choose an arbitrary destination.
 
-The exporter reads the selected commit's `docs/site/` tree and licence through Git. It does not copy the working directory, repository README, or unrelated Markdown files. A dirty checkout therefore cannot add unpublished edits to an export of a committed revision. The exporter refuses unsafe paths, symbolic links, reserved section names, and existing output destinations.
+The exporter reads the selected commit's documentation tree and licence through Git: `docs/` for tooling, or `docs/site/` for other consumers such as the `.github` example above. It does not copy the working directory, repository README, or unrelated Markdown files. A dirty checkout therefore cannot add unpublished edits to an export of a committed revision. The exporter refuses unsafe paths, symbolic links, reserved section names, and existing output destinations.
 
 ## Inspect the result
 
@@ -61,11 +61,11 @@ If the command refuses an existing output directory, choose another fresh destin
 
 ## Use the workflow artifact
 
-The [reusable documentation-export workflow](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/automation/docs-export.yml) accepts `workflow_call` only, with no inputs, stored secrets, or outputs. It uses `contents: read` and uploads a `docs-<commit>` artifact for 14 days, where the commit is the caller's `github.sha`. The artifact preserves the section directory shown above.
+The [reusable documentation-export workflow](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/shared/docs/export.yml) accepts `workflow_call` only, with no inputs, stored secrets, or outputs. It uses `contents: read` and uploads a `docs-<commit>` artifact for 14 days, where the commit is the caller's `github.sha`. The artifact preserves the section directory shown above.
 
 The workflow checks out the consumer at `github.sha` into `source/`. It checks out the central helper into `tooling/` at the called workflow's own repository and full commit, after validating that identity. Node comes from the tooling checkout's `.nvmrc`. This keeps export implementation tied to the caller's approved tooling pin while exporting the consumer's selected source revision.
 
-The reusable workflow does not run consumer check or build commands. A caller must run its checks first and make export depend on that job. Tooling's [local documentation caller](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/automation/docs-self.yml) does this for pull requests, pushes to `main`, and manual dispatch. For example, a tooling pull request first runs the check job; only success permits export of that run's `github.sha`. A failed check prevents the artifact job, and a missing section index or licence fails export.
+The reusable workflow does not run consumer check or build commands. A caller must run its checks first and make export depend on that job. Tooling's [local documentation caller](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/tooling/docs/self.yml) does this for pull requests, pushes to `main`, and manual dispatch. For example, a tooling pull request first runs the check job; only success permits export of that run's `github.sha`. A failed check prevents the artifact job, and a missing section index or licence fails export.
 
 Inspect the downloaded artifact's `source.json` before preparing an import. A pull-request run's `github.sha` may be a test merge commit, so do not assume it is the pull request's head commit. The artifact is packaging evidence for its recorded revision. Neither this workflow nor the local caller pushes to `unset-sh/docs` or deploys the website.
 
@@ -73,8 +73,8 @@ Inspect the downloaded artifact's `source.json` before preparing an import. A pu
 
 Import only the exported section through a pull request in `unset-sh/docs`. Preserve its provenance and licence. Keep the renderer, its `.github` directory, and other repository sections intact.
 
-The source mappings are `unset-sh/tooling:docs/site/` to `unset-sh/docs:tooling/` and `unset-sh/.github:docs/site/` to `unset-sh/docs:github/`. Verify the current framework contribution policy when reviewing an import, then run its documented checks and production build before merging. A successful source export and a successful website deployment are separate results.
+The source mappings are `unset-sh/tooling:docs/` to `unset-sh/docs:tooling/` and `unset-sh/.github:docs/site/` to `unset-sh/docs:github/`. The exporter selects tooling's `docs/` root explicitly; other consumers retain their existing `docs/site/` contract. It never guesses a directory from available files or reads a consumer-controlled export configuration. Verify the current framework contribution policy when reviewing an import, then run its documented checks and production build before merging. A successful source export and a successful website deployment are separate results.
 
 ## Source and evidence
 
-The command is declared in [`package.json`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/package.json) and implemented by [`scripts/export-docs.mjs`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/scripts/export-docs.mjs). The checked workflow sources are [`automation/docs-export.yml`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/automation/docs-export.yml) and [`automation/docs-self.yml`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/automation/docs-self.yml). The instructions and illustrative commands were checked against that source; they do not claim an observed cross-repository publication or deployment.
+The command is declared in [`package.json`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/package.json) and implemented by [`scripts/export-docs.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/export-docs.mjs). The checked workflow sources are [`workflows/shared/docs/export.yml`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/shared/docs/export.yml) and [`workflows/tooling/docs/self.yml`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/tooling/docs/self.yml). The instructions and illustrative commands were checked against that source; they do not claim an observed cross-repository publication or deployment.

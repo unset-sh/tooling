@@ -5,10 +5,10 @@ weight: 30
 type: docs
 params:
   doc_kind: reference
-  checked_source_revision: "aad4a03c5db3d6d762c59543e1340744a941828a"
+  checked_source_revision: "c7a291f820c5fc7b8ceb732954e0141c8c31b2e3"
 ---
 
-This reference describes `.github/workflows/releases-package.yml`, generated from `releases/package.yml`, at `aad4a03c5db3d6d762c59543e1340744a941828a`. The implementation is **unreleased, at version 0.0.0**. The workflow publishes nothing at that version. Its source checks do not establish that a complete GitHub release has run successfully.
+This reference describes `.github/workflows/releases-package.yml`, generated from `workflows/shared/releases/package.yml`, at `c7a291f820c5fc7b8ceb732954e0141c8c31b2e3`. The implementation is **unreleased, at version 0.0.0**. The workflow publishes nothing at that version. Its source checks do not establish that a complete GitHub release has run successfully.
 
 ## Trigger and ownership
 
@@ -107,6 +107,6 @@ The ability of an assistant's token to approve a waiting deployment remains an o
 
 ## Source and evidence
 
-The contract was checked against [`releases/package.yml`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/releases/package.yml), [`release-gate.mjs`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/scripts/release-gate.mjs), [`release-files.mjs`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/scripts/release-files.mjs), and [`release-package.mjs`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/scripts/release-package.mjs). The repository pins Node 26.12.0 and npm 11.20.0 for its release helpers; their [checks](https://github.com/unset-sh/tooling/tree/aad4a03c5db3d6d762c59543e1340744a941828a/checks) include refused environments and hostile package archives. Run `npm run check` from this repository's root to exercise the local checks.
+The contract was checked against [`workflows/shared/releases/package.yml`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/shared/releases/package.yml), [`release-gate.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/release-gate.mjs), [`release-files.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/release-files.mjs), and [`release-package.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/release-package.mjs). The repository pins Node 26.12.0 and npm 11.20.0 for its release helpers; their [checks](https://github.com/unset-sh/tooling/tree/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/checks) include refused environments and hostile package archives. Run `npm run check` from this repository's root to exercise the local checks.
 
 GitHub's [reusable workflow reference](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations) describes the caller context and permission ceiling. Its [attestation guidance](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating) explains verification with an expected signer workflow.

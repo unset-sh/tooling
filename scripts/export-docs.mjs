@@ -6,8 +6,10 @@ import { fileURLToPath } from "node:url";
 import { startedAsScript } from "./cli.mjs";
 
 const defaultRoot = fileURLToPath(new URL("../", import.meta.url));
-const directory = "docs/site";
 const defaultRepository = "unset-sh/tooling";
+// Tooling moved its maintained human pages to docs/. Existing consumers keep their pinned docs/site contract.
+// This selection is code-reviewed, never read from consumer configuration or guessed from available files.
+const sourceDirectories = new Map([["unset-sh/tooling", "docs"]]);
 // unset-sh/docs reserves these framework and generated directories (scripts/prepare.mjs).
 // The github section belongs to unset-sh/.github, not a second repository of that name.
 // Its publication guard also rejects the retired legacy unset application mirror.
@@ -85,7 +87,7 @@ function validatePaths(files) {
   }
 }
 
-function committedFiles(root, revision) {
+function committedFiles(root, revision, directory) {
   if (typeof revision !== "string" || !/^[0-9a-f]{40}$/.test(revision)) {
     throw new Error("Revision must be a full 40-character lowercase commit SHA");
   }
@@ -113,14 +115,14 @@ function committedFiles(root, revision) {
     } else if (sourcePath.startsWith(`${directory}/`)) {
       files.push({ path: sourcePath.slice(directory.length + 1), bytes, mode });
     } else {
-      throw new Error("Invalid documentation source path; docs/site must be a directory and LICENSE a file");
+      throw new Error(`Invalid documentation source path; ${directory} must be a directory and LICENSE a file`);
     }
   }
   if (!licence) throw new Error("The revision must contain a root LICENSE file");
-  if (!files.some(({ path }) => path === "_index.md")) throw new Error("The revision must contain docs/site/_index.md");
+  if (!files.some(({ path }) => path === "_index.md")) throw new Error(`The revision must contain ${directory}/_index.md`);
   const sourceLicence = files.find(({ path }) => path === "LICENSE");
   if (sourceLicence && !sourceLicence.bytes.equals(licence.bytes)) {
-    throw new Error("docs/site/LICENSE conflicts with the root LICENSE");
+    throw new Error(`${directory}/LICENSE conflicts with the root LICENSE`);
   }
   if (!sourceLicence) files.push(licence);
   validatePaths(files);
@@ -130,8 +132,9 @@ function committedFiles(root, revision) {
 /** Export only the docs section and licence from an exact commit to a fresh directory. */
 export function exportDocs({ root = defaultRoot, repository = defaultRepository, revision, out } = {}) {
   const section = sectionFor(repository);
+  const directory = sourceDirectories.get(repository) ?? "docs/site";
   const output = freshOutput(out);
-  const files = committedFiles(root, revision);
+  const files = committedFiles(root, revision, directory);
   const provenance = {
     schemaVersion: 1,
     repository,

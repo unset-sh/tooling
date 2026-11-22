@@ -230,7 +230,7 @@ test("this repository checks and releases itself through the workflows it ships"
 });
 
 test("the public guides name every input of the shipped workflows", () => {
-  const readme = readText("docs/site/use-workflows.md") + readText("docs/site/release-reference.md");
+  const readme = readText("docs/use-workflows.md") + readText("docs/release-reference.md");
   for (const path of REUSABLE) {
     const inputs = inputsOf(readText(path));
     assert.ok(inputs.length > 0, `${path} declares no inputs`);
@@ -239,7 +239,7 @@ test("the public guides name every input of the shipped workflows", () => {
 });
 
 test("the release reference shows callers the same permissions the release workflow asks for", () => {
-  const readme = readText("docs/site/release-reference.md");
+  const readme = readText("docs/release-reference.md");
   for (const scope of ["contents: write", "packages: write", "id-token: write", "attestations: write", "actions: read"]) {
     assert.ok(readme.includes(scope), `Release reference does not show ${scope}`);
   }

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "workflows": [
+    {
+      "source": "workflows/shared/ci/check.yml",
+      "output": ".github/workflows/ci-check.yml"
+    },
+    {
+      "source": "workflows/shared/releases/package.yml",
+      "output": ".github/workflows/releases-package.yml"
+    },
+    {
+      "source": "workflows/shared/docs/export.yml",
+      "output": ".github/workflows/automation-docs-export.yml"
+    },
+    {
+      "source": "workflows/tooling/ci/self.yml",
+      "output": ".github/workflows/ci-self.yml"
+    },
+    {
+      "source": "workflows/tooling/docs/self.yml",
+      "output": ".github/workflows/automation-docs-self.yml"
+    },
+    {
+      "source": "workflows/tooling/release/self.yml",
+      "output": ".github/workflows/releases-self.yml"
+    }
+  ]
+}

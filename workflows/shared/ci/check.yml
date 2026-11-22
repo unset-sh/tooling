@@ -10,7 +10,7 @@ name: check
 #
 # It checks out the calling repository, installs the Node version its .nvmrc names, and runs its check
 # command. The job holds a read-only token and no secret, so it is safe on a pull request from a fork.
-# docs/site/use-workflows.md describes the inputs.
+# docs/use-workflows.md describes the inputs.
 
 on:
   workflow_call:

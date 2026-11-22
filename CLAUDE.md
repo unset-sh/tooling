@@ -12,13 +12,15 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
 ## Rules
 
 - Use Node 26 (`.nvmrc`), no dependencies, and `node:test`. Actions are pinned by full commit SHA.
-- Edit category sources (`ci/`, `releases/`, `automation/`; add `pages/`, `deployments/`, or `code-scanning/` with
-  their first workflow), then run `npm run workflows`. Commit generated `.github/workflows/` files, never edit them.
+- Reusable implementations live in `workflows/shared/<purpose>/`; repository-specific automation lives in
+  `workflows/<repository>/<purpose>/`. Add a folder with its first implementation, not as a placeholder.
+  Register every source and its stable executable path in `workflows/manifest.json`, then run `npm run workflows`.
+  Commit generated `.github/workflows/` files, never edit them. A source move must preserve consumer entry points.
   There are no starter templates here. The generator retains optional template support for its isolated fixtures.
 - `npm run check` checks generation freshness, the release scripts, docs exporter and workflow security invariants.
   Preserve every release refusal when moving code. Inputs, outputs, check names and signer paths are external contracts.
 - AI plans, migration notes and review artifacts live in `unset-sh/agent-kit` under `notes/` and `artifacts/`, never
-  in ad hoc Markdown files here. Maintained human documentation belongs in `docs/site/`, follows agent-kit's
+  in ad hoc Markdown files here. Maintained human documentation belongs in `docs/`, follows agent-kit's
   org-documentation standard, and exports to `unset-sh/docs:tooling/`. Alex owns these pages; review them with each
   workflow change and before each release. Update the relevant guide/reference in the same PR, or state a reviewed
   no-change reason. Exports read a full committed revision, include provenance and licence, and never write another

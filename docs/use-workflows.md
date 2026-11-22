@@ -5,7 +5,7 @@ weight: 10
 type: docs
 params:
   doc_kind: guide
-  checked_source_revision: "aad4a03c5db3d6d762c59543e1340744a941828a"
+  checked_source_revision: "c7a291f820c5fc7b8ceb732954e0141c8c31b2e3"
 ---
 
 A small workflow in your repository can call the shared implementation in `unset-sh/tooling`. Your pull requests and pushes still trigger runs in your repository, and their check results appear there.
@@ -77,4 +77,4 @@ A dependency updater can propose a reusable-workflow pin change, but that alone 
 
 ## Source and evidence
 
-This guide was checked against [`ci/check.yml`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/ci/check.yml), the caller templates, and the [workflow contract checks](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/checks/workflows.test.mjs). The example is a configuration template checked against that source, not an observed consumer run. GitHub documents [calling reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) and their [caller context and permissions](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations).
+This guide was checked against [`workflows/shared/ci/check.yml`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/shared/ci/check.yml), the caller templates, and the [workflow contract checks](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/checks/workflows.test.mjs). The example is a configuration template checked against that source, not an observed consumer run. GitHub documents [calling reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) and their [caller context and permissions](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations).

@@ -18,7 +18,7 @@ defines the exporter, path checks and recovery behavior; keep those implementati
 | --- | --- | --- |
 | Source pushes its generated `profile-recipes/` section to `unset-sh/docs` | Dedicated SSH deploy key | Public half on `unset-sh/docs`; private half in the source's `docs-mirror` environment |
 | Docs builds and publishes its own GitHub Pages site | GitHub's workflow token and OIDC identity, with `pages: write` and `id-token: write` | The docs deployment job and its `github-pages` environment |
-| Tooling's [reusable documentation export](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/automation/docs-export.yml), at unreleased version 0.0.0 | Read-only workflow token | The export job; preparing an artifact does not require the source publishing key |
+| Tooling's [reusable documentation export](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/shared/docs/export.yml), at unreleased version 0.0.0 | Read-only workflow token | The export job; preparing an artifact does not require the source publishing key |
 
 The deploy key is for a Git push across repositories. It is not needed to enable Pages or HTTPS. A write deploy key
 grants repository access, not a server-enforced folder boundary; the reviewed publisher checks that it changes only
