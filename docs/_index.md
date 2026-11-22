@@ -10,7 +10,7 @@ menus:
     weight: 50
 params:
   doc_kind: overview
-  checked_source_revision: "940fce3708c6398db2d77e832e58e81a30730231"
+  checked_source_revision: "4274bca9d17d5eda5d1be6eca3bd796863bd859e"
 ---
 
 `unset-sh/tooling` maintains the shared GitHub Actions implementations and supporting scripts used by unset.sh repositories. A consumer keeps a small workflow that selects its events, permissions, and inputs, then calls an approved central commit. Its tests and build commands remain in that consumer.
@@ -50,4 +50,4 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 
 ## Source and version
 
-The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/940fce3708c6398db2d77e832e58e81a30730231); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
+The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/4274bca9d17d5eda5d1be6eca3bd796863bd859e); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
