@@ -36,6 +36,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 - [Export the public documentation](export-docs.md): package an exact source revision for a reviewed import.
 - [Manage a documentation publishing key](manage-docs-publishing-key.md): operate the separate credential used by an existing source publisher.
 - [Organisation workflow map](https://docs.unset.sh/workflows/): find declared triggers, jobs, and exact reusable-workflow connections across public repositories.
+- [Workflow reference](workflow-reference.md): read each reviewed workflow's purpose, responsibilities, and results.
 
 ## Understand and contribute
 

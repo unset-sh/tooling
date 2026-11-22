@@ -59,6 +59,19 @@ test("write copies source bytes with provenance and is idempotent", (t) => {
   assert.deepEqual(generate(root, { write: false }), []);
 });
 
+test("the maintained descriptions registry is metadata, but other files and linked registries are refused", (t) => {
+  const root = fixture(t);
+  source(root, "shared/ci/check.yml", "ci-check.yml");
+  put(root, "workflows/descriptions.json", "{}");
+  assert.deepEqual(generate(root, { write: false }), [".github/workflows/ci-check.yml"]);
+  put(root, "workflows/other.json", "{}");
+  assert.throws(() => generate(root, { write: false }), /unsafe|misplaced/);
+  rmSync(join(root, "workflows/other.json"));
+  rmSync(join(root, "workflows/descriptions.json"));
+  symlinkSync(join(root, "workflows/manifest.json"), join(root, "workflows/descriptions.json"));
+  assert.throws(() => generate(root, { write: false }), /link/);
+});
+
 test("generation sorts paths independently of source creation order", (t) => {
   const root = fixture(t);
   source(root, "shared/releases/package.yml", "releases-package.yml");
