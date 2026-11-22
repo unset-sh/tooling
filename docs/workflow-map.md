@@ -5,7 +5,7 @@ weight: 25
 type: docs
 params:
   doc_kind: reference
-  checked_source_revision: "efd29f9322b3e34800ae4f62cc727c7d76183b0c"
+  checked_source_revision: "940fce3708c6398db2d77e832e58e81a30730231"
 ---
 
 The [organisation workflow map](https://docs.unset.sh/workflows/) documents the GitHub Actions configuration in public `unset-sh` repositories. Its catalogue comes from workflow YAML and exact Git revisions. Tooling owns collection; the documentation site owns parsing, the saved snapshot, rendering, and publication.
@@ -38,7 +38,7 @@ Artifact transfers, package consumption, release approvals, and human handoffs n
 
 ## Maintain reviewed descriptions
 
-The [workflow reference](workflow-reference.md) explains each reviewed workflow's purpose, what it does, and what it produces. These descriptions come from `workflows/descriptions.json` in the same pinned tooling checkout as the collector. They are reviewed prose, never inferred automatically from commands or job names.
+The [workflow reference](workflow-reference.md) explains each reviewed workflow's purpose, what it does, and what it produces. These descriptions come from [`workflows/descriptions.json`](https://github.com/unset-sh/tooling/blob/940fce3708c6398db2d77e832e58e81a30730231/workflows/descriptions.json) in the same pinned tooling checkout as the collector. They are reviewed prose, never inferred automatically from commands or job names.
 
 Each registry record identifies a repository, executable path, full reviewed commit, and SHA-256 of the exact workflow bytes. It supplies one purpose, an ordered list of responsibilities, and a list of results. The collector adds a `documentation` object to every workflow:
 
@@ -58,7 +58,7 @@ When adding or changing a workflow:
 4. Run `npm run workflows:describe`, then `npm run check`. Commit the registry and regenerated `docs/workflow-reference.md` together. The freshness check refuses a stale reference.
 5. Advance the documentation site's reviewed tooling pin through its normal review process. Its next successful collection uses that registry and reports any remaining review or missing states.
 
-The registry accepts at most 1,000 records and 1 MiB. Purpose, responsibility, and result text must be trimmed, nonempty single lines of at most 2,000 characters; each record has 1–20 responsibilities and 1–10 results. Duplicate repository/path/SHA-256 records, extra fields, malformed identities, and linked files are refused. The generator escapes prose as literal Markdown text and only replaces its own generated reference.
+The [`workflow-descriptions.mjs` helper](https://github.com/unset-sh/tooling/blob/940fce3708c6398db2d77e832e58e81a30730231/scripts/workflow-descriptions.mjs) validates the registry and generates the reference. The registry accepts at most 1,000 records and 1 MiB. Purpose, responsibility, and result text must be trimmed, nonempty single lines of at most 2,000 characters; each record has 1–20 responsibilities and 1–10 results. Duplicate repository/path/SHA-256 records, extra fields, malformed identities, and linked files are refused. The generator escapes prose as literal Markdown text and only replaces its own generated reference.
 
 The source-byte check watches workflow YAML. A supporting script or remote action can change behaviour without changing that YAML; reviewers must assess those implementation changes too. A matching hash proves which workflow text was reviewed, not that a prose explanation is complete or correct.
 
@@ -94,4 +94,4 @@ Change the implementation in `scripts/workflow-catalogue.mjs` and its behavioura
 
 Select a reviewed full tooling commit in the documentation site's helper checkout, then validate a live refresh and the normal and publication builds. Consumer workflow pins do not change when the collector changes. The collector remains part of the unreleased tooling implementation at version `0.0.0`.
 
-The checked implementation is [`workflow-catalogue.mjs`](https://github.com/unset-sh/tooling/blob/efd29f9322b3e34800ae4f62cc727c7d76183b0c/scripts/workflow-catalogue.mjs), with [collector tests](https://github.com/unset-sh/tooling/blob/efd29f9322b3e34800ae4f62cc727c7d76183b0c/scripts/workflow-catalogue.test.mjs). For authored workflow locations, read [How workflow sources become GitHub entry points](workflow-layout.md). For delivery of these maintained guides, follow [Export the public documentation](export-docs.md).
+The checked implementation is [`workflow-catalogue.mjs`](https://github.com/unset-sh/tooling/blob/940fce3708c6398db2d77e832e58e81a30730231/scripts/workflow-catalogue.mjs), with [collector tests](https://github.com/unset-sh/tooling/blob/940fce3708c6398db2d77e832e58e81a30730231/scripts/workflow-catalogue.test.mjs). For authored workflow locations, read [How workflow sources become GitHub entry points](workflow-layout.md). For delivery of these maintained guides, follow [Export the public documentation](export-docs.md).
