@@ -5,7 +5,7 @@ weight: 25
 type: docs
 params:
   doc_kind: reference
-  checked_source_revision: "86ce2eeec1436228d8d0d5b68f6c99243264f578"
+  checked_source_revision: "efd29f9322b3e34800ae4f62cc727c7d76183b0c"
 ---
 
 The [organisation workflow map](https://docs.unset.sh/workflows/) documents the GitHub Actions configuration in public `unset-sh` repositories. Its catalogue comes from workflow YAML and exact Git revisions. Tooling owns collection; the documentation site owns parsing, the saved snapshot, rendering, and publication.
@@ -50,7 +50,7 @@ Artifact transfers, package consumption, release approvals, and human handoffs n
 
 Tooling uses Node 26 and has no package dependencies. The documentation site supplies its existing pinned YAML parser, rejects ambiguous or malformed documents, and bounds alias expansion. Installing another parser in tooling would create a second parsing policy to maintain.
 
-Requests use only `api.github.com`, with REST API version `2026-03-10`. The collector requests public repositories, resolves each default branch once, then reads immutable commit, tree and blob objects. Blob bytes must match their Git identity and declared size. API-provided URLs are never followed, redirects are refused, and errors omit response bodies and parser details. The [API version policy](https://docs.github.com/en/rest/about-the-rest-api/api-versions), [Git tree API](https://docs.github.com/en/rest/git/trees#get-a-tree), and [Git blob API](https://docs.github.com/en/rest/git/blobs#get-a-blob) define this boundary.
+Requests use only `api.github.com`, with REST API version `2026-03-10`. The collector requests public repositories, resolves each default branch once, then reads immutable commit, tree and blob objects. Blob bytes must match their Git identity and declared size. The source SHA-256 preserves a UTF-8 byte-order mark and original line endings. API-provided URLs are never followed, redirects are refused, and errors omit response bodies and parser details. The [API version policy](https://docs.github.com/en/rest/about-the-rest-api/api-versions), [Git tree API](https://docs.github.com/en/rest/git/trees#get-a-tree), and [Git blob API](https://docs.github.com/en/rest/git/blobs#get-a-blob) define this boundary.
 
 Collection is bounded to 200 repositories, 2,000 workflow versions, 256 jobs per workflow, and 10,000 call edges. Each workflow source is at most 1 MiB; API responses and the completed catalogue are at most 4 MiB. Each request has a 15-second timeout. Exceeding a limit fails collection rather than truncating the map.
 
@@ -68,4 +68,4 @@ Change the implementation in `scripts/workflow-catalogue.mjs` and its behavioura
 
 Select a reviewed full tooling commit in the documentation site's helper checkout, then validate a live refresh and the normal and publication builds. Consumer workflow pins do not change when the collector changes. The collector remains part of the unreleased tooling implementation at version `0.0.0`.
 
-The checked implementation is [`workflow-catalogue.mjs`](https://github.com/unset-sh/tooling/blob/86ce2eeec1436228d8d0d5b68f6c99243264f578/scripts/workflow-catalogue.mjs), with [collector tests](https://github.com/unset-sh/tooling/blob/86ce2eeec1436228d8d0d5b68f6c99243264f578/scripts/workflow-catalogue.test.mjs). For authored workflow locations, read [How workflow sources become GitHub entry points](workflow-layout.md). For delivery of these maintained guides, follow [Export the public documentation](export-docs.md).
+The checked implementation is [`workflow-catalogue.mjs`](https://github.com/unset-sh/tooling/blob/efd29f9322b3e34800ae4f62cc727c7d76183b0c/scripts/workflow-catalogue.mjs), with [collector tests](https://github.com/unset-sh/tooling/blob/efd29f9322b3e34800ae4f62cc727c7d76183b0c/scripts/workflow-catalogue.test.mjs). For authored workflow locations, read [How workflow sources become GitHub entry points](workflow-layout.md). For delivery of these maintained guides, follow [Export the public documentation](export-docs.md).
