@@ -94,6 +94,10 @@ function workflowSources(root) {
       if (path === "workflows/manifest.json") continue;
       const stat = lstatSync(join(root, path));
       if (stat.isSymbolicLink()) throw new Error(`${path}: symbolic links are not allowed`);
+      if (path === "workflows/descriptions.json") {
+        if (!stat.isFile() || stat.nlink !== 1 || stat.size > 1024 * 1024) throw new Error(`${path}: expected bounded regular metadata`);
+        continue;
+      }
       if (stat.isDirectory()) {
         if (depth >= 2) throw new Error(`${path}: nested source directories are not supported`);
         visit(path, depth + 1);
