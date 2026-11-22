@@ -1,0 +1,79 @@
+name: maps-refresh
+
+on:
+  workflow_call:
+    inputs:
+      registry:
+        description: Repository-relative path to the map registry
+        type: string
+        default: .github/maps.json
+      install:
+        description: Install the consumer's locked dependencies without lifecycle scripts
+        type: boolean
+        default: true
+    outputs:
+      artifact-name:
+        description: Complete validated JSON snapshot for this workflow run and attempt
+        value: ${{ jobs.refresh.outputs.artifact-name }}
+
+permissions: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      artifact-name: maps-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: This workflow knows where its own scripts are
+        env:
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+        run: |
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Expected to run from unset-sh/tooling at a full commit."
+            exit 1
+          fi
+
+      - name: Check out the map source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.sha }}
+          path: source
+          persist-credentials: false
+
+      - name: Check out this workflow's own scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: source/.build/tooling
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: source/.build/tooling/.nvmrc
+          package-manager-cache: false
+
+      - name: Install the map generators' dependencies
+        if: inputs.install
+        working-directory: source
+        run: npm ci --ignore-scripts
+
+      - name: Refresh and validate every registered map
+        env:
+          MAP_REGISTRY: ${{ inputs.registry }}
+          DOCS_GITHUB_TOKEN: ${{ github.token }}
+        run: node source/.build/tooling/scripts/refresh-maps.mjs --root "$GITHUB_WORKSPACE/source" --registry "$MAP_REGISTRY" --out "$RUNNER_TEMP/maps-output"
+
+      - name: Upload the complete map snapshot
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: maps-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/maps-output
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
