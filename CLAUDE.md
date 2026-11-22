@@ -23,6 +23,8 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
   committed executable bytes. Keep older descriptions needed by pinned callers. Run `npm run workflows:describe`
   to regenerate `docs/workflow-reference.md`; do not edit that generated reference directly. Review descriptions
   when supporting implementations change too, because the map's automatic freshness signal compares YAML bytes.
+  Live collection reads reviewed metadata from tooling's resolved default-branch commit independently of its
+  pinned executable helper, and records both revisions. Metadata-only reviews do not require caller pin updates.
 - AI plans, migration notes and review artifacts live in `unset-sh/agent-kit` under `notes/` and `artifacts/`, never
   in ad hoc Markdown files here. Maintained human documentation belongs in `docs/`, follows agent-kit's
   org-documentation standard, and exports to `unset-sh/docs:tooling/`. Alex owns these pages; review them with each

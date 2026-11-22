@@ -73,7 +73,7 @@ function readRegular(path, limit) {
   return bytes;
 }
 
-/** Load only the registry shipped beside the reviewed collector, never a consumer's metadata. */
+/** Load local authoring data for reference generation; live collection reads immutable remote Git data. */
 export function loadWorkflowDescriptions(root = defaultRoot) {
   if (!directory(root, "workflows")) throw new Error("Missing workflow descriptions directory");
   const bytes = readRegular(join(root, registryPath), maximumBytes);

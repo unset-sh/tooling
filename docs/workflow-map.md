@@ -22,7 +22,7 @@ Every discovered public repository has an entry, including archived repositories
 | Workflow | Name, path, exact commit, source SHA-256, declared events and selected filters, permissions, jobs, reviewed purpose and responsibilities |
 | Job | Name, `needs`, condition, declared permissions, environment name, reusable-workflow reference |
 | Reusable call | Caller and job, original reference, resolution type, exact target identity or unresolved status |
-| Snapshot | Collection time, schema version, collector repository and full commit |
+| Snapshot | Collection time, schema version, collector repository and full commit, description-data commit and source hash |
 
 Event filters include branches, tags, paths, activity types, workflow names, and schedule expressions. The catalogue omits step commands, action steps, environment variables, secret mappings, and input defaults. It never evaluates workflow expressions or runs consumer code. Matrix expansion and runtime job results are outside this map.
 
@@ -38,7 +38,9 @@ Artifact transfers, package consumption, release approvals, and human handoffs n
 
 ## Maintain reviewed descriptions
 
-The [workflow reference](workflow-reference.md) explains each reviewed workflow's purpose, what it does, and what it produces. These descriptions come from [`workflows/descriptions.json`](https://github.com/unset-sh/tooling/blob/940fce3708c6398db2d77e832e58e81a30730231/workflows/descriptions.json) in the same pinned tooling checkout as the collector. They are reviewed prose, never inferred automatically from commands or job names.
+The [workflow reference](workflow-reference.md) explains each reviewed workflow's purpose, what it does, and what it produces. These descriptions come from [`workflows/descriptions.json`](https://github.com/unset-sh/tooling/blob/940fce3708c6398db2d77e832e58e81a30730231/workflows/descriptions.json) at the exact tooling default-branch commit resolved for the current catalogue. They are reviewed prose, never inferred automatically from commands or job names.
+
+Description data advances independently of the pinned collector code. The snapshot's `collector.commit` identifies the executable helper; `descriptions.commit` identifies the tooling revision supplying the registry, and `descriptions.sha256` identifies its original bytes. The description-data revision always equals the tooling repository's current commit in that same snapshot. Reading new metadata does not run code from that revision.
 
 Each registry record identifies a repository, executable path, full reviewed commit, and SHA-256 of the exact workflow bytes. It supplies one purpose, an ordered list of responsibilities, and a list of results. The collector adds a `documentation` object to every workflow:
 
@@ -56,11 +58,13 @@ When adding or changing a workflow:
 2. Compute the SHA-256 of the original executable file bytes at that commit, including any byte-order mark and line endings. For generated workflows, hash the committed `.github/workflows/` file, including its provenance header.
 3. Add or update the matching record in `workflows/descriptions.json`. Use the repository's short name and flat executable path, and keep historical records when consumers still select those versions.
 4. Run `npm run workflows:describe`, then `npm run check`. Commit the registry and regenerated `docs/workflow-reference.md` together. The freshness check refuses a stale reference.
-5. Advance the documentation site's reviewed tooling pin through its normal review process. Its next successful collection uses that registry and reports any remaining review or missing states.
+5. Merge the reviewed registry change to tooling's default branch. The next successful collection adopts it automatically without changing the collector's executable pin, and reports any remaining review or missing states. Export the regenerated human reference through the normal documentation publishing process.
 
 The [`workflow-descriptions.mjs` helper](https://github.com/unset-sh/tooling/blob/940fce3708c6398db2d77e832e58e81a30730231/scripts/workflow-descriptions.mjs) validates the registry and generates the reference. The registry accepts at most 1,000 records and 1 MiB. Purpose, responsibility, and result text must be trimmed, nonempty single lines of at most 2,000 characters; each record has 1–20 responsibilities and 1–10 results. Duplicate repository/path/SHA-256 records, extra fields, malformed identities, and linked files are refused. The generator escapes prose as literal Markdown text and only replaces its own generated reference.
 
 The source-byte check watches workflow YAML. A supporting script or remote action can change behaviour without changing that YAML; reviewers must assess those implementation changes too. A matching hash proves which workflow text was reviewed, not that a prose explanation is complete or correct.
+
+For example, changing the documentation site's workflow to select a new collector commit changes that workflow's bytes. Review the resulting committed workflow, then record its exact digest in tooling. That metadata-only change is adopted on the next collection; it does not require another caller pin change. The generated human reference is a reviewed export, while the live map uses the metadata revision shown in its snapshot.
 
 ## Collection interface
 
@@ -77,6 +81,8 @@ The source-byte check watches workflow YAML. A supporting script or remote actio
 Tooling uses Node 26 and has no package dependencies. The documentation site supplies its existing pinned YAML parser, rejects ambiguous or malformed documents, and bounds alias expansion. Installing another parser in tooling would create a second parsing policy to maintain.
 
 Requests use only `api.github.com`, with REST API version `2026-03-10`. The collector requests public repositories, resolves each default branch once, then reads immutable commit, tree and blob objects. Blob bytes must match their Git identity and declared size. The source SHA-256 preserves a UTF-8 byte-order mark and original line endings. API-provided URLs are never followed, redirects are refused, and errors omit response bodies and parser details. The [API version policy](https://docs.github.com/en/rest/about-the-rest-api/api-versions), [Git tree API](https://docs.github.com/en/rest/git/trees#get-a-tree), and [Git blob API](https://docs.github.com/en/rest/git/blobs#get-a-blob) define this boundary.
+
+The registry is read through the same immutable Git objects at tooling's already resolved default-branch commit. It must be a regular, bounded UTF-8 JSON blob under `workflows/`. A missing or empty public tooling repository, missing registry, invalid schema, source identity mismatch, or API error fails the refresh. Collection never falls back to the collector checkout's local registry. Local reference generation still reads the author's checkout so proposed metadata and generated prose can be reviewed together.
 
 Collection is bounded to 200 repositories, 2,000 workflow versions, 256 jobs per workflow, and 10,000 call edges. Each workflow source is at most 1 MiB; API responses and the completed catalogue are at most 4 MiB. Each request has a 15-second timeout. Exceeding a limit fails collection rather than truncating the map.
 
