@@ -176,6 +176,26 @@ Source SHA-256: `4867727cb325e12ae20ec3ce21e5cd8a2f8bbb68fdfb3fb944e0375bdfdc977
 
 ### .github/workflows/site.yml
 
+Refresh supported upstream content and registered maps, build the organisation documentation site and publish it on GitHub Pages.
+
+**What it does**
+
+1. On main-branch pushes, manual runs and the hourly schedule, call the pinned shared refresh workflow to generate and validate the registered organisation and workflow maps.
+2. After the map refresh succeeds, resolve the latest compatible published brand release, install the pinned tooling without lifecycle scripts and download this run's validated map snapshot.
+3. Run the source and publication guards, build the publication site with Hugo and check its rendered pages, navigation and workflow map.
+4. Upload the public directory as a Pages artifact, then deploy it through the github-pages environment; only the deployment job receives Pages publication permissions.
+
+**Produces**
+
+- A validated map artifact for this run and a checked Pages artifact, followed by the published documentation site when deployment succeeds.
+- Brand, organisation-map and workflow-map updates used by this build; the workflow does not commit these updates back to the repository.
+
+[Reviewed source at 648dbfd8681b](https://github.com/unset-sh/docs/blob/648dbfd8681bc00a043746c113b189d7c51aaa84/.github/workflows/site.yml).
+
+Source SHA-256: `51390322476e72602df5ebe90e61e0861604617613c340c7d5edca172b75118e`.
+
+#### Additional reviewed version 1
+
 Refresh supported upstream content, build the organisation documentation site and publish it on GitHub Pages.
 
 **What it does**
@@ -370,6 +390,26 @@ Check and package tooling’s own maintained documentation using the shared work
 [Reviewed source at 22b6eb497c27](https://github.com/unset-sh/tooling/blob/22b6eb497c2782800523879a89a350c01cf1d2c1/.github/workflows/automation-docs-self.yml).
 
 Source SHA-256: `0f99738da98b9862f3463795ec7ae14267d844b6d707f597acc58363a8fa8bba`.
+
+### .github/workflows/automation-maps-refresh.yml
+
+Refresh every map registered by a calling repository and hand its build one complete validated JSON snapshot.
+
+**What it does**
+
+1. Check out the caller at its event commit and the central helper at this reusable workflow’s own full commit.
+2. Optionally install the caller’s locked dependencies with lifecycle scripts disabled, before passing a read-only token to generation.
+3. Run each registered Node generator in order, then validate every declared output as a bounded regular JSON file under data/.
+4. Stage and upload only the complete snapshot; a generator or validation failure prevents upload and stops a dependent build.
+
+**Produces**
+
+- A maps-\<run-id\>-\<run-attempt\> artifact retained for seven days, preserving declared data/ paths.
+- The artifact-name output for a dependent same-run download; this workflow does not commit files or publish a site.
+
+[Reviewed source at be211937c3a9](https://github.com/unset-sh/tooling/blob/be211937c3a939cca33d0cac251156392cd61a7e/.github/workflows/automation-maps-refresh.yml).
+
+Source SHA-256: `f5af37ae29d1678d846d3751390b38a2486d6509d6fc1d94419a09ae8962ca86`.
 
 ### .github/workflows/ci-check.yml
 

@@ -132,6 +132,23 @@
     {
       "repository": "docs",
       "path": ".github/workflows/site.yml",
+      "reviewedCommit": "648dbfd8681bc00a043746c113b189d7c51aaa84",
+      "reviewedSha256": "51390322476e72602df5ebe90e61e0861604617613c340c7d5edca172b75118e",
+      "purpose": "Refresh supported upstream content and registered maps, build the organisation documentation site and publish it on GitHub Pages.",
+      "steps": [
+        "On main-branch pushes, manual runs and the hourly schedule, call the pinned shared refresh workflow to generate and validate the registered organisation and workflow maps.",
+        "After the map refresh succeeds, resolve the latest compatible published brand release, install the pinned tooling without lifecycle scripts and download this run's validated map snapshot.",
+        "Run the source and publication guards, build the publication site with Hugo and check its rendered pages, navigation and workflow map.",
+        "Upload the public directory as a Pages artifact, then deploy it through the github-pages environment; only the deployment job receives Pages publication permissions."
+      ],
+      "outputs": [
+        "A validated map artifact for this run and a checked Pages artifact, followed by the published documentation site when deployment succeeds.",
+        "Brand, organisation-map and workflow-map updates used by this build; the workflow does not commit these updates back to the repository."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/site.yml",
       "reviewedCommit": "02bfc33cbe6a44f7f57f3e06dfc4012739899265",
       "reviewedSha256": "ce4a2ed1080f35985efed001cf67ce45bcc1ff864e53e52684d696106f63d612",
       "purpose": "Refresh supported upstream content, build the organisation documentation site and publish it on GitHub Pages.",
@@ -270,6 +287,23 @@
       ],
       "outputs": [
         "A docs-<commit> artifact retained for 14 days; publication is a separate step."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/automation-maps-refresh.yml",
+      "reviewedCommit": "be211937c3a939cca33d0cac251156392cd61a7e",
+      "reviewedSha256": "f5af37ae29d1678d846d3751390b38a2486d6509d6fc1d94419a09ae8962ca86",
+      "purpose": "Refresh every map registered by a calling repository and hand its build one complete validated JSON snapshot.",
+      "steps": [
+        "Check out the caller at its event commit and the central helper at this reusable workflow’s own full commit.",
+        "Optionally install the caller’s locked dependencies with lifecycle scripts disabled, before passing a read-only token to generation.",
+        "Run each registered Node generator in order, then validate every declared output as a bounded regular JSON file under data/.",
+        "Stage and upload only the complete snapshot; a generator or validation failure prevents upload and stops a dependent build."
+      ],
+      "outputs": [
+        "A maps-<run-id>-<run-attempt> artifact retained for seven days, preserving declared data/ paths.",
+        "The artifact-name output for a dependent same-run download; this workflow does not commit files or publish a site."
       ]
     },
     {
