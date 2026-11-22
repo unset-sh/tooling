@@ -10,6 +10,10 @@ approved release raises `package.json` and renames the heading to that version.
   `maps-<run-id>-<run-attempt>`. Inputs are `registry` and `install`; output `artifact-name` connects a dependent
   build to that same-run artifact. A failed generator or invalid output prevents upload. Consumers own their
   trigger schedule, semantic map validation, and publication; the shared workflow commits and deploys nothing.
+- **Workflow descriptions:** the catalogue joins reviewed purposes, responsibilities and results from a bounded,
+  versioned registry. Exact source hashes retain descriptions for historical callers; changed and undocumented
+  workflows show explicit review or missing states. The same registry generates the human workflow reference,
+  and `npm run check` checks its freshness. Runtime workflow behaviour is unchanged.
 - **Workflow catalogue:** a read-only collector discovers public organisation repositories, documents their
   declared triggers and jobs, and resolves reusable calls at their exact commits. The documentation site supplies
   its YAML parser and refresh schedule. Collection runs no repository code and requires no new credentials.

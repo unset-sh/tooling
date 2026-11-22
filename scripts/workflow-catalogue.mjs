@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { loadWorkflowDescriptions, workflowDocumentation } from "./workflow-descriptions.mjs";
 
 const ORG = "unset-sh";
 const SHA = /^[0-9a-f]{40}$/;
@@ -55,7 +56,7 @@ function events(value) {
   });
 }
 
-function normalizeWorkflow(source, parseYaml, repository, path, commit, current) {
+function normalizeWorkflow(source, parseYaml, repository, path, commit, current, descriptions) {
   let parsed;
   try { parsed = parseYaml(source); } catch { fail("Cannot parse workflow YAML"); }
   requireValue(object(parsed) && object(parsed.jobs), "Invalid workflow document");
@@ -79,9 +80,10 @@ function normalizeWorkflow(source, parseYaml, repository, path, commit, current)
   }
   requireValue(ordered.size === jobs.length, "Invalid workflow job dependency cycle");
   requireValue(parsed.name === undefined || text(parsed.name), "Invalid workflow name");
-  return { id: idFor(repository, path, commit), repository, path, commit,
-    sha256: createHash("sha256").update(source).digest("hex"), name: parsed.name ?? path.slice(18),
-    events: events(parsed.on), current, permissions: permissions(parsed.permissions), jobs };
+  const sha256 = createHash("sha256").update(source).digest("hex");
+  return { id: idFor(repository, path, commit), repository, path, commit, sha256, name: parsed.name ?? path.slice(18),
+    events: events(parsed.on), current, permissions: permissions(parsed.permissions), jobs,
+    documentation: workflowDocumentation({ repository, path, sha256 }, descriptions) };
 }
 
 function githubReader(fetchImpl, githubToken) {
@@ -235,7 +237,7 @@ function revisionResolver(read) {
   };
 }
 
-async function collectCalls(workflows, repositories, git, read, parseYaml, account) {
+async function collectCalls(workflows, repositories, git, read, parseYaml, account, descriptions) {
   const known = new Map(workflows.map((workflow) => [workflow.id, workflow]));
   const resolveRevision = revisionResolver(read);
   const calls = [];
@@ -257,7 +259,7 @@ async function collectCalls(workflows, repositories, git, read, parseYaml, accou
             const files = await git.files(target.repository, revision.commit, true);
             const entry = files?.find(({ path }) => `.github/workflows/${path}` === target.path);
             if (entry) workflow = normalizeWorkflow(await git.source(target.repository, entry), parseYaml,
-              target.repository, target.path, revision.commit, false);
+              target.repository, target.path, revision.commit, false, descriptions);
           }
           if (!workflow) call.status = call.resolution = "missing";
           else if (!workflow.events.some(({ name }) => name === "workflow_call")) call.status = call.resolution = "invalid";
@@ -283,6 +285,7 @@ export async function collectWorkflowCatalogue({ parseYaml, fetchImpl = fetch, g
     "Workflow catalogue requires a parser and full collector commit");
   requireValue(githubToken === undefined || (typeof githubToken === "string" && /^[\x21-\x7e]{1,4096}$/.test(githubToken)),
     "Invalid workflow catalogue token");
+  const descriptions = loadWorkflowDescriptions();
   const read = githubReader(fetchImpl, githubToken);
   const inventory = await discoverRepositories(read);
   const git = gitObjects(read);
@@ -303,13 +306,13 @@ export async function collectWorkflowCatalogue({ parseYaml, fetchImpl = fetch, g
     const workflowIds = [];
     if (commit) for (const entry of await git.files(repo.name, commit)) {
       const path = `.github/workflows/${entry.path}`;
-      workflows.push(account(normalizeWorkflow(await git.source(repo.name, entry), parseYaml, repo.name, path, commit, true)));
+      workflows.push(account(normalizeWorkflow(await git.source(repo.name, entry), parseYaml, repo.name, path, commit, true, descriptions)));
       workflowIds.push(idFor(repo.name, path, commit));
       requireValue(workflows.length <= LIMIT.workflows, "Workflow catalogue workflow limit exceeded");
     }
     repositories.push(account({ name: repo.name, defaultBranch: repo.default_branch, commit, archived: repo.archived, workflowIds }));
   }
-  const calls = await collectCalls(workflows, repositories, git, read, parseYaml, account);
+  const calls = await collectCalls(workflows, repositories, git, read, parseYaml, account, descriptions);
   const result = { schemaVersion: 1, organisation: ORG, collectedAt: now().toISOString(),
     collector: { repository: `${ORG}/tooling`, commit: collectorCommit }, repositories,
     workflows: workflows.sort((a, b) => compare(a.id, b.id)), calls };

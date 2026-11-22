@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { collectWorkflowCatalogue } from "./workflow-catalogue.mjs";
+import { loadWorkflowDescriptions } from "./workflow-descriptions.mjs";
 
 const sha = (letter) => letter.repeat(40);
 const collectorCommit = sha("f");
@@ -66,6 +67,21 @@ function fixture() {
     collect: (options = {}) => collectWorkflowCatalogue({ parseYaml: JSON.parse, fetchImpl, now, collectorCommit, ...options }),
   };
 }
+
+test("collection joins reviewed descriptions by repository and path, preserving missing and stale states", async () => {
+  const reviewed = loadWorkflowDescriptions()[0];
+  const f = fixture();
+  const source = { on: "push", jobs: { check: { "runs-on": "ubuntu-latest", steps: [{ run: "true" }] } } };
+  f.repository(reviewed.repository, sha("a"), { [reviewed.path.slice(18)]: source });
+  f.repository("undocumented-fixture", sha("b"), { "ci.yml": source });
+  const result = await f.collect();
+  const known = result.workflows.find(({ repository }) => repository === reviewed.repository);
+  assert.deepEqual(known.documentation, { status: "review", purpose: reviewed.purpose, steps: reviewed.steps,
+    outputs: reviewed.outputs, reviewedCommit: reviewed.reviewedCommit, reviewedSha256: reviewed.reviewedSha256 });
+  const unknown = result.workflows.find(({ repository }) => repository === "undocumented-fixture");
+  assert.deepEqual(unknown.documentation, { status: "missing", purpose: null, steps: [], outputs: [],
+    reviewedCommit: null, reviewedSha256: null });
+});
 
 test("catalogue records actual event filters, jobs and immutable workflow revisions", async () => {
   const f = fixture();

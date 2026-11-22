@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 1,
+  "workflows": [
+    {
+      "repository": ".github",
+      "path": ".github/workflows/docs-export.yml",
+      "reviewedCommit": "36665552fe5d95005ddfdac1a8276333d479f103",
+      "reviewedSha256": "4993b718777f317c6e6f1b7e58b284068447b667edf4a576fcce6293fd90385d",
+      "purpose": "Prepare the organisation’s maintained documentation for the central docs site after the organisation checks pass.",
+      "steps": [
+        "Run the organisation’s tests and verify that its generated map matches repos.json through the shared CI workflow.",
+        "Export the committed docs/site pages and licence into the github section with source revision and file hashes.",
+        "Upload the isolated export for a later publishing step; this workflow does not write to the docs repository."
+      ],
+      "outputs": [
+        "A docs-<commit> artifact retained for 14 days, containing the github documentation section and provenance."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/org-map.yml",
+      "reviewedCommit": "36665552fe5d95005ddfdac1a8276333d479f103",
+      "reviewedSha256": "79f6770aad742dbbc4d2089cd3614f04f056d5ef4ceb12494fc7860e05b55696",
+      "purpose": "Keep the curated organisation map consistent with its source and report differences between the map and public GitHub repositories.",
+      "steps": [
+        "On pull requests and main changes, run tests and check that the generated map and profile match repos.json.",
+        "On scheduled or manual runs, compare public repository names, descriptions, archive status and licences with the curated map; private entries are skipped.",
+        "Create or update one org-map-drift issue when differences appear, and close it when the comparison matches.",
+        "Leave ownership descriptions and map edits for a reviewed source change; the drift job does not rewrite repos.json."
+      ],
+      "outputs": [
+        "Validation results for the generated organisation map.",
+        "An automatically maintained drift issue when public repository metadata differs."
+      ]
+    },
+    {
+      "repository": "agent-kit",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "5792624b2215f3d9d59ae6798b3d1df389af5b1a",
+      "reviewedSha256": "dd1651202aa972c3582463908e9a5defb834d5b7eccb682d35d6aa8bdd22659e",
+      "purpose": "Check that the shared agent rules, skills and synchronisation tools can be distributed as a consistent bundle.",
+      "steps": [
+        "Run the repository’s checks against the kit and its synchronisation behaviour.",
+        "Collect the shipped rules, skills, agents and sync.mjs into a deterministically ordered bundle.",
+        "Record the source commit, kit version and each shipped file’s SHA-256 in the bundle."
+      ],
+      "outputs": [
+        "A locally built dist/agent-kit.json and its checksum in the job log; CI does not upload or publish the bundle."
+      ]
+    },
+    {
+      "repository": "agent-kit",
+      "path": ".github/workflows/release.yml",
+      "reviewedCommit": "5792624b2215f3d9d59ae6798b3d1df389af5b1a",
+      "reviewedSha256": "451f57474f61c783f79cffff4ae19e0517c6dc953cb8b20bd0e441913542b074",
+      "purpose": "Publish a tagged version of the agent kit so repositories can adopt a specific, verifiable bundle.",
+      "steps": [
+        "Require the tag to match package.json and its commit to be reachable from main.",
+        "Run the kit checks, build agent-kit.json, copy sync.mjs and extract the version’s release notes.",
+        "Pass those files through the release artifact to the publishing job, which uses the release environment.",
+        "Verify the artifact’s file set, attest the bundle and synchronisation script, and create the GitHub release from the existing tag."
+      ],
+      "outputs": [
+        "A GitHub release containing agent-kit.json and sync.mjs, with release notes.",
+        "Attestations for the two downloadable files and a seven-day intermediate release artifact."
+      ]
+    },
+    {
+      "repository": "brand",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "8c998a2990ae477daf5ac1636028f6cbf379577b",
+      "reviewedSha256": "f8febc7f786e6bee4c0850977afd35432eaf2beb0c2ae1015ad86fa8b7c99f40",
+      "purpose": "Check the brand contract and package, then verify that the brand site builds at both a domain root and a repository subpath.",
+      "steps": [
+        "Install the pinned dependencies and check that generated brand assets and syntax examples are current.",
+        "Run the brand and component-gallery tests.",
+        "Install the verified Hugo binary and build the site once at the root and once under /brand."
+      ],
+      "outputs": [
+        "Validation results for the brand package and two local site builds; this workflow does not publish them."
+      ]
+    },
+    {
+      "repository": "brand",
+      "path": ".github/workflows/pages.yml",
+      "reviewedCommit": "8c998a2990ae477daf5ac1636028f6cbf379577b",
+      "reviewedSha256": "bc0d90376304b83e47a71c2e2464cd52d4808d3ee8037db7de36d35394c36c20",
+      "purpose": "Build and publish the brand guidelines and component gallery on GitHub Pages.",
+      "steps": [
+        "Check out main, install the pinned dependencies and verified Hugo version, and run the brand checks.",
+        "Build the site using the base path and URL supplied by GitHub Pages.",
+        "Upload site/public as a Pages artifact.",
+        "Deploy that artifact in a separate job using the github-pages environment."
+      ],
+      "outputs": [
+        "The generated brand site as a Pages artifact and, after deployment succeeds, its published Pages URL."
+      ]
+    },
+    {
+      "repository": "brand",
+      "path": ".github/workflows/release.yml",
+      "reviewedCommit": "8c998a2990ae477daf5ac1636028f6cbf379577b",
+      "reviewedSha256": "24afea339d625c6878c652a1139b28f5c8ba2d21eea1fe541a1be86c9c5c539f",
+      "purpose": "Publish a checked, tagged brand package to GitHub Packages.",
+      "steps": [
+        "Require the tag to match package.json and the tagged commit to be reachable from main.",
+        "Install dependencies, run the brand checks and pack the package once without package lifecycle scripts.",
+        "Record its SHA-256 and retain the package artifact for the publishing job.",
+        "In the release environment, require exactly one package archive, attest it and publish that same archive to GitHub Packages."
+      ],
+      "outputs": [
+        "The @unset-sh/brand package and its artifact attestation.",
+        "A seven-day package artifact and checksum summary; this workflow does not create a GitHub release page."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "02bfc33cbe6a44f7f57f3e06dfc4012739899265",
+      "reviewedSha256": "4867727cb325e12ae20ec3ce21e5cd8a2f8bbb68fdfb3fb944e0375bdfdc9776",
+      "purpose": "Check documentation sources, publication safeguards and rendered pages before changes reach the documentation site.",
+      "steps": [
+        "Install the pinned tooling without lifecycle scripts and run the Node and Python checks, workflow guards and organisation-map integrity check.",
+        "For pull requests, check whether the changes have the required documentation impact.",
+        "Lint the workflow files with the pinned actionlint image.",
+        "Build the real documentation and a separate fixture preview, checking generated HTML, assets, links and navigation."
+      ],
+      "outputs": [
+        "Validation results and local builds of the real site and documentation fixtures; CI does not deploy them."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/site.yml",
+      "reviewedCommit": "02bfc33cbe6a44f7f57f3e06dfc4012739899265",
+      "reviewedSha256": "ce4a2ed1080f35985efed001cf67ce45bcc1ff864e53e52684d696106f63d612",
+      "purpose": "Refresh supported upstream content, build the organisation documentation site and publish it on GitHub Pages.",
+      "steps": [
+        "Resolve the latest compatible published brand release and refresh the organisation map from a fixed source revision.",
+        "Install the pinned tooling and run the source and publication guards.",
+        "Build the publication site with Hugo and verify the rendered output and required section landing pages.",
+        "Upload the public directory as a Pages artifact, then deploy it through the github-pages environment."
+      ],
+      "outputs": [
+        "A checked Pages artifact and, after deployment succeeds, the published documentation site.",
+        "Brand and organisation-map updates used by this build; the workflow does not commit these updates back to the repository."
+      ]
+    },
+    {
+      "repository": "lexicons",
+      "path": ".github/workflows/check.yml",
+      "reviewedCommit": "52cfb6990f3833e4bdd260cd5bb520fc4446e122",
+      "reviewedSha256": "9607e1b447520e271c49e21095ab76b8e9570270bcf92798b9da24aa7c8dab23",
+      "purpose": "Validate the AT Protocol lexicon schemas, examples and reference documentation together.",
+      "steps": [
+        "Typecheck and lint the validation tooling, then run its tests.",
+        "Parse the schemas with the official AT Protocol libraries and build validators to resolve their references.",
+        "Validate authored examples and their coverage, and check generated reference documentation, local links and schema provenance hashes."
+      ],
+      "outputs": [
+        "A check result reporting schema, example, documentation, link or provenance problems; no release or documentation export is published."
+      ]
+    },
+    {
+      "repository": "profile-recipes",
+      "path": ".github/workflows/dco.yml",
+      "reviewedCommit": "1e64c469f86dd2ad6e9b26200d26e308d6d06f4e",
+      "reviewedSha256": "5ff26342bceb3b681b416fea6d98dc4b8ae14d61cc5adf961e270c0411223194",
+      "purpose": "Check that eligible pull-request commits carry a Developer Certificate of Origin sign-off.",
+      "steps": [
+        "Read the pull request’s base and head commits from the full checkout history.",
+        "Exempt the owner’s and bot-authored pull requests, and ignore merge commits.",
+        "Report each remaining commit that lacks a correctly formed Signed-off-by line."
+      ],
+      "outputs": [
+        "The DCO check result for the pull request."
+      ]
+    },
+    {
+      "repository": "profile-recipes",
+      "path": ".github/workflows/docs-mirror.yml",
+      "reviewedCommit": "1e64c469f86dd2ad6e9b26200d26e308d6d06f4e",
+      "reviewedSha256": "7830330dad74711b71af9d6af16fbfbb52d58192511d200dcaff1221541dee02",
+      "purpose": "Publish the checked profile-recipe documentation into its owned section of the central docs repository.",
+      "steps": [
+        "Check out the current main branch, run typechecking, tests and recipe validation, and render the recipe catalogue.",
+        "Prepare an isolated profile-recipes export containing the guides, licences, example image and source hashes.",
+        "Require the configured publishing key and check out unset-sh/docs main.",
+        "Replace only profile-recipes/, verify that outgoing paths and files match the export, and commit and push changes without rewriting history; unchanged exports do not create a commit."
+      ],
+      "outputs": [
+        "An updated profile-recipes section in unset-sh/docs when publishing credentials are configured and the push succeeds.",
+        "A source.json manifest identifying the recipe revision and exported file hashes."
+      ]
+    },
+    {
+      "repository": "profile-recipes",
+      "path": ".github/workflows/validate.yml",
+      "reviewedCommit": "1e64c469f86dd2ad6e9b26200d26e308d6d06f4e",
+      "reviewedSha256": "91332579914d7c30380e42b16ead0076b874b5b2377c5e36fd079fb964a52e74",
+      "purpose": "Check that profile recipes satisfy their schemas and can produce the showcase and documentation export.",
+      "steps": [
+        "Typecheck the tooling, run its tests and validate every recipe against the vendored upstream schemas.",
+        "Render the recipe showcase pages.",
+        "Prepare an isolated documentation export and check its source provenance without publishing it."
+      ],
+      "outputs": [
+        "Recipe-validation results, locally rendered showcase pages and a temporary documentation export."
+      ]
+    },
+    {
+      "repository": "rendering",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "f4597ce765007c28c0fd0aadbd3f9f0333939229",
+      "reviewedSha256": "f2ebc78afa89bc8d12f478cf4613cab6419606c5ccc934696f85f71fb1ec38e0",
+      "purpose": "Check the image-rendering package and keep a visual gallery for reviewing its output.",
+      "steps": [
+        "Install dependencies, then typecheck, lint, build the package and run its tests.",
+        "Attempt to draw the gallery even when an earlier check fails.",
+        "Upload any generated gallery output so reviewers can inspect the rendered images."
+      ],
+      "outputs": [
+        "A gallery artifact retained for 14 days when gallery files are available.",
+        "Validation results and a local package build."
+      ]
+    },
+    {
+      "repository": "rendering",
+      "path": ".github/workflows/release.yml",
+      "reviewedCommit": "f4597ce765007c28c0fd0aadbd3f9f0333939229",
+      "reviewedSha256": "868b1e24a3dca2c2eebdb33354c908e949d02fdaf6c0b19c9f57fb8b2f9adbc5",
+      "purpose": "Publish a tagged image-rendering package after its release and dependency checks pass.",
+      "steps": [
+        "Require the tag to match package.json, its commit to be reachable from main, and every runtime dependency to use an exact released version.",
+        "Install dependencies, typecheck, lint, build and test the package.",
+        "Pack once without lifecycle scripts, record its checksum and pass the archive to the publishing job.",
+        "In the release environment, require exactly one archive, attest it and publish that same archive to GitHub Packages."
+      ],
+      "outputs": [
+        "The @unset-sh/presentation package and an artifact attestation when all release gates pass.",
+        "A seven-day package artifact and checksum summary; this workflow does not create a GitHub release page."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/automation-docs-export.yml",
+      "reviewedCommit": "22b6eb497c2782800523879a89a350c01cf1d2c1",
+      "reviewedSha256": "f90f0e968a80c039aaa7791459c4ebeed1ca66f5da0b4a8a92c903e6efda57a6",
+      "purpose": "Provide a shared way to package committed public documentation with verifiable source information.",
+      "steps": [
+        "Check out the calling repository at its event commit and the helper scripts at this reusable workflow’s own commit.",
+        "Read tooling documentation from docs/ and other consumers’ documentation from docs/site/, together with the root licence.",
+        "Validate the committed files and export them into the repository’s owned section with a source revision and SHA-256 manifest.",
+        "Upload the export as an artifact for later consumption; this workflow does not publish to the docs repository or a site."
+      ],
+      "outputs": [
+        "A docs-<commit> artifact retained for 14 days, containing the documentation section, licence and source.json."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/automation-docs-self.yml",
+      "reviewedCommit": "22b6eb497c2782800523879a89a350c01cf1d2c1",
+      "reviewedSha256": "0f99738da98b9862f3463795ec7ae14267d844b6d707f597acc58363a8fa8bba",
+      "purpose": "Check and package tooling’s own maintained documentation using the shared workflows it provides.",
+      "steps": [
+        "Run tooling’s checks through the local reusable CI workflow.",
+        "After those checks pass, call the local documentation exporter.",
+        "Export the committed docs/ pages and licence into the tooling section with provenance."
+      ],
+      "outputs": [
+        "A docs-<commit> artifact retained for 14 days; publication is a separate step."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/ci-check.yml",
+      "reviewedCommit": "22b6eb497c2782800523879a89a350c01cf1d2c1",
+      "reviewedSha256": "7bcb733d8dff4194c32c26d427ab73cd3ffffaee1379c2bf0240553f3cfcd924",
+      "purpose": "Provide a reusable Node-based check job that each calling repository configures with its own validation command.",
+      "steps": [
+        "Check out the caller and select the Node version from its .nvmrc.",
+        "Optionally install dependencies with npm ci --ignore-scripts.",
+        "Run the caller’s check command, defaulting to npm run check.",
+        "If the caller specifies an output path, attempt to retain it even when the check fails."
+      ],
+      "outputs": [
+        "The check result for the calling repository.",
+        "An optional check-output artifact retained for 14 days when a path is configured and files are available."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/ci-self.yml",
+      "reviewedCommit": "22b6eb497c2782800523879a89a350c01cf1d2c1",
+      "reviewedSha256": "f8e1112c8042f774f3810bea1989d396dc676ea08027915eb1671515192f430a",
+      "purpose": "Verify tooling’s implementation and the executable workflows generated from its organised workflow sources.",
+      "steps": [
+        "Run the local reusable check workflow, which checks generated workflow files and runs tooling’s test suites.",
+        "Download the pinned actionlint release and verify its SHA-256.",
+        "Lint the executable workflow files, suppressing only the two documented job-context fields that the pinned linter does not recognise."
+      ],
+      "outputs": [
+        "Check and workflow-lint results; this workflow does not release or publish tooling."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/releases-package.yml",
+      "reviewedCommit": "22b6eb497c2782800523879a89a350c01cf1d2c1",
+      "reviewedSha256": "d2b79e06931d0f3a001678488d32c5830017805915275090c80dc2a613f92e2b",
+      "purpose": "Provide a shared release pipeline that builds once and publishes a new main-branch version through the owner’s release approval.",
+      "steps": [
+        "Accept only a push to main, inspect package.json and existing tags, and skip version 0.0.0 or an unchanged version that is already released.",
+        "Before building, validate the release environment’s owner-only review and main-only branch policy, plus the package manifest and changelog.",
+        "Run the caller’s checks and optional build, collect configured release files and optionally pack an npm package, then show their checksums and notes for review.",
+        "After the release environment permits publication, recheck its protections and validate the downloaded artifacts without running the caller’s source code.",
+        "Attest the files, optionally publish the npm archive to GitHub Packages, create the tag and GitHub release, and verify that the tag names the intended commit."
+      ],
+      "outputs": [
+        "A version tag and GitHub release with configured assets and release notes, plus attestations for attached files.",
+        "An optional GitHub Packages release and a seven-day intermediate release artifact.",
+        "The version and released workflow outputs for the caller."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/releases-self.yml",
+      "reviewedCommit": "22b6eb497c2782800523879a89a350c01cf1d2c1",
+      "reviewedSha256": "2d0f50374b978546520a36cc5f4decd4ffb443a6a9f9395274b2dfe2701763ac",
+      "purpose": "Release tooling itself through its shared release pipeline, attaching the executable workflows so consumers can verify a chosen version.",
+      "steps": [
+        "Start when package.json changes on main and call the local shared release workflow.",
+        "Run tooling’s checks and collect the executable files directly under .github/workflows as release assets.",
+        "Use the shared release environment checks and approval before attesting the workflow files and creating the version tag and release page.",
+        "At the reviewed source revision, package.json is still version 0.0.0, so the shared planner skips publication."
+      ],
+      "outputs": [
+        "For a releasable version, a GitHub release containing attested workflow files; no npm package is requested."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/automation-docs-export.yml",
+      "reviewedCommit": "838a965d14d0887291046c279422becb7b0228f3",
+      "reviewedSha256": "2d1461df9ac798d9ff5c37e45339df30c3f80e14ff6da0a7a1a0f27c912e9c8f",
+      "purpose": "Provide a shared way to package committed public documentation with verifiable source information.",
+      "steps": [
+        "Check out the calling repository at its event commit and the helper scripts at this reusable workflow’s own commit.",
+        "Read the calling repository’s committed docs/site/ pages together with the root licence.",
+        "Validate the committed files and export them into the repository’s owned section with a source revision and SHA-256 manifest.",
+        "Upload the export as an artifact for later consumption; this workflow does not publish to the docs repository or a site."
+      ],
+      "outputs": [
+        "A docs-<commit> artifact retained for 14 days, containing the documentation section, licence and source.json."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/ci-check.yml",
+      "reviewedCommit": "838a965d14d0887291046c279422becb7b0228f3",
+      "reviewedSha256": "b2fb5be2127833a3317b7a4102db2e1aa5be4ad829e731b980ee386ce29f90a9",
+      "purpose": "Provide a reusable Node-based check job that each calling repository configures with its own validation command.",
+      "steps": [
+        "Check out the caller and select the Node version from its .nvmrc.",
+        "Optionally install dependencies with npm ci --ignore-scripts.",
+        "Run the caller’s check command, defaulting to npm run check.",
+        "If the caller specifies an output path, attempt to retain it even when the check fails."
+      ],
+      "outputs": [
+        "The check result for the calling repository.",
+        "An optional check-output artifact retained for 14 days when a path is configured and files are available."
+      ]
+    }
+  ]
+}

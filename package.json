@@ -4,8 +4,9 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
-    "check": "node scripts/workflows.mjs --check && node --test \"scripts/*.test.mjs\" \"checks/*.test.mjs\"",
+    "check": "node scripts/workflows.mjs --check && node scripts/workflow-descriptions.mjs --check && node --test \"scripts/*.test.mjs\" \"checks/*.test.mjs\"",
     "workflows": "node scripts/workflows.mjs --write",
+    "workflows:describe": "node scripts/workflow-descriptions.mjs --write",
     "docs:export": "node scripts/export-docs.mjs"
   },
   "version": "0.0.0",
