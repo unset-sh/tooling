@@ -5,7 +5,7 @@ weight: 15
 type: docs
 params:
   doc_kind: guide
-  checked_source_revision: "TOOLING_SOURCE_REVISION"
+  checked_source_revision: "aad4a03c5db3d6d762c59543e1340744a941828a"
 ---
 
 The documentation exporter packages a repository's selected public pages from an exact Git commit. Use it to prepare a reviewed import into `unset-sh/docs`, or download the equivalent artifact from a caller of the reusable documentation-export workflow.
@@ -61,11 +61,11 @@ If the command refuses an existing output directory, choose another fresh destin
 
 ## Use the workflow artifact
 
-The [reusable documentation-export workflow](https://github.com/unset-sh/tooling/blob/TOOLING_SOURCE_REVISION/automation/docs-export.yml) accepts `workflow_call` only, with no inputs, stored secrets, or outputs. It uses `contents: read` and uploads a `docs-<commit>` artifact for 14 days, where the commit is the caller's `github.sha`. The artifact preserves the section directory shown above.
+The [reusable documentation-export workflow](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/automation/docs-export.yml) accepts `workflow_call` only, with no inputs, stored secrets, or outputs. It uses `contents: read` and uploads a `docs-<commit>` artifact for 14 days, where the commit is the caller's `github.sha`. The artifact preserves the section directory shown above.
 
 The workflow checks out the consumer at `github.sha` into `source/`. It checks out the central helper into `tooling/` at the called workflow's own repository and full commit, after validating that identity. Node comes from the tooling checkout's `.nvmrc`. This keeps export implementation tied to the caller's approved tooling pin while exporting the consumer's selected source revision.
 
-The reusable workflow does not run consumer check or build commands. A caller must run its checks first and make export depend on that job. Tooling's [local documentation caller](https://github.com/unset-sh/tooling/blob/TOOLING_SOURCE_REVISION/automation/docs-self.yml) does this for pull requests, pushes to `main`, and manual dispatch. For example, a tooling pull request first runs the check job; only success permits export of that run's `github.sha`. A failed check prevents the artifact job, and a missing section index or licence fails export.
+The reusable workflow does not run consumer check or build commands. A caller must run its checks first and make export depend on that job. Tooling's [local documentation caller](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/automation/docs-self.yml) does this for pull requests, pushes to `main`, and manual dispatch. For example, a tooling pull request first runs the check job; only success permits export of that run's `github.sha`. A failed check prevents the artifact job, and a missing section index or licence fails export.
 
 Inspect the downloaded artifact's `source.json` before preparing an import. A pull-request run's `github.sha` may be a test merge commit, so do not assume it is the pull request's head commit. The artifact is packaging evidence for its recorded revision. Neither this workflow nor the local caller pushes to `unset-sh/docs` or deploys the website.
 
@@ -77,4 +77,4 @@ The source mappings are `unset-sh/tooling:docs/site/` to `unset-sh/docs:tooling/
 
 ## Source and evidence
 
-The command is declared in [`package.json`](https://github.com/unset-sh/tooling/blob/TOOLING_SOURCE_REVISION/package.json) and implemented by [`scripts/export-docs.mjs`](https://github.com/unset-sh/tooling/blob/TOOLING_SOURCE_REVISION/scripts/export-docs.mjs). The checked workflow sources are [`automation/docs-export.yml`](https://github.com/unset-sh/tooling/blob/TOOLING_SOURCE_REVISION/automation/docs-export.yml) and [`automation/docs-self.yml`](https://github.com/unset-sh/tooling/blob/TOOLING_SOURCE_REVISION/automation/docs-self.yml). The instructions and illustrative commands were checked against that source; they do not claim an observed cross-repository publication or deployment.
+The command is declared in [`package.json`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/package.json) and implemented by [`scripts/export-docs.mjs`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/scripts/export-docs.mjs). The checked workflow sources are [`automation/docs-export.yml`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/automation/docs-export.yml) and [`automation/docs-self.yml`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/automation/docs-self.yml). The instructions and illustrative commands were checked against that source; they do not claim an observed cross-repository publication or deployment.

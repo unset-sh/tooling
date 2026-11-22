@@ -5,7 +5,7 @@ weight: 10
 type: docs
 params:
   doc_kind: guide
-  checked_source_revision: "TOOLING_SOURCE_REVISION"
+  checked_source_revision: "aad4a03c5db3d6d762c59543e1340744a941828a"
 ---
 
 A small workflow in your repository can call the shared implementation in `unset-sh/tooling`. Your pull requests and pushes still trigger runs in your repository, and their check results appear there.
@@ -21,7 +21,7 @@ The first shared check grants `contents: read` and accepts no stored secrets. It
 ## Configure the check caller
 
 1. Select a reviewed release of `unset-sh/tooling` and verify its commit using the [release reference](release-reference.md#verify-a-workflow-version). No first release is available in the implementation described here.
-2. Start from the [check caller template](https://github.com/unset-sh/.github/blob/GITHUB_SOURCE_REVISION/workflow-templates/check.yml). Put the caller in your repository's `.github/workflows/ci.yml`.
+2. Start from the [check caller template](https://github.com/unset-sh/.github/blob/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates/check.yml). Put the caller in your repository's `.github/workflows/ci.yml`.
 3. Replace `APPROVED_COMMIT_SHA` with that release's full 40-character commit. Set the branch and inputs for your repository. GitHub's picker substitutes `$default-branch`; replace it yourself if you copy the template as a file.
 
 This illustrative caller checks pull requests and pushes to `main`. It assumes an npm lockfile and dependencies that can be installed without lifecycle scripts:
@@ -67,7 +67,7 @@ An upgrade is a reviewed change to the pinned commit. Reverting that caller chan
 
 ## Add releases separately
 
-Prepare the owner-managed environment and repository settings in the [release reference](release-reference.md#prerequisites), then adapt the [release caller template](https://github.com/unset-sh/.github/blob/GITHUB_SOURCE_REVISION/workflow-templates/release.yml). A successful check migration alone does not establish that publication or attestation verification works.
+Prepare the owner-managed environment and repository settings in the [release reference](release-reference.md#prerequisites), then adapt the [release caller template](https://github.com/unset-sh/.github/blob/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates/release.yml). A successful check migration alone does not establish that publication or attestation verification works.
 
 ## Planned automatic adoption
 
@@ -77,4 +77,4 @@ A dependency updater can propose a reusable-workflow pin change, but that alone 
 
 ## Source and evidence
 
-This guide was checked against [`ci/check.yml`](https://github.com/unset-sh/tooling/blob/TOOLING_SOURCE_REVISION/ci/check.yml), the caller templates, and the [workflow contract checks](https://github.com/unset-sh/tooling/blob/TOOLING_SOURCE_REVISION/checks/workflows.test.mjs). The example is a configuration template checked against that source, not an observed consumer run. GitHub documents [calling reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) and their [caller context and permissions](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations).
+This guide was checked against [`ci/check.yml`](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/ci/check.yml), the caller templates, and the [workflow contract checks](https://github.com/unset-sh/tooling/blob/aad4a03c5db3d6d762c59543e1340744a941828a/checks/workflows.test.mjs). The example is a configuration template checked against that source, not an observed consumer run. GitHub documents [calling reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) and their [caller context and permissions](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations).
