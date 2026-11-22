@@ -5,6 +5,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Workflow catalogue:** a read-only collector discovers public organisation repositories, documents their
+  declared triggers and jobs, and resolves reusable calls at their exact commits. The documentation site supplies
+  its YAML parser and refresh schedule. Collection runs no repository code and requires no new credentials.
+
 Shared developer tooling now lives in `unset-sh/tooling`. Category sources generate the committed, flat
 `.github/workflows/` entry points. Organisation defaults and starter templates remain in `unset-sh/.github`.
 Consumers use full reviewed commit pins; automatic adoption and merging are not part of this migration.
