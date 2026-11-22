@@ -2,15 +2,18 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { collectWorkflowCatalogue } from "./workflow-catalogue.mjs";
-import { loadWorkflowDescriptions } from "./workflow-descriptions.mjs";
 
 const sha = (letter) => letter.repeat(40);
 const collectorCommit = sha("f");
 const now = () => new Date("2026-11-22T12:00:00.000Z");
 const workflowPath = (name) => `.github/workflows/${name}`;
 const workflowId = (repo, name, commit) => `unset-sh/${repo}/${workflowPath(name)}@${commit}`;
+const reviewed = { repository: "web", path: workflowPath("ci.yml"), reviewedCommit: sha("a"),
+  reviewedSha256: "0".repeat(64), purpose: "Check the web application.",
+  steps: ["Run the application checks."], outputs: ["A check result."] };
+const registry = (records = [reviewed]) => ({ schemaVersion: 1, workflows: records });
 
-function fixture() {
+function fixture({ descriptions = registry(), includeTooling = true } = {}) {
   const routes = new Map();
   const repositories = [];
   const requests = [];
@@ -20,30 +23,43 @@ function fixture() {
     put(`/repos/unset-sh/${repo}/git/${kind}/${identity}`, { sha: identity, ...value });
     return identity;
   };
-  const revision = (repo, commit, files) => {
-    const entries = Object.entries(files).map(([path, source]) => {
-      const bytes = Buffer.from(typeof source === "string" ? source : JSON.stringify(source));
-      const identity = createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
-      put(`/repos/unset-sh/${repo}/git/blobs/${identity}`, {
-        sha: identity, size: bytes.length, encoding: "base64", content: bytes.toString("base64"),
-      });
-      return { path, sha: identity, type: "blob", mode: "100644", size: bytes.length };
+  const blob = (repo, path, source) => {
+    const bytes = Buffer.isBuffer(source) ? source : Buffer.from(typeof source === "string" ? source : JSON.stringify(source));
+    const identity = createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
+    put(`/repos/unset-sh/${repo}/git/blobs/${identity}`, {
+      sha: identity, size: bytes.length, encoding: "base64", content: bytes.toString("base64"),
     });
+    return { path, sha: identity, type: "blob", mode: "100644", size: bytes.length };
+  };
+  const revision = (repo, commit, files) => {
+    const entries = Object.entries(files).map(([path, source]) => blob(repo, path, source));
     const workflows = object(repo, "trees", { truncated: false, tree: entries });
     const github = object(repo, "trees", { truncated: false, tree: [
       { path: "workflows", type: "tree", mode: "040000", sha: workflows },
     ] });
-    const root = object(repo, "trees", { truncated: false, tree: [
+    const rootEntries = [
       { path: ".github", type: "tree", mode: "040000", sha: github },
-    ] });
+    ];
+    let descriptionEntry;
+    let descriptionTree;
+    if (repo === "tooling" && descriptions !== null) {
+      descriptionEntry = blob(repo, "descriptions.json", descriptions);
+      descriptionTree = object(repo, "trees", { truncated: false, tree: [descriptionEntry] });
+      rootEntries.push({ path: "workflows", type: "tree", mode: "040000", sha: descriptionTree });
+    }
+    const root = object(repo, "trees", { truncated: false, tree: rootEntries });
     put(`/repos/unset-sh/${repo}/git/commits/${commit}`, { sha: commit, tree: { sha: root } });
-    return { root, github, workflows, entries };
+    return { root, github, workflows, entries, descriptionEntry, descriptionTree, rootEntries };
   };
   const ref = (repo, kind, name, commit, type = "commit") => put(
     `/repos/unset-sh/${repo}/git/ref/${kind}/${encodeURIComponent(name)}`,
     { ref: `refs/${kind}/${name}`, object: { type, sha: commit } },
   );
   const repository = (name, commit, files = {}, extra = {}) => {
+    if (name === "tooling") {
+      const previous = repositories.findIndex((repo) => repo.name === name);
+      if (previous >= 0) repositories.splice(previous, 1);
+    }
     repositories.push({ name, full_name: `unset-sh/${name}`, owner: { login: "unset-sh" },
       private: false, visibility: "public", archived: false, default_branch: "main", size: commit ? 1 : 0, ...extra });
     if (commit) {
@@ -52,6 +68,7 @@ function fixture() {
     }
     put(`/repos/unset-sh/${name}/git/ref/heads/main`, { message: "Git Repository is empty." }, 409);
   };
+  const toolingTree = includeTooling ? repository("tooling", sha("e")) : null;
   const fetchImpl = async (url, options) => {
     const parsed = new URL(url);
     requests.push({ url: String(url), options });
@@ -63,13 +80,12 @@ function fixture() {
     if (!route) return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
     return new Response(JSON.stringify(route.value), { status: route.status });
   };
-  return { routes, repositories, requests, put, ref, revision, repository,
+  return { routes, repositories, requests, put, ref, revision, repository, toolingTree,
     collect: (options = {}) => collectWorkflowCatalogue({ parseYaml: JSON.parse, fetchImpl, now, collectorCommit, ...options }),
   };
 }
 
 test("collection joins reviewed descriptions by repository and path, preserving missing and stale states", async () => {
-  const reviewed = loadWorkflowDescriptions()[0];
   const f = fixture();
   const source = { on: "push", jobs: { check: { "runs-on": "ubuntu-latest", steps: [{ run: "true" }] } } };
   f.repository(reviewed.repository, sha("a"), { [reviewed.path.slice(18)]: source });
@@ -81,6 +97,82 @@ test("collection joins reviewed descriptions by repository and path, preserving 
   const unknown = result.workflows.find(({ repository }) => repository === "undocumented-fixture");
   assert.deepEqual(unknown.documentation, { status: "missing", purpose: null, steps: [], outputs: [],
     reviewedCommit: null, reviewedSha256: null });
+});
+
+test("reviewed metadata advances independently of the executable pin at one resolved tooling revision", async () => {
+  const snapshots = [];
+  for (const [commit, purpose] of [[sha("a"), "First reviewed purpose."], [sha("b"), "New reviewed purpose."]]) {
+    const f = fixture({ descriptions: registry([{ ...reviewed, purpose }]) });
+    f.repository("tooling", commit);
+    f.repository("web", sha("c"), { "ci.yml": { on: "push", jobs: { check: {} } } });
+    snapshots.push(await f.collect());
+    assert.equal(snapshots.at(-1).workflows[0].documentation.purpose, purpose);
+    assert.equal(snapshots.at(-1).descriptions.commit, commit);
+    assert.equal(snapshots.at(-1).repositories.find(({ name }) => name === "tooling").commit, commit);
+    assert.equal(f.requests.filter(({ url }) => url.endsWith("/tooling/git/ref/heads/main")).length, 1);
+    assert.equal(f.requests.filter(({ url }) => url.endsWith(`/tooling/git/commits/${commit}`)).length, 1);
+  }
+  assert.deepEqual(snapshots[0].collector, snapshots[1].collector);
+  assert.notEqual(snapshots[0].descriptions.sha256, snapshots[1].descriptions.sha256);
+});
+
+test("remote metadata retains exact descriptions for both current and historical workflow versions", async () => {
+  const current = { on: "workflow_call", jobs: { current: {} } };
+  const previous = { on: "workflow_call", jobs: { previous: {} } };
+  const description = (source, commit, purpose) => ({ ...reviewed, repository: "tooling", path: workflowPath("shared.yml"),
+    reviewedCommit: commit, reviewedSha256: createHash("sha256").update(JSON.stringify(source)).digest("hex"), purpose });
+  const f = fixture({ descriptions: registry([
+    description(current, sha("b"), "Current implementation."), description(previous, sha("c"), "Historical implementation."),
+  ]) });
+  f.repository("tooling", sha("b"), { "shared.yml": current });
+  f.revision("tooling", sha("c"), { "shared.yml": previous });
+  f.repository("web", sha("a"), { "ci.yml": { on: "push", jobs: {
+    shared: { uses: `unset-sh/tooling/.github/workflows/shared.yml@${sha("c")}` },
+  } } });
+  const result = await f.collect();
+  const versions = result.workflows.filter(({ repository }) => repository === "tooling");
+  assert.deepEqual(versions.map(({ documentation }) => [documentation.status, documentation.purpose]),
+    [["current", "Current implementation."], ["current", "Historical implementation."]]);
+  assert.equal(result.descriptions.commit, sha("b"));
+});
+
+test("missing or invalid remote metadata fails without falling back to the local checkout", async () => {
+  await assert.rejects(fixture({ includeTooling: false }).collect(), /tooling.*description/i);
+  const empty = fixture();
+  empty.repository("tooling", null);
+  await assert.rejects(empty.collect(), /tooling.*description/i);
+  for (const descriptions of [null, {}, registry([]), "private-parser-source", Buffer.from([0xff])]) {
+    await assert.rejects(fixture({ descriptions }).collect(), (error) => {
+      assert.match(error.message, /description|UTF-8/i);
+      assert.doesNotMatch(error.message, /private-parser-source/);
+      return true;
+    });
+  }
+  const mutations = [
+    (f) => { f.toolingTree.rootEntries.find(({ path }) => path === "workflows").mode = "120000"; },
+    (f) => { f.toolingTree.descriptionEntry.mode = "120000"; },
+    (f) => { f.toolingTree.descriptionEntry.size = 1024 * 1024 + 1; },
+    (f) => { f.routes.get(`/repos/unset-sh/tooling/git/trees/${f.toolingTree.descriptionTree}`).value.tree = []; },
+    (f) => { f.routes.get(`/repos/unset-sh/tooling/git/trees/${f.toolingTree.descriptionTree}`).value.truncated = true; },
+    (f) => { f.routes.get(`/repos/unset-sh/tooling/git/blobs/${f.toolingTree.descriptionEntry.sha}`).value.sha = sha("d"); },
+    (f) => { f.routes.get(`/repos/unset-sh/tooling/git/blobs/${f.toolingTree.descriptionEntry.sha}`).value.content = "eA=="; },
+    (f) => { f.put(`/repos/unset-sh/tooling/git/blobs/${f.toolingTree.descriptionEntry.sha}`, "private-error-body", 403); },
+  ];
+  for (const mutate of mutations) {
+    const f = fixture();
+    mutate(f);
+    await assert.rejects(f.collect(), (error) => {
+      assert.match(error.message, /description|tree|blob|HTTP/);
+      assert.doesNotMatch(error.message, /private-error-body/);
+      return true;
+    });
+  }
+});
+
+test("description provenance hashes the exact remote registry bytes including BOM and CRLF", async () => {
+  const source = '\uFEFF' + JSON.stringify(registry(), null, 2).replaceAll("\n", "\r\n") + "\r\n";
+  const result = await fixture({ descriptions: source }).collect();
+  assert.equal(result.descriptions.sha256, createHash("sha256").update(source).digest("hex"));
 });
 
 test("catalogue records actual event filters, jobs and immutable workflow revisions", async () => {
@@ -101,8 +193,10 @@ test("catalogue records actual event filters, jobs and immutable workflow revisi
   assert.equal(result.organisation, "unset-sh");
   assert.equal(result.collectedAt, "2026-11-22T12:00:00.000Z");
   assert.deepEqual(result.collector, { repository: "unset-sh/tooling", commit: collectorCommit });
+  assert.deepEqual(result.descriptions, { repository: "unset-sh/tooling", commit: sha("e"),
+    sha256: createHash("sha256").update(JSON.stringify(registry())).digest("hex") });
   assert.deepEqual(result.repositories.map(({ name, commit, archived, workflowIds }) => [name, commit, archived, workflowIds.length]),
-    [["archived", sha("b"), true, 0], ["empty", null, false, 0], ["web", sha("a"), false, 1]]);
+    [["archived", sha("b"), true, 0], ["empty", null, false, 0], ["tooling", sha("e"), false, 0], ["web", sha("a"), false, 1]]);
   assert.equal(result.workflows.length, 1);
   const workflow = result.workflows[0];
   assert.equal(workflow.id, workflowId("web", "ci.yml", sha("a")));
@@ -202,7 +296,7 @@ test("all public inventory pages are read and API links cannot reroute credentia
   f.put("/orgs/unset-sh/repos?type=public&per_page=100&page=2", f.repositories.slice(100));
   for (const repo of f.repositories) repo.url = "https://untrusted.invalid/receive-token";
   const result = await f.collect({ githubToken: "fixture-token" });
-  assert.equal(result.repositories.length, 101);
+  assert.equal(result.repositories.length, 102);
   assert.ok(result.repositories.some(({ name }) => name === "repo-100"));
   assert.ok(f.requests.every(({ url, options }) => new URL(url).origin === "https://api.github.com" &&
     options.method === "GET" && options.redirect === "error" && options.headers.Authorization === "Bearer fixture-token" &&

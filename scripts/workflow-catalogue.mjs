@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { loadWorkflowDescriptions, workflowDocumentation } from "./workflow-descriptions.mjs";
+import { validateWorkflowDescriptions, workflowDocumentation } from "./workflow-descriptions.mjs";
 
 const ORG = "unset-sh";
 const SHA = /^[0-9a-f]{40}$/;
@@ -142,6 +142,7 @@ async function discoverRepositories(read) {
 
 function gitObjects(read) {
   const directories = new Map();
+  const roots = new Map();
   async function tree(repository, sha) {
     const result = await read(`/repos/${ORG}/${repository}/git/trees/${sha}`);
     requireValue(result?.sha === sha && result.truncated === false && Array.isArray(result.tree) && result.tree.length <= 10000,
@@ -154,13 +155,21 @@ function gitObjects(read) {
     }
     return result.tree;
   }
-  async function files(repository, commit, missing = false) {
+  async function root(repository, commit, missing = false) {
     const key = `${repository}@${commit}`;
-    if (directories.has(key)) return directories.get(key);
+    if (roots.has(key)) return roots.get(key);
     const data = await read(`/repos/${ORG}/${repository}/git/commits/${commit}`, { missing });
     if (data === null) return null;
     requireValue(data?.sha === commit && SHA.test(data.tree?.sha), "Invalid workflow commit identity");
-    let entries = await tree(repository, data.tree.sha);
+    const entries = await tree(repository, data.tree.sha);
+    roots.set(key, entries);
+    return entries;
+  }
+  async function files(repository, commit, missing = false) {
+    const key = `${repository}@${commit}`;
+    if (directories.has(key)) return directories.get(key);
+    let entries = await root(repository, commit, missing);
+    if (entries === null) return null;
     for (const name of [".github", "workflows"]) {
       const entry = entries.find(({ path }) => path === name);
       if (!entry) { directories.set(key, []); return []; }
@@ -173,6 +182,20 @@ function gitObjects(read) {
     workflows.sort((a, b) => compare(a.path, b.path));
     directories.set(key, workflows);
     return workflows;
+  }
+  async function descriptions(commit) {
+    const directory = (await root("tooling", commit)).find(({ path }) => path === "workflows");
+    requireValue(directory?.type === "tree" && directory.mode === "040000", "Missing or invalid workflow descriptions directory");
+    const entry = (await tree("tooling", directory.sha)).find(({ path }) => path === "descriptions.json");
+    requireValue(entry?.type === "blob" && ["100644", "100755"].includes(entry.mode) &&
+      Number.isSafeInteger(entry.size) && entry.size > 0 && entry.size <= LIMIT.sourceBytes,
+    "Missing or invalid bounded workflow descriptions file");
+    const content = await source("tooling", entry);
+    let parsed;
+    try { parsed = JSON.parse(content.replace(/^\uFEFF/, "")); }
+    catch { fail("Invalid workflow descriptions JSON"); }
+    return { records: validateWorkflowDescriptions(parsed), provenance: { repository: `${ORG}/tooling`, commit,
+      sha256: createHash("sha256").update(content).digest("hex") } };
   }
   // Blobs must match their Git object identity, byte length, and UTF-8 source.
   // https://docs.github.com/en/rest/git/blobs#get-a-blob
@@ -190,7 +213,7 @@ function gitObjects(read) {
     try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes); }
     catch { fail("Workflow source must be UTF-8"); }
   }
-  return { files, source };
+  return { files, source, descriptions };
 }
 
 function parseReference(reference, caller, repositories) {
@@ -285,7 +308,6 @@ export async function collectWorkflowCatalogue({ parseYaml, fetchImpl = fetch, g
     "Workflow catalogue requires a parser and full collector commit");
   requireValue(githubToken === undefined || (typeof githubToken === "string" && /^[\x21-\x7e]{1,4096}$/.test(githubToken)),
     "Invalid workflow catalogue token");
-  const descriptions = loadWorkflowDescriptions();
   const read = githubReader(fetchImpl, githubToken);
   const inventory = await discoverRepositories(read);
   const git = gitObjects(read);
@@ -303,18 +325,25 @@ export async function collectWorkflowCatalogue({ parseYaml, fetchImpl = fetch, g
     const commit = branch === EMPTY ? null : branch.object?.sha;
     requireValue(branch === EMPTY || (branch.ref === `refs/heads/${repo.default_branch}` && branch.object?.type === "commit" && SHA.test(commit)),
       "Invalid workflow default branch identity");
-    const workflowIds = [];
+    repositories.push({ name: repo.name, defaultBranch: repo.default_branch, commit, archived: repo.archived, workflowIds: [] });
+  }
+  const tooling = repositories.find(({ name }) => name === "tooling");
+  requireValue(tooling?.commit, "Public nonempty tooling repository required for workflow descriptions");
+  const { records: descriptions, provenance } = await git.descriptions(tooling.commit);
+  account(provenance);
+  for (const repo of repositories) {
+    const { commit, workflowIds } = repo;
     if (commit) for (const entry of await git.files(repo.name, commit)) {
       const path = `.github/workflows/${entry.path}`;
       workflows.push(account(normalizeWorkflow(await git.source(repo.name, entry), parseYaml, repo.name, path, commit, true, descriptions)));
       workflowIds.push(idFor(repo.name, path, commit));
       requireValue(workflows.length <= LIMIT.workflows, "Workflow catalogue workflow limit exceeded");
     }
-    repositories.push(account({ name: repo.name, defaultBranch: repo.default_branch, commit, archived: repo.archived, workflowIds }));
+    account(repo);
   }
   const calls = await collectCalls(workflows, repositories, git, read, parseYaml, account, descriptions);
   const result = { schemaVersion: 1, organisation: ORG, collectedAt: now().toISOString(),
-    collector: { repository: `${ORG}/tooling`, commit: collectorCommit }, repositories,
+    collector: { repository: `${ORG}/tooling`, commit: collectorCommit }, descriptions: provenance, repositories,
     workflows: workflows.sort((a, b) => compare(a.id, b.id)), calls };
   requireValue(Buffer.byteLength(JSON.stringify(result)) <= LIMIT.catalogueBytes, "Workflow catalogue size limit exceeded");
   return result;

@@ -5,6 +5,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Description data updates:** live collection reads the reviewed registry from the exact tooling default-branch
+  commit already resolved for the snapshot and records its commit and SHA-256 separately from the executable pin.
+  Metadata reviews can land without repeatedly changing caller workflow hashes. Missing or invalid remote metadata
+  fails collection; the collector never falls back to a local registry.
 - **Shared map refresh:** `automation-maps-refresh.yml` runs every generator registered in a consumer's
   `.github/maps.json` with a temporary read-only token, validates the complete JSON snapshot, and uploads it as
   `maps-<run-id>-<run-attempt>`. Inputs are `registry` and `install`; output `artifact-name` connects a dependent
