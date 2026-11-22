@@ -10,7 +10,7 @@ menus:
     weight: 50
 params:
   doc_kind: overview
-  checked_source_revision: "86ce2eeec1436228d8d0d5b68f6c99243264f578"
+  checked_source_revision: "c7a291f820c5fc7b8ceb732954e0141c8c31b2e3"
 ---
 
 `unset-sh/tooling` maintains the shared GitHub Actions implementations and supporting scripts used by unset.sh repositories. A consumer keeps a small workflow that selects its events, permissions, and inputs, then calls an approved central commit. Its tests and build commands remain in that consumer.
@@ -27,7 +27,7 @@ The implementation described here is **unreleased, at version 0.0.0**. No consum
 | `unset-sh/agent-kit` | Shared agent instructions and agent working notes and artifacts |
 | `unset-sh/docs` | Documentation rendering and publication |
 
-This repository owns the public pages under `docs/site/`. Its exporter packages those pages as the `tooling/` section for a reviewed import into `unset-sh/docs`. Exporting an artifact does not deploy the website.
+This repository owns the public pages under `docs/`. Its exporter packages those pages as the `tooling/` section for a reviewed import into `unset-sh/docs`. Exporting an artifact does not deploy the website.
 
 ## Learn and use
 
@@ -47,4 +47,4 @@ This repository owns the public pages under `docs/site/`. Its exporter packages 
 
 ## Source and version
 
-The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/86ce2eeec1436228d8d0d5b68f6c99243264f578); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
+The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
