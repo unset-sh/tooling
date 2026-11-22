@@ -1,6 +1,6 @@
 ---
 title: "Developer tooling"
-description: "Use and maintain the shared checks, protected releases, and documentation exports for unset.sh."
+description: "Use and maintain the shared checks, protected releases, map refreshes, and documentation exports for unset.sh."
 weight: 50
 type: docs
 cascade:
@@ -10,7 +10,7 @@ menus:
     weight: 50
 params:
   doc_kind: overview
-  checked_source_revision: "940fce3708c6398db2d77e832e58e81a30730231"
+  checked_source_revision: "4274bca9d17d5eda5d1be6eca3bd796863bd859e"
 ---
 
 `unset-sh/tooling` maintains the shared GitHub Actions implementations and supporting scripts used by unset.sh repositories. A consumer keeps a small workflow that selects its events, permissions, and inputs, then calls an approved central commit. Its tests and build commands remain in that consumer.
@@ -21,7 +21,7 @@ The implementation described here is **unreleased, at version 0.0.0**. No consum
 
 | Repository | Responsibility |
 | --- | --- |
-| `unset-sh/tooling` | Shared checks, protected releases, documentation-export and workflow-catalogue helpers, and their tests |
+| `unset-sh/tooling` | Shared checks, protected releases, map-refresh, documentation-export and workflow-catalogue helpers, and their tests |
 | `unset-sh/.github` | Organisation profile, community defaults, repository map, and native workflow-picker templates |
 | Each consumer | Events, permissions, pinned callers, project checks, build commands, and release approval |
 | `unset-sh/agent-kit` | Shared agent instructions and agent working notes and artifacts |
@@ -34,6 +34,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 - [Prepare a repository to use shared workflows](use-workflows.md): preserve the repository's checks while adding a pinned caller.
 - [Release workflow reference](release-reference.md): inspect inputs, approval requirements, publication boundaries, and verification.
 - [Export the public documentation](export-docs.md): package an exact source revision for a reviewed import.
+- [Refresh every published map](map-refresh.md): register map generators and connect their complete snapshot to the build.
 - [Manage a documentation publishing key](manage-docs-publishing-key.md): operate the separate credential used by an existing source publisher.
 - [Organisation workflow map](https://docs.unset.sh/workflows/): find declared triggers, jobs, and exact reusable-workflow connections across public repositories.
 - [Workflow reference](workflow-reference.md): read each reviewed workflow's purpose, responsibilities, and results.
@@ -42,10 +43,11 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 
 - [How workflow sources become GitHub entry points](workflow-layout.md): follow authored category files through generation and consumer execution.
 - [Maintain the workflow catalogue](workflow-map.md): understand collection, source provenance, refresh failures, and the distinction between declared configuration and runtime results.
+- [Refresh every published map](map-refresh.md#follow-a-successful-run): follow the shared job's collection, validation, and artifact boundary.
 - [Release workflow reference](release-reference.md#permissions-and-publication-boundary): understand the separation between consumer builds and protected publication.
 - [Export the public documentation](export-docs.md#use-the-workflow-artifact): understand the consumer checkout, central helper revision, and artifact boundary.
 - [Prepare a repository to use shared workflows](use-workflows.md#planned-automatic-adoption): distinguish a reviewed pin update from the proposed automatic adoption pipeline.
 
 ## Source and version
 
-The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/940fce3708c6398db2d77e832e58e81a30730231); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
+The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/4274bca9d17d5eda5d1be6eca3bd796863bd859e); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.

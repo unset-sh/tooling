@@ -5,6 +5,11 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Shared map refresh:** `automation-maps-refresh.yml` runs every generator registered in a consumer's
+  `.github/maps.json` with a temporary read-only token, validates the complete JSON snapshot, and uploads it as
+  `maps-<run-id>-<run-attempt>`. Inputs are `registry` and `install`; output `artifact-name` connects a dependent
+  build to that same-run artifact. A failed generator or invalid output prevents upload. Consumers own their
+  trigger schedule, semantic map validation, and publication; the shared workflow commits and deploys nothing.
 - **Workflow descriptions:** the catalogue joins reviewed purposes, responsibilities and results from a bounded,
   versioned registry. Exact source hashes retain descriptions for historical callers; changed and undocumented
   workflows show explicit review or missing states. The same registry generates the human workflow reference,
