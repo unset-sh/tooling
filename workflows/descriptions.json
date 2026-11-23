@@ -3,6 +3,112 @@
   "workflows": [
     {
       "repository": ".github",
+      "path": ".github/workflows/map-publish.yml",
+      "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
+      "reviewedSha256": "2ef756167ac23630c44bb07893e539f04409fa8cf61f00c27c9fe27071b9c8a5",
+      "purpose": "Prepare and check generated organisation-map staging pull requests while preserving normal review and human promotion to main.",
+      "steps": [
+        "Run on relevant staging pushes, an hourly schedule or manual staging dispatch, serialising publication runs.",
+        "Call the reviewed tooling publisher with maximum contents, pull-request and Actions write permissions; the reusable implementation separates read-only generation, output-only publication and exact-head check dispatch."
+      ],
+      "outputs": [
+        "A generated-only staging PR and links to its three requested check runs when rendered views change. The workflow does not merge or promote main."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/org-map.yml",
+      "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
+      "reviewedSha256": "bfbe97ab008b6e02472c44ddf3e5e427b7bf3056907d5b77bbf568e7975a0f41",
+      "purpose": "Validate the curated organisation map and report differences from public GitHub metadata, with a separate verified path for generated-map PR checks.",
+      "steps": [
+        "On ordinary pull requests and pushes, regenerate the map from repos.json and run the repository checks with read-only contents permission.",
+        "For generated manual dispatches, first verify the actual bot-owned staging PR and exact head/base through the central branch-policy workflow; fail the required map check before checkout when proof fails.",
+        "For a verified generated dispatch, require regeneration to leave MAP.md and profile/README.md unchanged, proving the committed outputs are current.",
+        "On the daily schedule or an ordinary manual run, compare public repository metadata and maintain the org-map-drift issue. Generated dispatches cannot enter this writable drift job."
+      ],
+      "outputs": [
+        "The Check the organisation map result and regenerated workspace views; the check itself does not commit those views.",
+        "A drift issue created, updated or closed according to the public metadata comparison."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/docs-export.yml",
+      "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
+      "reviewedSha256": "36f79b9eddc9e2c6e8a78300f6c0c4945396d361c51944e0fee28277b272d651",
+      "purpose": "Check the organisation map and package maintained documentation, including fail-closed checks for generated-map PR dispatches.",
+      "steps": [
+        "Run on pull requests, staging or main pushes, and manual dispatches. Generated dispatch identities or generated branch refs first activate the central real-PR verifier.",
+        "Keep the existing check / Check context: run the shared map-regeneration and repository-check command after valid proof or an ordinary event; select only a fixed failing command with dependency installation disabled when generated proof fails.",
+        "After checks succeed, use the pinned exporter to package the committed docs/site pages and root licence with source revision and hashes."
+      ],
+      "outputs": [
+        "The check / Check result and a provenance-bearing docs-<commit> artifact retained for 14 days. This workflow neither writes the docs repository nor deploys the site."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
+      "reviewedSha256": "335f8cedd87253ca4a74ca9c3ace6555dce68e27c49290ca53e92d0f054c754a",
+      "purpose": "Validate staging and main PR origins, and verify actual generated-map staging PRs requested through manual dispatch.",
+      "steps": [
+        "Run the shared policy on pull-request creation, updates, reopening, retargeting or readiness changes without branch or path filters.",
+        "For manual generated-map checks, require the pull-request number and exact expected head/base and pass them to the reviewed central real-PR verifier.",
+        "Retain the shared ordinary PR rules: feature or fork contributions may target staging, while main promotion must originate from staging in the same repository."
+      ],
+      "outputs": [
+        "The policy / Validate branch policy check. It neither proves human intent nor approves, merges or promotes a pull request."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/docs-import.yml",
+      "reviewedCommit": "9dc1178224bc2f09fc7ac0aabf59a6620d864dbc",
+      "reviewedSha256": "7b8ce28ca3c3a007c97db4f38dd6564f8dcad9824944305ed32e832409aff5e1",
+      "purpose": "Keep the tooling and organisation documentation sections current through reviewed staging pull requests from exact stable source exports.",
+      "steps": [
+        "Run hourly and on demand only on the default staging branch, serialize runs without cancelling active work, and process the fixed tooling and github source keys independently.",
+        "Call the reviewed central documentation receiver at a full commit pin, with separate preparation, content-publication and Actions-dispatch permission scopes.",
+        "Leave the generated section-only pull requests and production promotion to the normal required checks and owner review."
+      ],
+      "outputs": [
+        "The central receiver’s bounded same-run import artifacts, generated staging PRs when content changes, and verified requested run URLs for the existing documentation and branch-policy checks."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "9dc1178224bc2f09fc7ac0aabf59a6620d864dbc",
+      "reviewedSha256": "75a1f53c1e4686c59eaf9df3f225819db23859d8651b4c76abbd57e397521ade",
+      "purpose": "Validate the documentation framework and source pages while preserving the same required check for normal changes and independently verified generated import PRs.",
+      "steps": [
+        "Run for relevant PR updates and pushes to staging or main; accept generated-import dispatches only with the fixed PR, expected head and expected base inputs.",
+        "For every dispatch, load a pinned central verifier and validate the actual bot PR, current source/head/base and complete section-only proof before checking out consumer code.",
+        "Install the locked tooling without lifecycle scripts, run tests and workflow/map guards, check ordinary PR documentation impact, lint workflows, and build both real content and preview fixtures."
+      ],
+      "outputs": [
+        "The required Validate documentation result, including checked ordinary and preview site output; malformed dispatch proof fails the job and prevents consumer execution."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "9dc1178224bc2f09fc7ac0aabf59a6620d864dbc",
+      "reviewedSha256": "7dfa1a629a2ce51acaa8bb62d1c75dd6513df38bf71018d477a5402b87e8055b",
+      "purpose": "Apply the shared development and promotion branch policy to ordinary PRs and exact generated documentation import checks.",
+      "steps": [
+        "Run on PR opening, synchronization, reopening, metadata edits and readiness changes without branch or path filters.",
+        "Forward the three fixed generated-PR identity inputs on workflow dispatch to the pinned central branch-policy workflow.",
+        "Preserve the shared policy job’s existing required context and permission-free validation; generated dispatches must prove the actual bot PR, current head/base and owned changes."
+      ],
+      "outputs": [
+        "The stable policy / Validate branch policy result for ordinary PR metadata or a verified generated import dispatch."
+      ]
+    },
+    {
+      "repository": ".github",
       "path": ".github/workflows/branch-policy.yml",
       "reviewedCommit": "ff0e35a129a52914cb0e6f0bb15465165032fed5",
       "reviewedSha256": "b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e",

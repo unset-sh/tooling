@@ -18,6 +18,24 @@ Maintain these descriptions in `workflows/descriptions.json` and run `npm run wo
 
 ### .github/workflows/branch-policy.yml
 
+Validate staging and main PR origins, and verify actual generated-map staging PRs requested through manual dispatch.
+
+**What it does**
+
+1. Run the shared policy on pull-request creation, updates, reopening, retargeting or readiness changes without branch or path filters.
+2. For manual generated-map checks, require the pull-request number and exact expected head/base and pass them to the reviewed central real-PR verifier.
+3. Retain the shared ordinary PR rules: feature or fork contributions may target staging, while main promotion must originate from staging in the same repository.
+
+**Produces**
+
+- The policy / Validate branch policy check. It neither proves human intent nor approves, merges or promotes a pull request.
+
+[Reviewed source at aa0f429f9d68](https://github.com/unset-sh/.github/blob/aa0f429f9d6865ac57d5efc5446df4202bd2362c/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `335f8cedd87253ca4a74ca9c3ace6555dce68e27c49290ca53e92d0f054c754a`.
+
+#### Additional reviewed version 1
+
 Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
 
 **What it does**
@@ -36,6 +54,24 @@ Source SHA-256: `b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2
 
 ### .github/workflows/docs-export.yml
 
+Check the organisation map and package maintained documentation, including fail-closed checks for generated-map PR dispatches.
+
+**What it does**
+
+1. Run on pull requests, staging or main pushes, and manual dispatches. Generated dispatch identities or generated branch refs first activate the central real-PR verifier.
+2. Keep the existing check / Check context: run the shared map-regeneration and repository-check command after valid proof or an ordinary event; select only a fixed failing command with dependency installation disabled when generated proof fails.
+3. After checks succeed, use the pinned exporter to package the committed docs/site pages and root licence with source revision and hashes.
+
+**Produces**
+
+- The check / Check result and a provenance-bearing docs-\<commit\> artifact retained for 14 days. This workflow neither writes the docs repository nor deploys the site.
+
+[Reviewed source at aa0f429f9d68](https://github.com/unset-sh/.github/blob/aa0f429f9d6865ac57d5efc5446df4202bd2362c/.github/workflows/docs-export.yml).
+
+Source SHA-256: `36f79b9eddc9e2c6e8a78300f6c0c4945396d361c51944e0fee28277b272d651`.
+
+#### Additional reviewed version 1
+
 Prepare the organisation’s maintained documentation for the central docs site after regenerating and checking the organisation map.
 
 **What it does**
@@ -52,7 +88,7 @@ Prepare the organisation’s maintained documentation for the central docs site 
 
 Source SHA-256: `0964f49eff7f993f64684dd8dc5ea8a703ec6a3f41f9872a60e464ed373cf3d6`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Prepare the organisation’s maintained documentation for the central docs site after regenerating and checking the organisation map.
 
@@ -70,7 +106,7 @@ Prepare the organisation’s maintained documentation for the central docs site 
 
 Source SHA-256: `9e7ca1b8b2ff183c2da3d0bc9eab4a39c90b036b94d5813c2b5bb1e0f2a75ad4`.
 
-#### Additional reviewed version 2
+#### Additional reviewed version 3
 
 Prepare the organisation’s maintained documentation for the central docs site after the organisation checks pass.
 
@@ -89,6 +125,23 @@ Prepare the organisation’s maintained documentation for the central docs site 
 Source SHA-256: `4993b718777f317c6e6f1b7e58b284068447b667edf4a576fcce6293fd90385d`.
 
 ### .github/workflows/map-publish.yml
+
+Prepare and check generated organisation-map staging pull requests while preserving normal review and human promotion to main.
+
+**What it does**
+
+1. Run on relevant staging pushes, an hourly schedule or manual staging dispatch, serialising publication runs.
+2. Call the reviewed tooling publisher with maximum contents, pull-request and Actions write permissions; the reusable implementation separates read-only generation, output-only publication and exact-head check dispatch.
+
+**Produces**
+
+- A generated-only staging PR and links to its three requested check runs when rendered views change. The workflow does not merge or promote main.
+
+[Reviewed source at aa0f429f9d68](https://github.com/unset-sh/.github/blob/aa0f429f9d6865ac57d5efc5446df4202bd2362c/.github/workflows/map-publish.yml).
+
+Source SHA-256: `2ef756167ac23630c44bb07893e539f04409fa8cf61f00c27c9fe27071b9c8a5`.
+
+#### Additional reviewed version 1
 
 Keep the committed organisation map and profile map block current after their source changes, using the reviewed shared publisher.
 
@@ -110,6 +163,26 @@ Source SHA-256: `bacf711d7076bd48ac08aa497df14d3fa86f3e6a101aaacba16c0807d862006
 
 ### .github/workflows/org-map.yml
 
+Validate the curated organisation map and report differences from public GitHub metadata, with a separate verified path for generated-map PR checks.
+
+**What it does**
+
+1. On ordinary pull requests and pushes, regenerate the map from repos.json and run the repository checks with read-only contents permission.
+2. For generated manual dispatches, first verify the actual bot-owned staging PR and exact head/base through the central branch-policy workflow; fail the required map check before checkout when proof fails.
+3. For a verified generated dispatch, require regeneration to leave MAP.md and profile/README.md unchanged, proving the committed outputs are current.
+4. On the daily schedule or an ordinary manual run, compare public repository metadata and maintain the org-map-drift issue. Generated dispatches cannot enter this writable drift job.
+
+**Produces**
+
+- The Check the organisation map result and regenerated workspace views; the check itself does not commit those views.
+- A drift issue created, updated or closed according to the public metadata comparison.
+
+[Reviewed source at aa0f429f9d68](https://github.com/unset-sh/.github/blob/aa0f429f9d6865ac57d5efc5446df4202bd2362c/.github/workflows/org-map.yml).
+
+Source SHA-256: `bfbe97ab008b6e02472c44ddf3e5e427b7bf3056907d5b77bbf568e7975a0f41`.
+
+#### Additional reviewed version 1
+
 Validate the organisation map regenerated from its curated source and report differences between that source and public GitHub repositories.
 
 **What it does**
@@ -128,7 +201,7 @@ Validate the organisation map regenerated from its curated source and report dif
 
 Source SHA-256: `08ad77151af55bb31ae002471582d0b37776eb16b13e0928583d3d1b69583af7`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Validate the organisation map regenerated from its curated source and report differences between that source and public GitHub repositories.
 
@@ -148,7 +221,7 @@ Validate the organisation map regenerated from its curated source and report dif
 
 Source SHA-256: `f9f81fc280358996016ae43859e05b5288336e6701085e57b58660904d4f6e1f`.
 
-#### Additional reviewed version 2
+#### Additional reviewed version 3
 
 Keep the curated organisation map consistent with its source and report differences between the map and public GitHub repositories.
 
@@ -385,6 +458,24 @@ Source SHA-256: `e2c2752b510a0cf77a10670ff3a0efb901c3ea0a824f286a089741cab4445ba
 
 ### .github/workflows/branch-policy.yml
 
+Apply the shared development and promotion branch policy to ordinary PRs and exact generated documentation import checks.
+
+**What it does**
+
+1. Run on PR opening, synchronization, reopening, metadata edits and readiness changes without branch or path filters.
+2. Forward the three fixed generated-PR identity inputs on workflow dispatch to the pinned central branch-policy workflow.
+3. Preserve the shared policy job’s existing required context and permission-free validation; generated dispatches must prove the actual bot PR, current head/base and owned changes.
+
+**Produces**
+
+- The stable policy / Validate branch policy result for ordinary PR metadata or a verified generated import dispatch.
+
+[Reviewed source at 9dc1178224bc](https://github.com/unset-sh/docs/blob/9dc1178224bc2f09fc7ac0aabf59a6620d864dbc/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `7dfa1a629a2ce51acaa8bb62d1c75dd6513df38bf71018d477a5402b87e8055b`.
+
+#### Additional reviewed version 1
+
 Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
 
 **What it does**
@@ -402,6 +493,24 @@ Check that pull requests target staging and that promotions to main come from th
 Source SHA-256: `b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e`.
 
 ### .github/workflows/ci.yml
+
+Validate the documentation framework and source pages while preserving the same required check for normal changes and independently verified generated import PRs.
+
+**What it does**
+
+1. Run for relevant PR updates and pushes to staging or main; accept generated-import dispatches only with the fixed PR, expected head and expected base inputs.
+2. For every dispatch, load a pinned central verifier and validate the actual bot PR, current source/head/base and complete section-only proof before checking out consumer code.
+3. Install the locked tooling without lifecycle scripts, run tests and workflow/map guards, check ordinary PR documentation impact, lint workflows, and build both real content and preview fixtures.
+
+**Produces**
+
+- The required Validate documentation result, including checked ordinary and preview site output; malformed dispatch proof fails the job and prevents consumer execution.
+
+[Reviewed source at 9dc1178224bc](https://github.com/unset-sh/docs/blob/9dc1178224bc2f09fc7ac0aabf59a6620d864dbc/.github/workflows/ci.yml).
+
+Source SHA-256: `75a1f53c1e4686c59eaf9df3f225819db23859d8651b4c76abbd57e397521ade`.
+
+#### Additional reviewed version 1
 
 Check documentation sources, publication safeguards and rendered pages before changes reach the documentation site.
 
@@ -421,7 +530,7 @@ Check documentation sources, publication safeguards and rendered pages before ch
 
 Source SHA-256: `bb4d65f74b734c3d1c1e966b77c1b478d583f39071aa87aa81c8b1b541a409dd`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Check documentation sources, publication safeguards and rendered pages before changes reach the documentation site.
 
@@ -439,6 +548,24 @@ Check documentation sources, publication safeguards and rendered pages before ch
 [Reviewed source at 02bfc33cbe6a](https://github.com/unset-sh/docs/blob/02bfc33cbe6a44f7f57f3e06dfc4012739899265/.github/workflows/ci.yml).
 
 Source SHA-256: `4867727cb325e12ae20ec3ce21e5cd8a2f8bbb68fdfb3fb944e0375bdfdc9776`.
+
+### .github/workflows/docs-import.yml
+
+Keep the tooling and organisation documentation sections current through reviewed staging pull requests from exact stable source exports.
+
+**What it does**
+
+1. Run hourly and on demand only on the default staging branch, serialize runs without cancelling active work, and process the fixed tooling and github source keys independently.
+2. Call the reviewed central documentation receiver at a full commit pin, with separate preparation, content-publication and Actions-dispatch permission scopes.
+3. Leave the generated section-only pull requests and production promotion to the normal required checks and owner review.
+
+**Produces**
+
+- The central receiver’s bounded same-run import artifacts, generated staging PRs when content changes, and verified requested run URLs for the existing documentation and branch-policy checks.
+
+[Reviewed source at 9dc1178224bc](https://github.com/unset-sh/docs/blob/9dc1178224bc2f09fc7ac0aabf59a6620d864dbc/.github/workflows/docs-import.yml).
+
+Source SHA-256: `7b8ce28ca3c3a007c97db4f38dd6564f8dcad9824944305ed32e832409aff5e1`.
 
 ### .github/workflows/site-refresh.yml
 
