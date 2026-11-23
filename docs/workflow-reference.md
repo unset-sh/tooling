@@ -603,6 +603,41 @@ Validate current pull-request labels and readiness, validation and documentation
 
 Source SHA-256: `045e38c5b7cc3f215daed8fa3c01ff11d01f56fad745a14b21daeeb1188acca6`.
 
+### .github/workflows/ci-repository-policy-self.yml
+
+Apply the shared repository policy checks to tooling pull requests and staging or main pushes.
+
+**What it does**
+
+1. Run on every pull request and pushes to staging or main without path filters.
+2. Call the local reusable repository-policy workflow with read-only contents permission and tooling’s committed scope configuration.
+
+**Produces**
+
+- The policy / Repository policy check for tooling. Ruleset enforcement remains a separate setting.
+
+[Reviewed source at cac06e938139](https://github.com/unset-sh/tooling/blob/cac06e938139f53192e9e2fa85805b62ebfe2856/.github/workflows/ci-repository-policy-self.yml).
+
+Source SHA-256: `fe759f6e8612346fea735a0398fabb0cbb8fdb0190b82c560b8fee4da0f76529`.
+
+### .github/workflows/ci-repository-policy.yml
+
+Check declared dependency and action pins, installed agent-kit integrity and forbidden working-artifact paths without executing consumer code.
+
+**What it does**
+
+1. Verify the central workflow identity and check out the consumer and tooling helpers at their exact event and workflow commits.
+2. Install checksum-verified zizmor 1.32.0, parse committed workflow and configured action definitions offline, and fail on parser or scanner errors.
+3. Read the committed policy configuration and npm manifests, compare installed-kit bytes with their lock, inspect forbidden path prefixes, and apply only reasoned exact exceptions.
+
+**Produces**
+
+- A Repository policy check result with bounded diagnostics. This does not establish semantic policy compliance, release authenticity, dependency age or licence correctness; other repositories must adopt it explicitly.
+
+[Reviewed source at cac06e938139](https://github.com/unset-sh/tooling/blob/cac06e938139f53192e9e2fa85805b62ebfe2856/.github/workflows/ci-repository-policy.yml).
+
+Source SHA-256: `d791880f4d5be1a69e54ef17cef9500adca5e2010fdc2439f029d87da4210948`.
+
 ### .github/workflows/ci-self.yml
 
 Verify tooling’s implementation and the executable workflows generated from its organised workflow sources.

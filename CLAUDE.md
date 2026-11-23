@@ -46,6 +46,10 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
 - The organisation-map publisher may update only `unset-sh/.github:MAP.md` and the marked profile block, through
   a validated generated-only PR. Keep consumer generation read-only, isolate the write token, preserve authored
   text, bind artifacts and merges to exact source/head revisions, and respect every GitHub merge refusal.
+- The repository-policy job reads committed policy inputs without executing consumer helpers. Keep action-pin
+  scanning parser-backed, offline and bounded, verify the fixed scanner archive before extraction, and fail on parser
+  errors. Exceptions match exact paths/references with reasons; never add broad bypasses or print raw scanner output.
+  Installed kit checks compare lock hashes without running sync.mjs. Path checks do not identify every AI artifact.
 - Never commit on `main`, a shared branch or a detached HEAD. Use your own `claude/<task>` or `cursor/<task>` branch.
   Land through a PR; do not merge your own implementation PR. Release setup and approval remain the owner's action;
   document what has not run rather than treating local tests as proof of live release behaviour.
