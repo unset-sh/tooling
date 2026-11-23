@@ -284,3 +284,42 @@ test("the release reference shows callers the same permissions the release workf
     assert.ok(readme.includes(scope), `Release reference does not show ${scope}`);
   }
 });
+
+test("the check runs Postgres only from an image pinned by digest, and points the check at it", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { mkdtempSync, readFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const text = readText(".github/workflows/ci-check.yml");
+  // GitHub starts no service whose image is empty, so the default caller gets no database.
+  assert.match(inputsOf(text).join(","), /postgres-image/);
+  assert.match(text, /^ {6}postgres:\n {8}image: \$\{\{ inputs\.postgres-image \}\}$/m);
+  assert.match(text, /^ {10}- 127\.0\.0\.1:5432:5432$/m, "the database is published on the runner's loopback only");
+  const step = text.slice(text.indexOf("- name: The Postgres image is pinned by digest"));
+  assert.match(step, /^ {8}if: inputs\.postgres-image != ''$/m);
+  const script = runBlocks(step)[0];
+  const digest = "a".repeat(64);
+  const run = (image) => {
+    const dir = mkdtempSync(join(tmpdir(), "pg-image-"));
+    try {
+      const env = join(dir, "env");
+      const result = spawnSync("bash", ["-eo", "pipefail", "-c", script], {
+        env: { PATH: process.env.PATH, POSTGRES_IMAGE: image, GITHUB_ENV: env }, encoding: "utf8",
+      });
+      let written = "";
+      try { written = readFileSync(env, "utf8"); } catch {}
+      return { status: result.status, written };
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  };
+  for (const image of [`postgres:18.1@sha256:${digest}`, `docker.io/library/postgres:18-alpine@sha256:${digest}`]) {
+    const { status, written } = run(image);
+    assert.equal(status, 0, image);
+    assert.equal(written, "PGHOST=127.0.0.1\nPGPORT=5432\nPGUSER=postgres\nPGDATABASE=postgres\n");
+  }
+  for (const image of ["postgres:18", "postgres:latest", `postgres@sha256:${digest}`, `evil/postgres:18@sha256:${digest}`,
+    `postgres:18@sha256:${"A".repeat(64)}`, `postgres:18@sha256:${digest}\nPGHOST=evil`, `postgres:18@sha256:${digest} `]) {
+    const { status, written } = run(image);
+    assert.notEqual(status, 0, JSON.stringify(image));
+    assert.equal(written, "", JSON.stringify(image));
+  }
+});
