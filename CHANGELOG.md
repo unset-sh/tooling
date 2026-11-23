@@ -5,6 +5,8 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Documentation imports:** a docs-owned hourly receiver re-exports allowlisted exact stable revisions, validates complete provenance against Git objects, and prepares section-only staging PRs. Writing and dispatch permissions are isolated; existing required checks verify the actual generated PR before executing consumer code. No PR merge or production promotion is automated. Shared branch policy adds a narrow generated-dispatch path for docs imports and organisation maps while retaining its permission-free ordinary PR mode.
+
 - **Generated map staging PRs:** the organisation-map publisher now prepares a generated-only PR into staging
   without merging. A separate Actions-write job revalidates its exact base, head, two-file tree and authored profile
   boundary, then dispatches the three existing required workflows with those identities. Consumer dispatch adapters
