@@ -13,6 +13,11 @@ on:
       expected-base:
         type: string
         default: ""
+      flow:
+        # staged: work targets staging and only same-repository staging promotes to main.
+        # main: the repository has no staging branch, and every pull request targets main.
+        type: string
+        default: staged
 
 permissions: {}
 
@@ -29,6 +34,8 @@ jobs:
           package-manager-cache: false
       - name: Validate the pull request event
         if: github.event_name != 'workflow_dispatch'
+        env:
+          FLOW: ${{ inputs.flow }}
         # Read GitHub's event as data. No checkout, repository code, token or API call is needed.
         # This checks branch origin, not whether a human is using the GitHub account.
         shell: node {0}
@@ -49,12 +56,19 @@ jobs:
                 pr?.base?.repo?.full_name !== repository || !text(pr?.head?.repo?.full_name)) {
               throw new Error('Missing or inconsistent pull request metadata.');
             }
-            if (pr.base.ref !== 'staging' && pr.base.ref !== 'main') {
-              throw new Error('Pull requests must target staging or main.');
-            }
-            if (pr.base.ref === 'main' &&
-                (pr.head.ref !== 'staging' || pr.head.repo.full_name !== repository)) {
-              throw new Error('Only same-repository staging may promote to main.');
+            const flow = process.env.FLOW;
+            if (flow === 'main') {
+              if (pr.base.ref !== 'main') throw new Error('Pull requests must target main.');
+            } else if (flow === 'staged') {
+              if (pr.base.ref !== 'staging' && pr.base.ref !== 'main') {
+                throw new Error('Pull requests must target staging or main.');
+              }
+              if (pr.base.ref === 'main' &&
+                  (pr.head.ref !== 'staging' || pr.head.repo.full_name !== repository)) {
+                throw new Error('Only same-repository staging may promote to main.');
+              }
+            } else {
+              throw new Error('Unknown branch flow.');
             }
             console.log('Branch policy passed.');
           } catch (error) {

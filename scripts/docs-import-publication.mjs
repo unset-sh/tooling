@@ -2,7 +2,7 @@
 // package command, force update, merge or repository setting is used here.
 // https://docs.github.com/en/rest/git/trees#create-a-tree
 // https://docs.github.com/en/rest/git/refs#update-a-reference
-import { decodeImportFiles, gitBlobHash, importLimits, importSource, isCommit, refuseImport, sha256, validateDocsImport, validateImportPaths, DocsImportError } from "./docs-import-data.mjs";
+import { decodeImportFiles, docsBase, gitBlobHash, importLimits, importSource, isCommit, refuseImport, sha256, validateDocsImport, validateImportPaths, DocsImportError } from "./docs-import-data.mjs";
 import { readImportRef, verifyImportSource, verifyImportTree } from "./docs-import-github.mjs";
 
 const repository = "unset-sh/docs";
@@ -80,12 +80,12 @@ async function previousSnapshot(api, commit, sourceKey, baseRoot, currentBase) {
   if (!match || match[1] !== sourceKey || !Array.isArray(commit.parents) || ![1, 2].includes(commit.parents.length)
     || commit.parents.some(parent => !isCommit(parent.sha))) refuseImport("Existing import branch is not an owned generated commit");
   const [, key, revision, run, previousBase] = match;
-  if (commit.parents.length === 2 && (commit.parents[1].sha !== previousBase || commit.parents[0].sha === previousBase)) refuseImport("Import reconciliation must record staging as its second parent");
+  if (commit.parents.length === 2 && (commit.parents[1].sha !== previousBase || commit.parents[0].sha === previousBase)) refuseImport("Import reconciliation must record the docs base as its second parent");
   const source = importSource(key);
   if (previousBase !== currentBase) {
     const comparison = await api(repository, "GET", `/compare/${previousBase}...${currentBase}`);
     if (!['ahead', 'identical'].includes(comparison?.status) || comparison.base_commit?.sha !== previousBase
-      || comparison.merge_base_commit?.sha !== previousBase) refuseImport("Previous import base is not in staging history");
+      || comparison.merge_base_commit?.sha !== previousBase) refuseImport("Previous import base is not in docs base history");
   }
   const original = previousBase === currentBase ? baseRoot : (await rootAt(api, previousBase)).entries;
   const root = await treeAt(api, commit.tree.sha);
@@ -109,14 +109,14 @@ async function previousSnapshot(api, commit, sourceKey, baseRoot, currentBase) {
   }
   files.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
   const snapshot = validateDocsImport({ schemaVersion: 1, source: { key, revision, runId: Number(run) },
-    target: { repository, base: "staging", baseCommit: previousBase, workflowCommit: previousBase }, files });
+    target: { repository, base: docsBase, baseCommit: previousBase, workflowCommit: previousBase }, files });
   await verifyImportSource({ snapshot, api, current: false });
   return { root, entries, base: previousBase };
 }
 
 export function validateImportPr(pr, branch, head, base) {
   if (!Number.isSafeInteger(pr?.number) || pr.number <= 0 || pr.state !== "open" || pr.head?.sha !== head || pr.head.ref !== branch
-    || pr.head.repo?.full_name !== repository || pr.base?.ref !== "staging" || pr.base.sha !== base || pr.base.repo?.full_name !== repository
+    || pr.head.repo?.full_name !== repository || pr.base?.ref !== docsBase || pr.base.sha !== base || pr.base.repo?.full_name !== repository
     || pr.user?.login !== "github-actions[bot]" || pr.user.id !== 41898282 || pr.user.type !== "Bot") refuseImport("Import pull request identity or ownership changed");
   return pr;
 }
@@ -125,7 +125,7 @@ export async function verifyDocsImportHead({ api, key, head, base }) {
   const source = importSource(key);
   const { entries: root } = await rootAt(api, base);
   const commit = await commitAt(api, head);
-  if (!commit.message?.includes(`\nDocs base: ${base}\n`)) refuseImport("Import commit does not record the current staging base");
+  if (!commit.message?.includes(`\nDocs base: ${base}\n`)) refuseImport("Import commit does not record the current docs base");
   const previous = await previousSnapshot(api, commit, key, root, base);
   if (canonicalTree(previous.root.filter(entry => entry.path !== source.section)) !== canonicalTree(root.filter(entry => entry.path !== source.section))) refuseImport("Import head changes files outside its owned section");
   return source;
@@ -136,7 +136,7 @@ export async function publishDocsImport({ snapshot, api }) {
   const source = await verifyImportSource({ snapshot, api });
   const base = snapshot.target.baseCommit;
   const checkBase = async () => {
-    if (await readImportRef(api, repository, "staging") !== base) refuseImport("Docs staging moved; prepare a fresh import");
+    if (await readImportRef(api, repository, docsBase) !== base) refuseImport("Docs main moved; prepare a fresh import");
   };
   await checkBase();
   const { commit: baseObject, entries: baseRoot } = await rootAt(api, base);
@@ -186,7 +186,7 @@ export async function publishDocsImport({ snapshot, api }) {
 
 ## Readiness
 
-Ready after the required documentation and branch-policy checks pass. This PR targets staging; production promotion remains separate.
+Ready after the required documentation and branch-policy checks pass. This PR targets main, which publishes the site after a person merges it.
 
 ## Prerequisites and order
 
@@ -194,7 +194,7 @@ The source revision already has a successful export run. Merge this import after
 
 ## Tested combination
 
-Source: ${snapshot.source.revision}. Docs staging: ${base}. The receiver validated the exact source Git objects, complete section and provenance before opening this PR.
+Source: ${snapshot.source.revision}. Docs main: ${base}. The receiver validated the exact source Git objects, complete section and provenance before opening this PR.
 
 ## Validation
 
@@ -204,7 +204,7 @@ Source export: https://github.com/${source.repository}/actions/runs/${snapshot.s
 
 Only ${source.section}/ changes. Authored source documentation stays in its source repository; source.json records the imported revision and hashes.`;
   const existed = Boolean(pr);
-  if (!pr) pr = await api(repository, "POST", "/pulls", { title: titleFor(snapshot.source.key), head: branch, base: "staging", body }, [201]);
+  if (!pr) pr = await api(repository, "POST", "/pulls", { title: titleFor(snapshot.source.key), head: branch, base: docsBase, body }, [201]);
   else if (changed) pr = await api(repository, "PATCH", `/pulls/${pr.number}`, { title: titleFor(snapshot.source.key), body });
   validateImportPr(pr, branch, head, base);
   return { status: changed ? (existed ? "updated" : "opened") : "pending", number: pr.number, branch, head, url: `https://github.com/${repository}/pull/${pr.number}` };

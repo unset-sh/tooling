@@ -14,7 +14,7 @@ test("dispatch cannot manufacture a PR identity for another repository, event, b
     value => { value.context.ref = "refs/heads/automation/docs-web"; },
     value => { value.context.sha = base; },
     value => { value.expectedHead = "main"; },
-    value => { value.expectedBase = "staging"; },
+    value => { value.expectedBase = "main"; },
     value => { value.number = "12\n"; },
     value => { value.number = "0"; },
     value => { value.number = "9007199254740992"; },
@@ -24,12 +24,12 @@ test("dispatch cannot manufacture a PR identity for another repository, event, b
   }
 });
 
-test("dispatch refuses real PR metadata that does not match its expected bot-owned staging import", async () => {
+test("dispatch refuses real PR metadata that does not match its expected bot-owned main import", async () => {
   for (const change of [
     value => { value.state = "closed"; },
     value => { value.head.sha = base; },
     value => { value.base.sha = head; },
-    value => { value.base.ref = "main"; },
+    value => { value.base.ref = "staging"; },
     value => { value.head.repo.full_name = "outside/docs"; },
     value => { value.user.login = "a-person"; },
     value => { value.changed_files = 0; },
@@ -37,7 +37,7 @@ test("dispatch refuses real PR metadata that does not match its expected bot-own
   ]) {
     const pr = { number: 12, state: "open", changed_files: 3, user: { login: "github-actions[bot]", id: 41898282, type: "Bot" },
       head: { sha: head, ref: "automation/docs-tooling", repo: { full_name: "unset-sh/docs" } },
-      base: { sha: base, ref: "staging", repo: { full_name: "unset-sh/docs" } } };
+      base: { sha: base, ref: "main", repo: { full_name: "unset-sh/docs" } } };
     change(pr);
     const api = async (repository, method, path) => {
       assert.equal(repository, "unset-sh/docs"); assert.equal(method, "GET"); assert.equal(path, "/pulls/12"); return pr;

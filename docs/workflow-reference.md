@@ -956,6 +956,25 @@ Source SHA-256: `2d1461df9ac798d9ff5c37e45339df30c3f80e14ff6da0a7a1a0f27c912e9c8
 
 ### .github/workflows/automation-docs-import.yml
 
+Prepare checked documentation imports into docs main from the two allowlisted stable source repositories, leaving the merge to a person.
+
+**What it does**
+
+1. Run only in unset-sh/docs on main. Resolve an exact main source revision with a successful same-repository export run, then re-export its committed documentation and licence with read-only permissions.
+2. Validate a same-run bounded snapshot against immutable source Git objects and complete provenance before an isolated writer replaces only the owned section on its generated PR into main.
+3. Use a separate Actions-writing job to verify the actual generated PR, dispatch the existing documentation and branch-policy checks on its exact head, and bind the returned run identities.
+
+**Produces**
+
+- A seven-day docs-import-\<source\>-\<run-id\>-\<run-attempt\> artifact and an opened, updated or pending section-only PR into main when content changes; valid unchanged content creates no PR.
+- Verified requested run URLs for the two existing required checks; the workflow never merges a PR.
+
+[Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/automation-docs-import.yml).
+
+Source SHA-256: `83eb61bfa42007d18d6ada817a4014b0fe08470f6b5a89012ccbf34d53ba2499`.
+
+#### Additional reviewed version 1
+
 Prepare checked staging documentation imports from the two allowlisted stable source repositories without automating production promotion.
 
 **What it does**
@@ -974,6 +993,24 @@ Prepare checked staging documentation imports from the two allowlisted stable so
 Source SHA-256: `ea1aaa8901c6367c4c395f8173bcd4ed5f080f601b8518a00c549689f32c8962`.
 
 ### .github/workflows/automation-docs-map-schedule.yml
+
+Keep the docs site’s approved main build refreshing every registered map from a timer on docs main.
+
+**What it does**
+
+1. Accept only scheduled or manual calls from unset-sh/docs on main, and run the central helper at the exact reusable-workflow commit.
+2. Use the docs job token to request only site.yml on main through the fixed GitHub workflow-dispatch endpoint; no consumer code runs and no repository content is written.
+3. Validate the returned run identity and print its URL so collection, build and deployment can be verified separately.
+
+**Produces**
+
+- A requested main site run. A successful dispatch is not proof that the map refresh or site deployment succeeded.
+
+[Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/automation-docs-map-schedule.yml).
+
+Source SHA-256: `268186d70018ca2763dd0b67baa78521356ee64a1bf204a0559aeecc9482b8ec`.
+
+#### Additional reviewed version 1
 
 Keep the docs site’s approved main build refreshing every registered map when staging is the default branch.
 
@@ -1049,6 +1086,24 @@ Source SHA-256: `f5af37ae29d1678d846d3751390b38a2486d6509d6fc1d94419a09ae8962ca8
 
 ### .github/workflows/automation-org-map.yml
 
+Prepare a generated-only organisation-map pull request into main and request its existing required checks without merging.
+
+**What it does**
+
+1. Run only for unset-sh/.github main pushes, schedules or manual calls; regenerate and check the exact source with read-only permissions.
+2. Publish only MAP.md and the generated profile block through an isolated bot-owned PR into main, verifying exact source/head trees and preserving authored profile text.
+3. Pass only the PR number, head and base to a separate Actions-write job that revalidates the real PR and dispatches the fixed organisation-map, documentation-check and branch-policy workflows at that exact head.
+
+**Produces**
+
+- An open generated PR into main when output changes, plus links to its three requested check runs. Successful dispatch does not prove those checks passed. No automatic merge occurs.
+
+[Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/automation-org-map.yml).
+
+Source SHA-256: `470ad5193645f3f38165b4f6b84aaedc8f079fd42421170c68cdc3c360c253d9`.
+
+#### Additional reviewed version 1
+
 Prepare a generated-only organisation-map staging PR and request supplemental validation without merging or promoting production.
 
 **What it does**
@@ -1065,7 +1120,7 @@ Prepare a generated-only organisation-map staging PR and request supplemental va
 
 Source SHA-256: `45c4846bebc27251e2bdfc3d0fc6a1073608d2271e867130e70ed5dac9afcb42`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Regenerate the organisation’s Markdown map and publish validated changes through a generated-only pull request.
 
@@ -1106,6 +1161,24 @@ Source SHA-256: `b5ef9684b9ef797b2a6a91890793a14c0715e58362883cea4212d603a0433fe
 
 ### .github/workflows/ci-branch-policy.yml
 
+Validate normal pull-request branch relationships for staged or main-only repositories, and narrowly verified generated-PR dispatches, without granting the policy job token permissions.
+
+**What it does**
+
+1. For ordinary PR events, read GitHub event metadata without checkout. With the default flow staged, require staging or main as the base and only same-repository staging for main; with flow main, require main as the base from any branch or fork. An unknown flow fails.
+2. For generated dispatches, refuse foreign repository, branch, head or helper identities before anonymously fetching the central validator at the running workflow commit.
+3. Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting the same required check.
+
+**Produces**
+
+- The stable Validate branch policy job result, failing on malformed events, an unknown flow, unsupported generated identities, source proof failures or ref movement.
+
+[Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/ci-branch-policy.yml).
+
+Source SHA-256: `377811cb9f321bfdb2f1da5f987ccbd5bdab7f491d131490fb1badaf5d4c4e40`.
+
+#### Additional reviewed version 1
+
 Validate normal pull-request branch relationships and narrowly verified generated-PR dispatches without granting the policy job token permissions.
 
 **What it does**
@@ -1122,7 +1195,7 @@ Validate normal pull-request branch relationships and narrowly verified generate
 
 Source SHA-256: `2365d1362d70ca9e830166d2cecdc7c8f6846d8f10186edc84d6459bb9cafd66`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Validate that feature work enters staging and only same-repository staging promotes to main.
 

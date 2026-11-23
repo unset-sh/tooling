@@ -47,14 +47,14 @@ function gitCommit(repo, sha) {
     message: repo.git(["show", "-s", "--format=%B", sha]) };
 }
 
-test("updating a checked import after staging advances keeps its real three-dot diff section-only", async t => {
+test("updating a checked import after docs main advances keeps its real three-dot diff section-only", async t => {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "docs-import-integration-")));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const source = repository(join(directory, "source"), "main");
   source.put("LICENSE", "Fixture licence\n");
   source.put("docs/_index.md", "First docs\n");
   source.commit("Initial source");
-  const docs = repository(join(directory, "docs"), "staging");
+  const docs = repository(join(directory, "docs"), "main");
   docs.put("README.md", "Framework\n"); docs.put("other/_index.md", "Another section\n");
   const initialBase = docs.commit("Initial framework");
   const runs = new Map(); let pr = null, sequence = 0;
@@ -132,7 +132,7 @@ test("updating a checked import after staging advances keeps its real three-dot 
   const first = await publishDocsImport({ snapshot: snapshot(), api });
   assert.equal(first.status, "opened");
   docs.put("README.md", "Updated framework\n"); docs.put("other/_index.md", "Updated other section\n");
-  const secondBase = docs.commit("Advance staging independently");
+  const secondBase = docs.commit("Advance docs main independently");
   source.put("docs/_index.md", "Updated source docs\n"); source.commit("Update source docs");
   const nextSnapshot = snapshot();
   const second = await publishDocsImport({ snapshot: nextSnapshot, api });
@@ -141,7 +141,7 @@ test("updating a checked import after staging advances keeps its real three-dot 
   assert.deepEqual(docs.git(["diff", "--name-only", `${secondBase}...${second.head}`]).split("\n"), ["tooling/LICENSE", "tooling/_index.md", "tooling/source.json"]);
   assert.deepEqual(gitCommit(docs, second.head).parents.map(parent => parent.sha), [first.head, secondBase]);
   assert.equal(docs.git(["show", `${second.head}:README.md`]), "Updated framework");
-  assert.equal(docs.git(["rev-parse", "staging"]), secondBase);
+  assert.equal(docs.git(["rev-parse", "main"]), secondBase);
   assert.notEqual(initialBase, secondBase);
   assert.equal((await publishDocsImport({ snapshot: nextSnapshot, api })).status, "pending");
   const dispatch = { context: { repository: "unset-sh/docs", event: "workflow_dispatch", ref: `refs/heads/${second.branch}`, sha: second.head },
@@ -149,10 +149,10 @@ test("updating a checked import after staging advances keeps its real three-dot 
   assert.deepEqual(await validateDocsImportDispatch(dispatch), { number: 1, head: second.head, base: secondBase, branch: second.branch, repository: "unset-sh/docs" });
   await assert.rejects(validateDocsImportDispatch({ ...dispatch, api: (name, method, path, ...rest) => path.includes("/files?")
     ? [{ filename: "README.md", status: "modified" }] : api(name, method, path, ...rest) }), /another section|framework/);
-  // Staging can advance only inside this section while the source bytes stay unchanged.
+  // Docs main can advance only inside this section while the source bytes stay unchanged.
   // The previous branch still needs a new recorded base and reconciliation parent.
   docs.put("tooling/_index.md", "Independent section change\n");
-  const thirdBase = docs.commit("Advance the owned section on staging");
+  const thirdBase = docs.commit("Advance the owned section on docs main");
   const third = await publishDocsImport({ snapshot: snapshot(), api });
   assert.equal(third.status, "updated");
   assert.deepEqual(gitCommit(docs, third.head).parents.map(parent => parent.sha), [second.head, thirdBase]);

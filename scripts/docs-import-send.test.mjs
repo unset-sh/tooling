@@ -12,7 +12,7 @@ function fixture({ workflowChange = value => value, dispatchChange = value => va
   const pr = () => ({ number: 12, state: "open", draft: false, changed_files: 3,
     user: { login: "github-actions[bot]", id: 41898282, type: "Bot" },
     head: { sha: moveAfterPost && posted ? "7".repeat(40) : head, ref: branch, repo: { full_name: repository } },
-    base: { sha: baseCommit, ref: "staging", repo: { full_name: repository } } });
+    base: { sha: baseCommit, ref: "main", repo: { full_name: repository } } });
   const runs = new Map();
   const api = async (repo, method, path, body, statuses) => {
     requests.push({ repo, method, path, body, statuses });
@@ -40,7 +40,7 @@ function fixture({ workflowChange = value => value, dispatchChange = value => va
       const file = source.files.find(file => blob(file.bytes) === path.split("/").at(-1)); assert.ok(file);
       return { sha: blob(file.bytes), size: file.bytes.length, encoding: "base64", content: file.bytes.toString("base64") };
     }
-    if (path === "/git/ref/heads/staging") return { ref: "refs/heads/staging", object: { type: "commit", sha: baseCommit } };
+    if (path === "/git/ref/heads/main") return { ref: "refs/heads/main", object: { type: "commit", sha: baseCommit } };
     if (path === `/git/ref/heads/${branch}`) return { ref: `refs/heads/${branch}`, object: { type: "commit", sha: head } };
     const match = /^\/actions\/workflows\/(ci|branch-policy)\.yml(\/dispatches)?$/.exec(path);
     if (match) {

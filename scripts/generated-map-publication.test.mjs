@@ -24,8 +24,8 @@ const entry = (path, sha) => ({ path, sha, mode: "100644", type: "blob" });
 
 function server(options = {}) {
   const calls = [];
-  let stagingReads = 0;
-  const pr = () => ({ number: 17, state: "open", user: { login: "github-actions[bot]", id: 41898282, type: "Bot" }, head: { sha: head, ref: `automation/map-${base}`, repo: { full_name: repository } }, base: { ref: "staging", sha: base, repo: { full_name: repository } }, ...options.prOverride });
+  let baseReads = 0;
+  const pr = () => ({ number: 17, state: "open", user: { login: "github-actions[bot]", id: 41898282, type: "Bot" }, head: { sha: head, ref: `automation/map-${base}`, repo: { full_name: repository } }, base: { ref: "main", sha: base, repo: { full_name: repository } }, ...options.prOverride });
   const fetchImpl = async (url, init) => {
     assert.ok(url.startsWith("https://api.github.com/repos/unset-sh/.github/"));
     assert.equal(init.redirect, "error");
@@ -35,9 +35,9 @@ function server(options = {}) {
     calls.push({ method: init.method, path, body });
     const respond = (value, status = 200) => new Response(JSON.stringify(value), { status });
     if (options.failure) return respond({ message: "private-body TOKEN-SECRET" }, options.failure);
-    if (path === "/git/ref/heads/staging") {
-      stagingReads++;
-      return respond({ ref: "refs/heads/staging", object: { type: "commit", sha: stagingReads >= (options.moveAt ?? Infinity) ? "e".repeat(40) : base } });
+    if (path === "/git/ref/heads/main") {
+      baseReads++;
+      return respond({ ref: "refs/heads/main", object: { type: "commit", sha: baseReads >= (options.moveAt ?? Infinity) ? "e".repeat(40) : base } });
     }
     if (path === `/git/commits/${base}`) return respond({ sha: base, tree: { sha: baseTree }, parents: [] });
     if (path === `/git/trees/${baseTree}?recursive=1`) return respond({ sha: baseTree, truncated: false, tree: [
@@ -70,7 +70,7 @@ test("unchanged generated files cause no writes", async () => {
   assert.deepEqual(api.writes(), []);
 });
 
-test("publishes only changed output blobs as a staging PR with the immutable parent and no merge", async () => {
+test("publishes only changed output blobs as a main PR with the immutable parent and no merge", async () => {
   const api = server();
   const result = await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl });
   assert.deepEqual(result, { status: "pending", number: 17, head, base, url: "https://github.com/unset-sh/.github/pull/17" });
@@ -86,8 +86,8 @@ test("publishes only changed output blobs as a staging PR with the immutable par
   assert.equal(commit.author, undefined);
   assert.equal(commit.committer, undefined);
   assert.deepEqual(api.calls.find(({ path }) => path === "/git/refs").body, { ref: `refs/heads/automation/map-${base}`, sha: head });
-  assert.equal(api.calls.find(({ path }) => path === "/pulls").body.base, "staging");
-  assert.equal(api.calls.at(-1).path, "/git/ref/heads/staging");
+  assert.equal(api.calls.find(({ path }) => path === "/pulls").body.base, "main");
+  assert.equal(api.calls.at(-1).path, "/git/ref/heads/main");
   assert.equal(api.calls.some(call => call.path.endsWith("/merge")), false);
 });
 
@@ -130,9 +130,9 @@ for (const [label, mutate] of [
 }
 
 for (const moveAt of [1, 2, 3]) {
-  test(`refuses staging moving at check ${moveAt}`, async () => {
+  test(`refuses main moving at check ${moveAt}`, async () => {
     const api = server({ moveAt });
-    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /staging.*moved/);
+    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /main.*moved/);
     assert.equal(api.calls.some(({ path }) => path.endsWith("/merge")), false);
     if (moveAt <= 2) assert.deepEqual(api.writes(), []);
   });
@@ -176,7 +176,7 @@ for (const prOverride of [{ state: "closed" }, { head: { sha: "e".repeat(40) } }
   });
 }
 
-test("publication never attempts to merge or update staging/main refs", async () => {
+test("publication never attempts to merge or update the main ref", async () => {
   const api = server({ refusal: 405 });
   assert.deepEqual(await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }),
     { status: "pending", number: 17, head, base, url: "https://github.com/unset-sh/.github/pull/17" });
@@ -253,7 +253,7 @@ test("publish CLI reports a prepared PR successfully and emits only bounded iden
     `const api = server({ refusal: 405 }); globalThis.fetch = (...args) => { assert.equal(process.env.GH_TOKEN, undefined); return api.fetchImpl(...args); };`);
   const output = join(f.directory, "outputs"); writeFileSync(output, "");
   const result = spawnSync(process.execPath, ["--import", preload, cli, "publish", "--snapshot", f.out], {
-    env: { ...process.env, GITHUB_REPOSITORY: repository, GITHUB_SHA: base, GITHUB_REF: "refs/heads/staging", GITHUB_EVENT_NAME: "push", GH_TOKEN: "TOKEN-SECRET", GITHUB_OUTPUT: output }, encoding: "utf8",
+    env: { ...process.env, GITHUB_REPOSITORY: repository, GITHUB_SHA: base, GITHUB_REF: "refs/heads/main", GITHUB_EVENT_NAME: "push", GH_TOKEN: "TOKEN-SECRET", GITHUB_OUTPUT: output }, encoding: "utf8",
   });
   assert.equal(result.status, 0);
   assert.equal(readFileSync(output, "utf8"), `number=17\nhead=${head}\nbase=${base}\n`);
@@ -289,7 +289,7 @@ for (const [key, value] of [["GITHUB_REPOSITORY", "other/repo"], ["GITHUB_SHA", 
   test(`publish CLI refuses mismatched ${key} context without leaking credentials`, (t) => {
     const f = fixture(t); stageGeneratedMap(f);
     const result = spawnSync(process.execPath, [cli, "publish", "--snapshot", f.out], {
-      env: { ...process.env, GITHUB_REPOSITORY: repository, GITHUB_SHA: f.commit, GITHUB_REF: "refs/heads/staging", GITHUB_EVENT_NAME: "push", GH_TOKEN: "TOKEN-SECRET", [key]: value }, encoding: "utf8",
+      env: { ...process.env, GITHUB_REPOSITORY: repository, GITHUB_SHA: f.commit, GITHUB_REF: "refs/heads/main", GITHUB_EVENT_NAME: "push", GH_TOKEN: "TOKEN-SECRET", [key]: value }, encoding: "utf8",
     });
     assert.equal(result.status, 1);
     assert.match(result.stderr, /context/);

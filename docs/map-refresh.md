@@ -97,14 +97,14 @@ The caller chooses push, manual, and scheduled triggers. Add the schedule to its
 
 ## Follow a successful run
 
-### Keep the timer on staging and the published site on main
+### Keep the docs timer on main
 
-GitHub schedules run only on the default branch. For `unset-sh/docs`, the default is `staging`, while the
-approved site workflow and Pages environment still publish `main`. Its default-branch timer calls
-`automation-docs-map-schedule.yml` at a reviewed full tooling commit. The maintained implementation is
-`workflows/docs/pages/schedule.yml`; it is specific to the docs repository.
+GitHub schedules run only on the default branch. `unset-sh/docs` works directly on `main`, with no staging
+branch (org-0010), so its default-branch timer and the approved site workflow both live on `main`. The
+timer calls `automation-docs-map-schedule.yml` at a reviewed full tooling commit. The maintained
+implementation is `workflows/docs/pages/schedule.yml`; it is specific to the docs repository.
 
-The dispatcher accepts scheduled and manual calls from docs on `staging` only. It runs the exact central
+The dispatcher accepts scheduled and manual calls from docs on `main` only. It runs the exact central
 helper with `contents: read` and `actions: write`, then requests `unset-sh/docs:site.yml` with `ref: main`.
 It has no input for choosing another repository, workflow or branch, runs no consumer code, and cannot
 write repository content or deploy Pages. No stored token is needed. This uses GitHub's documented
@@ -113,15 +113,15 @@ and [dispatch API](https://docs.github.com/en/rest/actions/workflows#create-a-wo
 checked on 2026-11-22 against REST version `2026-03-10`.
 
 The requested main run refreshes every registered map, checks and builds the approved site, and uses the
-existing Pages deployment gate. A staging change is not promoted by the timer. New map generators reach
-the live build only after their normal promotion to main; collection can still observe current public
-repository metadata without committing that data.
+existing Pages deployment gate. The timer changes no repository content. New map generators reach the live
+build only after a person merges them into main; collection can still observe current public repository
+metadata without committing that data.
 
 The dispatch response supplies the created run's URL. A successful timer means GitHub accepted that run,
 not that collection or publication succeeded. Follow the linked site run to verify deployment. If a
 request times out or its response cannot be confirmed, inspect existing site runs before retrying because
 GitHub may already have created one. Schedules remain best effort; the docs timer also supports manual
-dispatch on staging. Remove the old schedule from the site workflow when adopting this timer, while
+dispatch on main. Remove the old schedule from the site workflow when adopting this timer, while
 retaining its main push and manual triggers.
 
 For the illustrative registry above, the organisation generator writes two files and the workflow generator writes one. The runner reads all three after both generators finish, checks their paths and JSON bytes, and builds a fresh snapshot under the runner's temporary directory. The upload step publishes only that snapshot and retains it for seven days. The build then overlays those three `data/` files on its own checkout and validates the site before publication.

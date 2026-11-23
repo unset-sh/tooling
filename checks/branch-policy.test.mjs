@@ -16,7 +16,7 @@ function pullRequest(base = "staging", head = "feature", headRepository = reposi
   } };
 }
 
-function run(t, event, eventName = "pull_request") {
+function run(t, event, eventName = "pull_request", flow = "staged") {
   assert.ok(existsSync(workflow), "the reusable branch-policy workflow must exist");
   const scripts = runBlocks(readFileSync(workflow, "utf8"));
   assert.ok(scripts[0].includes("const { readFileSync }"), "exercise the complete ordinary PR policy check");
@@ -27,6 +27,7 @@ function run(t, event, eventName = "pull_request") {
   return spawnSync(process.execPath, ["--input-type=commonjs", "--eval", scripts[0]], {
     cwd: folder, encoding: "utf8", env: {
       GITHUB_EVENT_PATH: eventPath, GITHUB_EVENT_NAME: eventName, GITHUB_REPOSITORY: repository,
+      ...(flow === null ? {} : { FLOW: flow }),
     },
   });
 }
@@ -45,6 +46,35 @@ test("only same-repository staging can promote to main", (t) => {
     const result = run(t, event);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /same-repository staging/);
+  }
+});
+
+test("the policy step reads its flow only from the workflow input, defaulting to staged", () => {
+  const yaml = readFileSync(workflow, "utf8");
+  assert.match(yaml, /\n      flow:\n(?:        #.*\n)*        type: string\n        default: staged\n/);
+  assert.match(yaml, /\n        env:\n          FLOW: \$\{\{ inputs\.flow \}\}\n/);
+});
+
+test("main flow accepts feature, fork and staging heads into main only", (t) => {
+  for (const [head, headRepository] of [["feature", repository], ["feature", "contributor/example"], ["staging", repository]]) {
+    const result = run(t, pullRequest("main", head, headRepository), "pull_request", "main");
+    assert.equal(result.status, 0, result.stderr);
+  }
+  for (const base of ["staging", "master", "release"]) {
+    const result = run(t, pullRequest(base), "pull_request", "main");
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /must target main/);
+  }
+  assert.equal(run(t, pullRequest("main"), "push", "main").status, 1);
+});
+
+test("a missing or unknown flow fails closed", (t) => {
+  for (const flow of [null, "", "Main", "staged ", "release"]) {
+    for (const event of [pullRequest("staging"), pullRequest("main", "staging")]) {
+      const result = run(t, event, "pull_request", flow);
+      assert.equal(result.status, 1, String(flow));
+      assert.match(result.stderr, /Unknown branch flow/);
+    }
   }
 });
 

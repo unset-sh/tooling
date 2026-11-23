@@ -22,8 +22,8 @@ export function server() {
   objects.set("/pulls/17", { number: 17, state: "open", draft: false,
     user: { login: "github-actions[bot]", id: 41898282, type: "Bot" },
     head: { sha: head, ref: branch, repo: { full_name: repository } },
-    base: { sha: base, ref: "staging", repo: { full_name: repository } } });
-  objects.set("/git/ref/heads/staging", { ref: "refs/heads/staging", object: { type: "commit", sha: base } });
+    base: { sha: base, ref: "main", repo: { full_name: repository } } });
+  objects.set("/git/ref/heads/main", { ref: "refs/heads/main", object: { type: "commit", sha: base } });
   objects.set(`/git/ref/heads/${branch}`, { ref: `refs/heads/${branch}`, object: { type: "commit", sha: head } });
   objects.set(`/git/commits/${base}`, { sha: base, tree: { sha: baseTree } });
   objects.set(`/git/commits/${head}`, { sha: head, tree: { sha: headTree }, parents: [{ sha: base }],

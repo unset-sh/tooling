@@ -5,6 +5,14 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Main-only repositories (org-0010):** `ci-branch-policy.yml` adds a `flow` input. The default `staged` keeps
+  today's rules; `main` accepts pull requests from any branch or fork into `main` and refuses every other base. An
+  unknown value fails the check. The documentation import (`automation-docs-import.yml`), the docs site timer
+  (`automation-docs-map-schedule.yml`) and the organisation-map publisher (`automation-org-map.yml`) now run on
+  and target `main` in `unset-sh/docs` and `unset-sh/.github`, which no longer have staging branches. Callers in
+  those two repositories must re-pin only after their default branch is `main`; callers pinned to older commits
+  are unaffected.
+
 - **Documentation imports:** a docs-owned hourly receiver re-exports allowlisted exact stable revisions, validates complete provenance against Git objects, and prepares section-only staging PRs. Writing and dispatch permissions are isolated; supplemental dispatched validation verifies the actual generated PR before executing consumer code. These dispatched results do not satisfy PR ruleset checks; ordinary PR runs require human approval with the current job-token publisher. No PR merge or production promotion is automated. Shared branch policy adds a narrow generated-dispatch path for docs imports and organisation maps while retaining its permission-free ordinary PR mode.
 
 - **Generated map staging PRs:** the organisation-map publisher now prepares a generated-only PR into staging

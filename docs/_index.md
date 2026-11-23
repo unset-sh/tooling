@@ -36,7 +36,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 - [Release workflow reference](release-reference.md): inspect inputs, approval requirements, publication boundaries, and verification.
 - [Release through staging and main](release-channels.md): prepare separate prerelease and stable channels with a human promotion boundary.
 - [Export the public documentation](export-docs.md): package an exact source revision for a reviewed import.
-- [Import reviewed documentation](import-docs.md): prepare bounded, checked staging PRs from stable source revisions.
+- [Import reviewed documentation](import-docs.md): prepare bounded, checked PRs into docs main from stable source revisions.
 - [Refresh every published map](map-refresh.md): register map generators and connect their complete snapshot to the build.
 - [Publish the organisation's Markdown views](organisation-map-publication.md): keep the GitHub map and profile current after source changes.
 - [Manage a documentation publishing key](manage-docs-publishing-key.md): operate the separate credential used by an existing source publisher.

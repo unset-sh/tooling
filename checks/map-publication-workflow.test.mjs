@@ -27,7 +27,7 @@ test("all three jobs refuse other repositories, refs and events before checking 
   for (const job of Object.values(jobsOf(workflow()))) {
     const guard = job.indexOf('"$REPOSITORY" != unset-sh/.github');
     assert.ok(guard >= 0 && guard < job.indexOf("uses: actions/checkout@"));
-    assert.match(job, /"\$REF" != refs\/heads\/staging/);
+    assert.match(job, /"\$REF" != refs\/heads\/main/);
     assert.match(job, /push\|schedule\|workflow_dispatch/);
     assert.match(job, /"\$WORKFLOW_REPOSITORY" != unset-sh\/tooling/);
     assert.match(job, /WORKFLOW_SHA/);

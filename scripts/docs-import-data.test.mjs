@@ -35,7 +35,7 @@ test("stages only exact committed section bytes and root licence with complete p
   const snapshot = JSON.parse(readFileSync(f.out));
   assert.deepEqual(result, { source: "tooling", files: 4 });
   assert.deepEqual(snapshot.source, { key: "tooling", revision: f.revision, runId: 123 });
-  assert.deepEqual(snapshot.target, { repository: "unset-sh/docs", base: "staging", baseCommit: base, workflowCommit: workflow });
+  assert.deepEqual(snapshot.target, { repository: "unset-sh/docs", base: "main", baseCommit: base, workflowCommit: workflow });
   assert.deepEqual(snapshot.files.map(file => file.path), ["LICENSE", "_index.md", "assets/image.bin", "source.json"]);
   assert.match(Buffer.from(snapshot.files[1].content, "base64").toString(), /A source page/);
   assert.deepEqual(Buffer.from(snapshot.files[2].content, "base64"), Buffer.from([0, 128, 255, 10]));
@@ -58,7 +58,7 @@ test("untrusted payloads cannot select another destination, revision, path or co
   const snapshot = JSON.parse(readFileSync(f.out));
   for (const change of [
     item => { item.target.repository = "unset-sh/tooling"; },
-    item => { item.target.base = "main"; },
+    item => { item.target.base = "staging"; },
     item => { item.target.baseCommit = "main"; },
     item => { item.target.workflowCommit = "main"; },
     item => { item.source.key = "docs"; },

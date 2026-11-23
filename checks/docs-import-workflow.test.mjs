@@ -24,13 +24,13 @@ test("docs imports separate source preparation, content publication and check di
 
 test("every job refuses unsafe receiver and helper identity before the first checkout", () => {
   const environment = { PATH: process.env.PATH, WORKFLOW_REPOSITORY: "unset-sh/tooling", WORKFLOW_SHA: "a".repeat(40),
-    GITHUB_REPOSITORY: "unset-sh/docs", GITHUB_REF: "refs/heads/staging", GITHUB_SHA: "b".repeat(40), IMPORT_SOURCE: "tooling", GITHUB_EVENT_NAME: "schedule" };
+    GITHUB_REPOSITORY: "unset-sh/docs", GITHUB_REF: "refs/heads/main", GITHUB_SHA: "b".repeat(40), IMPORT_SOURCE: "tooling", GITHUB_EVENT_NAME: "schedule" };
   for (const job of Object.values(jobs)) {
     const guard = runBlocks(job)[0];
     assert.ok(job.indexOf("Invalid documentation receiver") < job.indexOf("uses: actions/checkout@"));
     assert.equal(spawnSync("bash", ["-c", guard], { env: environment, encoding: "utf8" }).status, 0);
     for (const change of [{ WORKFLOW_REPOSITORY: "outside/tooling" }, { WORKFLOW_SHA: "main" },
-      { GITHUB_REPOSITORY: "unset-sh/tooling" }, { GITHUB_REF: "refs/heads/main" }, { GITHUB_SHA: "staging" },
+      { GITHUB_REPOSITORY: "unset-sh/tooling" }, { GITHUB_REF: "refs/heads/staging" }, { GITHUB_SHA: "main" },
       { IMPORT_SOURCE: "$(exit 77)" }, { GITHUB_EVENT_NAME: "pull_request" }]) {
       const result = spawnSync("bash", ["-c", guard], { env: { ...environment, ...change }, encoding: "utf8" });
       assert.equal(result.status, 1, result.stderr); assert.match(result.stdout, /Invalid documentation/);
