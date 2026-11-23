@@ -567,6 +567,42 @@ Provide a reusable Node-based check job that each calling repository configures 
 
 Source SHA-256: `b2fb5be2127833a3317b7a4102db2e1aa5be4ad829e731b980ee386ce29f90a9`.
 
+### .github/workflows/ci-pr-policy-self.yml
+
+Apply the shared pull-request metadata check to tooling changes when their code, description or labels change.
+
+**What it does**
+
+1. Run on opened, synchronized, reopened, edited, labeled, unlabeled and ready-for-review pull requests, without path filters.
+2. Call tooling’s local reusable PR policy workflow with read-only contents and pull-request permissions, cancelling superseded runs for the same PR.
+3. Use the repository’s purpose labels and PR template to make missing declarations actionable.
+
+**Produces**
+
+- The policy / PR policy check on tooling pull requests. Ruleset enforcement and adoption in other repositories are separate rollout steps.
+
+[Reviewed source at c65eee545658](https://github.com/unset-sh/tooling/blob/c65eee545658a893d7f82b041757ccf2f58d4935/.github/workflows/ci-pr-policy-self.yml).
+
+Source SHA-256: `8216cc1b806ec417eb5346f8814734d7e2ee22c767d136a3dc647ca873cf76ab`.
+
+### .github/workflows/ci-pr-policy.yml
+
+Validate current pull-request labels and readiness, validation and documentation declarations without executing pull-request code.
+
+**What it does**
+
+1. Require a real pull-request event, bind its repository, number and head to current metadata fetched from the fixed GitHub API endpoint, and refuse changed or unavailable identities.
+2. Require exactly one supported purpose label, one readiness choice, prerequisite and tested-combination fields, and authored validation and documentation sections.
+3. Ignore comments and code examples, reject duplicate sections and placeholders, and run only the central helper at the exact reusable-workflow commit with read-only permissions.
+
+**Produces**
+
+- A PR policy check result. This validates declarations, not their truth or sufficiency; it does not merge, release or grant a policy exception.
+
+[Reviewed source at c65eee545658](https://github.com/unset-sh/tooling/blob/c65eee545658a893d7f82b041757ccf2f58d4935/.github/workflows/ci-pr-policy.yml).
+
+Source SHA-256: `045e38c5b7cc3f215daed8fa3c01ff11d01f56fad745a14b21daeeb1188acca6`.
+
 ### .github/workflows/ci-self.yml
 
 Verify tooling’s implementation and the executable workflows generated from its organised workflow sources.

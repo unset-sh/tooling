@@ -54,3 +54,5 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 ## Source and version
 
 The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/4274bca9d17d5eda5d1be6eca3bd796863bd859e); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
+
+- [Pull-request policy checks](pr-policy.md): validate purpose and authored declarations before review.

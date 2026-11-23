@@ -16,6 +16,8 @@ test("the generated workflows include the shared workflows and their callers", (
     ".github/workflows/ci-branch-policy-self.yml",
     ".github/workflows/ci-branch-policy.yml",
     ".github/workflows/ci-check.yml",
+    ".github/workflows/ci-pr-policy-self.yml",
+    ".github/workflows/ci-pr-policy.yml",
     ".github/workflows/ci-repository-policy-self.yml",
     ".github/workflows/ci-repository-policy.yml",
     ".github/workflows/ci-self.yml",

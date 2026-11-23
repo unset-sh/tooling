@@ -1,0 +1,41 @@
+name: pr-policy
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  check:
+    name: PR policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Verify the event and central implementation identity
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+        run: |
+          if [ "$EVENT_NAME" != pull_request ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::Expected a pull-request event and an exact central tooling implementation.'
+            exit 1
+          fi
+      - name: Check out only the reviewed central checks
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: tooling/.nvmrc
+          package-manager-cache: false
+      - name: Check current pull-request declarations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tooling/scripts/pr-policy.mjs
