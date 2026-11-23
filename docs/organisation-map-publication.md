@@ -5,6 +5,7 @@ weight: 28
 type: docs
 params:
   doc_kind: reference
+  checked_source_revision: "c2517bded6ea28a6e9ab286c1382613e07fb0d4c"
 ---
 
 `automation-org-map.yml` is the shared implementation for `unset-sh/.github`'s committed map and profile views.
@@ -92,3 +93,7 @@ adoption and first-run evidence must be checked separately from these local test
 
 References checked on 2026-11-22: GitHub REST [Git database](https://docs.github.com/en/rest/git) and
 [workflow dispatch](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event).
+
+## Source and maintenance
+
+This reference describes the unreleased implementation at `c2517bded6ea28a6e9ab286c1382613e07fb0d4c`. See the [workflow](https://github.com/unset-sh/tooling/blob/c2517bded6ea28a6e9ab286c1382613e07fb0d4c/workflows/github/docs/map.yml), [publication and PR verifier](https://github.com/unset-sh/tooling/blob/c2517bded6ea28a6e9ab286c1382613e07fb0d4c/scripts/generated-map-publication.mjs), [isolated dispatcher](https://github.com/unset-sh/tooling/blob/c2517bded6ea28a6e9ab286c1382613e07fb0d4c/scripts/generated-map-checks.mjs), and [dispatch tests](https://github.com/unset-sh/tooling/blob/c2517bded6ea28a6e9ab286c1382613e07fb0d4c/scripts/generated-map-checks.test.mjs). Alex reviews this page with workflow changes and before releases, following the [repository rules](https://github.com/unset-sh/tooling/blob/c2517bded6ea28a6e9ab286c1382613e07fb0d4c/CLAUDE.md).
