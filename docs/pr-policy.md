@@ -13,7 +13,8 @@ that a declaration proves the implementation is correct.
 
 The canonical [purpose labels](https://github.com/unset-sh/.github/pull/13) and
 [readiness policy](https://github.com/unset-sh/agent-kit/pull/14) are being rolled out separately. This workflow
-is opt-in. Provision the labels and update the repository's PR template before making its result required.
+is opt-in. Tooling supplies its own caller and template; other consumers must provision the labels and
+update their PR templates before making its result required.
 
 ## What it checks
 

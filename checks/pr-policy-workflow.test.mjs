@@ -21,3 +21,14 @@ test('PR policy is a read-only reusable check with no pull-request checkout', ()
   assert.match(workflow, /node tooling\/scripts\/pr-policy\.mjs/);
   assert.doesNotMatch(workflow, /npm (ci|install|exec)|inputs\.check|inputs\.command/);
 });
+
+test('the tooling caller rechecks metadata changes and has a matching form', () => {
+  const caller = readText('.github/workflows/ci-pr-policy-self.yml');
+  assert.match(caller, /types: \[opened, synchronize, reopened, edited, labeled, unlabeled, ready_for_review\]/);
+  assert.match(caller, /uses: \.\/\.github\/workflows\/ci-pr-policy\.yml/);
+  assert.doesNotMatch(caller, /paths:|if:|: write/);
+  const template = readText('.github/pull_request_template.md');
+  for (const heading of ['Readiness', 'Validation', 'Documentation']) assert.match(template, new RegExp(`^## ${heading}$`, 'm'));
+  assert.match(template, /Prerequisites and order:/);
+  assert.match(template, /Tested combination:/);
+});

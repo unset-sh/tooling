@@ -44,6 +44,10 @@
     {
       "source": "workflows/shared/ci/pr-policy.yml",
       "output": ".github/workflows/ci-pr-policy.yml"
+    },
+    {
+      "source": "workflows/tooling/ci/pr-policy.yml",
+      "output": ".github/workflows/ci-pr-policy-self.yml"
     }
   ]
 }
