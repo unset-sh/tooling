@@ -2,6 +2,14 @@
   "schemaVersion": 1,
   "workflows": [
     {
+      "source": "workflows/shared/ci/branch-policy.yml",
+      "output": ".github/workflows/ci-branch-policy.yml"
+    },
+    {
+      "source": "workflows/tooling/ci/branch-policy.yml",
+      "output": ".github/workflows/ci-branch-policy-self.yml"
+    },
+    {
       "source": "workflows/github/docs/map.yml",
       "output": ".github/workflows/automation-org-map.yml"
     },

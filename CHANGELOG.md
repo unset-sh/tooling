@@ -7,6 +7,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 - Add an opt-in read-only PR metadata check for purpose labels, readiness, validation and documentation declarations.
 
+- **PR branch policy:** `ci-branch-policy.yml` validates PR event metadata without a checkout or token.
+  Feature and fork PRs may target `staging`; only same-repository `staging` may target stable `main`.
+  Its job is named `Validate branch policy`. Tooling calls it on every PR and checks pushes to both branches.
+  Human promotion authority remains an instruction; release, environment and deployment gates are unchanged.
 - **Organisation map publication:** a repository-specific shared workflow regenerates and validates the two
   committed Markdown views with read-only permissions. Its isolated publisher accepts only those outputs,
   preserves authored profile text, and uses a generated-only PR with an exact-head squash merge. It never changes
