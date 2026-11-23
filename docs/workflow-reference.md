@@ -931,11 +931,30 @@ Provide a shared way to package committed public documentation with verifiable s
 
 - A docs-\<commit\> artifact retained for 14 days, containing the documentation section, licence and source.json.
 
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/automation-docs-export.yml).
+
+Source SHA-256: `be814aaf929a9bf939697b6022a5733bcb056ff1c78950733b162b16b07b87c0`.
+
+#### Additional reviewed version 1
+
+Provide a shared way to package committed public documentation with verifiable source information.
+
+**What it does**
+
+1. Check out the calling repository at its event commit and the helper scripts at this reusable workflow’s own commit.
+2. Read tooling documentation from docs/ and other consumers’ documentation from docs/site/, together with the root licence.
+3. Validate the committed files and export them into the repository’s owned section with a source revision and SHA-256 manifest.
+4. Upload the export as an artifact for later consumption; this workflow does not publish to the docs repository or a site.
+
+**Produces**
+
+- A docs-\<commit\> artifact retained for 14 days, containing the documentation section, licence and source.json.
+
 [Reviewed source at 22b6eb497c27](https://github.com/unset-sh/tooling/blob/22b6eb497c2782800523879a89a350c01cf1d2c1/.github/workflows/automation-docs-export.yml).
 
 Source SHA-256: `f90f0e968a80c039aaa7791459c4ebeed1ca66f5da0b4a8a92c903e6efda57a6`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Provide a shared way to package committed public documentation with verifiable source information.
 
@@ -969,11 +988,30 @@ Prepare checked documentation imports into docs main from the two allowlisted st
 - A seven-day docs-import-\<source\>-\<run-id\>-\<run-attempt\> artifact and an opened, updated or pending section-only PR into main when content changes; valid unchanged content creates no PR.
 - Verified requested run URLs for the two existing required checks; the workflow never merges a PR.
 
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/automation-docs-import.yml).
+
+Source SHA-256: `d79b7009fa87783d532cb7b7d50a30610aea0edb5404b0655cf899885f16ccc2`.
+
+#### Additional reviewed version 1
+
+Prepare checked documentation imports into docs main from the two allowlisted stable source repositories, leaving the merge to a person.
+
+**What it does**
+
+1. Run only in unset-sh/docs on main. Resolve an exact main source revision with a successful same-repository export run, then re-export its committed documentation and licence with read-only permissions.
+2. Validate a same-run bounded snapshot against immutable source Git objects and complete provenance before an isolated writer replaces only the owned section on its generated PR into main.
+3. Use a separate Actions-writing job to verify the actual generated PR, dispatch the existing documentation and branch-policy checks on its exact head, and bind the returned run identities.
+
+**Produces**
+
+- A seven-day docs-import-\<source\>-\<run-id\>-\<run-attempt\> artifact and an opened, updated or pending section-only PR into main when content changes; valid unchanged content creates no PR.
+- Verified requested run URLs for the two existing required checks; the workflow never merges a PR.
+
 [Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/automation-docs-import.yml).
 
 Source SHA-256: `83eb61bfa42007d18d6ada817a4014b0fe08470f6b5a89012ccbf34d53ba2499`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Prepare checked staging documentation imports from the two allowlisted stable source repositories without automating production promotion.
 
@@ -1006,11 +1044,29 @@ Keep the docs site’s approved main build refreshing every registered map from 
 
 - A requested main site run. A successful dispatch is not proof that the map refresh or site deployment succeeded.
 
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/automation-docs-map-schedule.yml).
+
+Source SHA-256: `8c34d934b68ccfab11cd466dd04111783307496f075fdf3590b91b4e61e0a07f`.
+
+#### Additional reviewed version 1
+
+Keep the docs site’s approved main build refreshing every registered map from a timer on docs main.
+
+**What it does**
+
+1. Accept only scheduled or manual calls from unset-sh/docs on main, and run the central helper at the exact reusable-workflow commit.
+2. Use the docs job token to request only site.yml on main through the fixed GitHub workflow-dispatch endpoint; no consumer code runs and no repository content is written.
+3. Validate the returned run identity and print its URL so collection, build and deployment can be verified separately.
+
+**Produces**
+
+- A requested main site run. A successful dispatch is not proof that the map refresh or site deployment succeeded.
+
 [Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/automation-docs-map-schedule.yml).
 
 Source SHA-256: `268186d70018ca2763dd0b67baa78521356ee64a1bf204a0559aeecc9482b8ec`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Keep the docs site’s approved main build refreshing every registered map when staging is the default branch.
 
@@ -1072,6 +1128,26 @@ Refresh every map registered by a calling repository and hand its build one comp
 
 1. Check out the caller at its event commit and the central helper at this reusable workflow’s own full commit.
 2. Optionally install the caller’s locked dependencies with lifecycle scripts disabled, before passing a read-only token to generation.
+3. Run each registered generator with the pinned Bun, in order, then validate every declared output as a bounded regular JSON file under data/.
+4. Stage and upload only the complete snapshot; a generator or validation failure prevents upload and stops a dependent build.
+
+**Produces**
+
+- A maps-\<run-id\>-\<run-attempt\> artifact retained for seven days, preserving declared data/ paths.
+- The artifact-name output for a dependent same-run download; this workflow does not commit files or publish a site.
+
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/automation-maps-refresh.yml).
+
+Source SHA-256: `0a532bfd9f203c2ffc5e92a6cafef1a2bded0e0f0b2021bd1013e425a9024361`.
+
+#### Additional reviewed version 1
+
+Refresh every map registered by a calling repository and hand its build one complete validated JSON snapshot.
+
+**What it does**
+
+1. Check out the caller at its event commit and the central helper at this reusable workflow’s own full commit.
+2. Optionally install the caller’s locked dependencies with lifecycle scripts disabled, before passing a read-only token to generation.
 3. Run each registered Node generator in order, then validate every declared output as a bounded regular JSON file under data/.
 4. Stage and upload only the complete snapshot; a generator or validation failure prevents upload and stops a dependent build.
 
@@ -1098,11 +1174,29 @@ Prepare a generated-only organisation-map pull request into main and request its
 
 - An open generated PR into main when output changes, plus links to its three requested check runs. Successful dispatch does not prove those checks passed. No automatic merge occurs.
 
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/automation-org-map.yml).
+
+Source SHA-256: `5e89758fab142d6d7be8addd3b3ee05ef3865819219472f4443ed45e5a127bd2`.
+
+#### Additional reviewed version 1
+
+Prepare a generated-only organisation-map pull request into main and request its existing required checks without merging.
+
+**What it does**
+
+1. Run only for unset-sh/.github main pushes, schedules or manual calls; regenerate and check the exact source with read-only permissions.
+2. Publish only MAP.md and the generated profile block through an isolated bot-owned PR into main, verifying exact source/head trees and preserving authored profile text.
+3. Pass only the PR number, head and base to a separate Actions-write job that revalidates the real PR and dispatches the fixed organisation-map, documentation-check and branch-policy workflows at that exact head.
+
+**Produces**
+
+- An open generated PR into main when output changes, plus links to its three requested check runs. Successful dispatch does not prove those checks passed. No automatic merge occurs.
+
 [Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/automation-org-map.yml).
 
 Source SHA-256: `470ad5193645f3f38165b4f6b84aaedc8f079fd42421170c68cdc3c360c253d9`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Prepare a generated-only organisation-map staging PR and request supplemental validation without merging or promoting production.
 
@@ -1120,7 +1214,7 @@ Prepare a generated-only organisation-map staging PR and request supplemental va
 
 Source SHA-256: `45c4846bebc27251e2bdfc3d0fc6a1073608d2271e867130e70ed5dac9afcb42`.
 
-#### Additional reviewed version 2
+#### Additional reviewed version 3
 
 Regenerate the organisation’s Markdown map and publish validated changes through a generated-only pull request.
 
@@ -1173,11 +1267,29 @@ Validate normal pull-request branch relationships for staged or main-only reposi
 
 - The stable Validate branch policy job result, failing on malformed events, an unknown flow, unsupported generated identities, source proof failures or ref movement.
 
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/ci-branch-policy.yml).
+
+Source SHA-256: `734c4fc523415b08938f15d1d96871a2836866a471380cba87194228a0922246`.
+
+#### Additional reviewed version 1
+
+Validate normal pull-request branch relationships for staged or main-only repositories, and narrowly verified generated-PR dispatches, without granting the policy job token permissions.
+
+**What it does**
+
+1. For ordinary PR events, read GitHub event metadata without checkout. With the default flow staged, require staging or main as the base and only same-repository staging for main; with flow main, require main as the base from any branch or fork. An unknown flow fails.
+2. For generated dispatches, refuse foreign repository, branch, head or helper identities before anonymously fetching the central validator at the running workflow commit.
+3. Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting the same required check.
+
+**Produces**
+
+- The stable Validate branch policy job result, failing on malformed events, an unknown flow, unsupported generated identities, source proof failures or ref movement.
+
 [Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/ci-branch-policy.yml).
 
 Source SHA-256: `377811cb9f321bfdb2f1da5f987ccbd5bdab7f491d131490fb1badaf5d4c4e40`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Validate normal pull-request branch relationships and narrowly verified generated-PR dispatches without granting the policy job token permissions.
 
@@ -1195,7 +1307,7 @@ Validate normal pull-request branch relationships and narrowly verified generate
 
 Source SHA-256: `2365d1362d70ca9e830166d2cecdc7c8f6846d8f10186edc84d6459bb9cafd66`.
 
-#### Additional reviewed version 2
+#### Additional reviewed version 3
 
 Validate that feature work enters staging and only same-repository staging promotes to main.
 
@@ -1216,6 +1328,26 @@ Source SHA-256: `da74e0945258546204a5d88e780529643aafc3b55e46e77d0a4d2697ee923e8
 
 ### .github/workflows/ci-check.yml
 
+Provide a reusable Bun-based check job that each calling repository configures with its own validation command.
+
+**What it does**
+
+1. Check out the caller, install the exact Bun version its .bun-version names, and refuse any other version.
+2. Optionally install dependencies from the committed bun.lock with bun install --frozen-lockfile --ignore-scripts, failing when bun.lock is missing.
+3. Run the caller’s check command, defaulting to bun run check.
+4. If the caller specifies an output path, attempt to retain it even when the check fails.
+
+**Produces**
+
+- The check result for the calling repository.
+- An optional check-output artifact retained for 14 days when a path is configured and files are available.
+
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/ci-check.yml).
+
+Source SHA-256: `06241779cfbc46a02f5c0b91cac33a2e218bf929ec5f26c75eb5f45d01fd09b1`.
+
+#### Additional reviewed version 1
+
 Provide a reusable Node-based check job that each calling repository configures with its own validation command.
 
 **What it does**
@@ -1234,7 +1366,7 @@ Provide a reusable Node-based check job that each calling repository configures 
 
 Source SHA-256: `7bcb733d8dff4194c32c26d427ab73cd3ffffaee1379c2bf0240553f3cfcd924`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Provide a reusable Node-based check job that each calling repository configures with its own validation command.
 
@@ -1286,6 +1418,24 @@ Validate current pull-request labels and readiness, validation and documentation
 
 - A PR policy check result. This validates declarations, not their truth or sufficiency; it does not merge, release or grant a policy exception.
 
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/ci-pr-policy.yml).
+
+Source SHA-256: `79a541be36a2646d47f9380a8b6f1b95e2605d095f95bcc62ad35102f7d7aa46`.
+
+#### Additional reviewed version 1
+
+Validate current pull-request labels and readiness, validation and documentation declarations without executing pull-request code.
+
+**What it does**
+
+1. Require a real pull-request event, bind its repository, number and head to current metadata fetched from the fixed GitHub API endpoint, and refuse changed or unavailable identities.
+2. Require exactly one supported purpose label, one readiness choice, prerequisite and tested-combination fields, and authored validation and documentation sections.
+3. Ignore comments and code examples, reject duplicate sections and placeholders, and run only the central helper at the exact reusable-workflow commit with read-only permissions.
+
+**Produces**
+
+- A PR policy check result. This validates declarations, not their truth or sufficiency; it does not merge, release or grant a policy exception.
+
 [Reviewed source at c65eee545658](https://github.com/unset-sh/tooling/blob/c65eee545658a893d7f82b041757ccf2f58d4935/.github/workflows/ci-pr-policy.yml).
 
 Source SHA-256: `045e38c5b7cc3f215daed8fa3c01ff11d01f56fad745a14b21daeeb1188acca6`.
@@ -1308,6 +1458,24 @@ Apply the shared repository policy checks to tooling pull requests and staging o
 Source SHA-256: `fe759f6e8612346fea735a0398fabb0cbb8fdb0190b82c560b8fee4da0f76529`.
 
 ### .github/workflows/ci-repository-policy.yml
+
+Check declared dependency and action pins, installed agent-kit integrity and forbidden working-artifact paths without executing consumer code.
+
+**What it does**
+
+1. Verify the central workflow identity and check out the consumer and tooling helpers at their exact event and workflow commits.
+2. Install checksum-verified zizmor 1.32.0, parse committed workflow and configured action definitions offline, and fail on parser or scanner errors.
+3. Read the committed policy configuration and npm manifests, compare installed-kit bytes with their lock, inspect forbidden path prefixes, and apply only reasoned exact exceptions.
+
+**Produces**
+
+- A Repository policy check result with bounded diagnostics. This does not establish semantic policy compliance, release authenticity, dependency age or licence correctness; other repositories must adopt it explicitly.
+
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/ci-repository-policy.yml).
+
+Source SHA-256: `1b88b0cd7bd4c639d082e2f79218ca6ad58e539bb38e6830ca7dced27653552f`.
+
+#### Additional reviewed version 1
 
 Check declared dependency and action pins, installed agent-kit integrity and forbidden working-artifact paths without executing consumer code.
 
@@ -1371,6 +1539,27 @@ Publish separate staging prereleases and stable releases from an exact same-repo
 1. Validate the public push identity, immutable package and changelog, active branch rules and pre-existing channel environment; stable requires the exact merged staging pull request and both merge parents.
 2. Prepare only supported root manifest and lock versions, then run consumer checks, build and script-free packing with read-only permissions.
 3. Recheck authority and committed source, bind same-run artifacts to repository, commit, channel, version and attempt, and validate plain files and strict package archives before attestation.
+4. Atomically reserve a new tag, publish with bun publish, an explicit registry and the staging or latest tag, from an empty folder and stripped environment, create the prerelease or stable release page, and verify the tag again.
+
+**Produces**
+
+- Derived version and channel, with released=true only after successful publication and exact tag verification; source version 0.0.0 skips publication.
+- Immutable version tags, release pages and optional attested assets and GitHub Packages versions; no caller adoption or environment changes.
+- Refusal on unavailable evidence, invalid promotion, incompatible protections, unsupported package/lock data, artifact mismatch or reused version. Hidden ruleset bypasses and human intent require separate settings and process controls.
+
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/releases-channel.yml).
+
+Source SHA-256: `d3d8e6d9918ecc56580db4f9fc2c20c79cf6999f882838a0b73d4cbf78cd766f`.
+
+#### Additional reviewed version 1
+
+Publish separate staging prereleases and stable releases from an exact same-repository staging promotion, without changing the legacy owner-approved release path.
+
+**What it does**
+
+1. Validate the public push identity, immutable package and changelog, active branch rules and pre-existing channel environment; stable requires the exact merged staging pull request and both merge parents.
+2. Prepare only supported root manifest and lock versions, then run consumer checks, build and script-free packing with read-only permissions.
+3. Recheck authority and committed source, bind same-run artifacts to repository, commit, channel, version and attempt, and validate plain files and strict package archives before attestation.
 4. Atomically reserve a new tag, publish npm with an explicit registry and staging or latest tag from an isolated environment, create the prerelease or stable release page, and verify the tag again.
 
 **Produces**
@@ -1384,6 +1573,28 @@ Publish separate staging prereleases and stable releases from an exact same-repo
 Source SHA-256: `8b2b1785233c21dab5cbfcd0288e9a43cb51a75365733b6b3aab9cf143c80611`.
 
 ### .github/workflows/releases-package.yml
+
+Provide a shared release pipeline that builds once and publishes a new main-branch version through the owner’s release approval.
+
+**What it does**
+
+1. Accept only a push to main, inspect package.json and existing tags, and skip version 0.0.0 or an unchanged version that is already released.
+2. Before building, validate the release environment’s owner-only review and main-only branch policy, plus the package manifest and changelog.
+3. Run the caller’s checks and optional build, collect configured release files and optionally pack the package with bun pm pack, then show their checksums and notes for review.
+4. After the release environment permits publication, recheck its protections and validate the downloaded artifacts without running the caller’s source code.
+5. Attest the files, optionally publish the packed archive to GitHub Packages with bun publish from an empty folder and stripped environment, create the tag and GitHub release, and verify that the tag names the intended commit.
+
+**Produces**
+
+- A version tag and GitHub release with configured assets and release notes, plus attestations for attached files.
+- An optional GitHub Packages release and a seven-day intermediate release artifact.
+- The version and released workflow outputs for the caller.
+
+[Reviewed source at 36aaf03a55c6](https://github.com/unset-sh/tooling/blob/36aaf03a55c6009643d72f48b01b897a02eac289/.github/workflows/releases-package.yml).
+
+Source SHA-256: `1dd89a6624c1ae6e374c472c7aa6a1038611fc9ea1b5bb8546418e8be2b7d994`.
+
+#### Additional reviewed version 1
 
 Provide a shared release pipeline that builds once and publishes a new main-branch version through the owner’s release approval.
 
