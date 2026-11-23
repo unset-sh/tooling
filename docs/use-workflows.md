@@ -99,7 +99,9 @@ jobs:
 ```
 
 Switch a repository to `flow: main` only after its default branch is `main` and its staging branch rules are
-gone; until then the staged rules keep refusing feature PRs into `main`.
+gone; until then the staged rules keep refusing feature PRs into `main`. `flow` lives in the caller, and a
+`pull_request` run uses the caller from the PR's own merge ref, so a PR in a staged repository that adds
+`flow: main` passes its own check. Review any change to that line as a branch-policy change.
 
 Do not add path or base-branch filters: all PRs need the check, including retargeted PRs. The reusable job
 name is `Validate branch policy`; with caller job `policy`, expect `policy / Validate branch policy` and
