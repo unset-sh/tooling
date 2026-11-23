@@ -2,6 +2,24 @@
   "schemaVersion": 1,
   "workflows": [
     {
+      "repository": "tooling",
+      "path": ".github/workflows/releases-channel.yml",
+      "reviewedCommit": "42f07ecbfbe4e6106e7903fe2a5671db51232f7d",
+      "reviewedSha256": "8b2b1785233c21dab5cbfcd0288e9a43cb51a75365733b6b3aab9cf143c80611",
+      "purpose": "Publish separate staging prereleases and stable releases from an exact same-repository staging promotion, without changing the legacy owner-approved release path.",
+      "steps": [
+        "Validate the public push identity, immutable package and changelog, active branch rules and pre-existing channel environment; stable requires the exact merged staging pull request and both merge parents.",
+        "Prepare only supported root manifest and lock versions, then run consumer checks, build and script-free packing with read-only permissions.",
+        "Recheck authority and committed source, bind same-run artifacts to repository, commit, channel, version and attempt, and validate plain files and strict package archives before attestation.",
+        "Atomically reserve a new tag, publish npm with an explicit registry and staging or latest tag from an isolated environment, create the prerelease or stable release page, and verify the tag again."
+      ],
+      "outputs": [
+        "Derived version and channel, with released=true only after successful publication and exact tag verification; source version 0.0.0 skips publication.",
+        "Immutable version tags, release pages and optional attested assets and GitHub Packages versions; no caller adoption or environment changes.",
+        "Refusal on unavailable evidence, invalid promotion, incompatible protections, unsupported package/lock data, artifact mismatch or reused version. Hidden ruleset bypasses and human intent require separate settings and process controls."
+      ]
+    },
+    {
       "repository": ".github",
       "path": ".github/workflows/docs-export.yml",
       "reviewedCommit": "fb4bfedf463f7cead362980c49843f774611cce3",

@@ -5,6 +5,12 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Staged release channels:** the separate `releases-channel.yml` entry point derives immutable staging
+  prereleases and publishes stable versions only from an exact merged same-repository staging promotion.
+  It prepares supported root manifests and locks without changing dependency selections, rechecks active
+  rules and pre-existing channel environments, validates artifacts against committed source, and reserves
+  tags without overwriting them. The legacy approved release path remains unchanged. No caller or environment
+  is activated; human promotion and settings audits remain separate responsibilities.
 - **Repository policy:** `ci-repository-policy.yml` adds an opt-in `Repository policy` check for declared npm
   dependency pins, parsed workflow/action references, installed agent-kit lock integrity, and forbidden working-artifact
   paths. It reads an exact committed tree without running consumer code. Configuration and reasoned exact exceptions
