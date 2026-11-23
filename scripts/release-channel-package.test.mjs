@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { preparePackage, prepareCheckout, verifyChannelPackage } from "./release-channel-package.mjs";
 import { packedManifest, packageProblems } from "./release-package.mjs";
+import { channelFailure } from "./release-channel-error.mjs";
 import { packed, entry as file } from "../checks/tarball.mjs";
 const tarball = (parts) => packed(...parts);
 
@@ -18,6 +19,16 @@ const lock = (m = manifest(), lockfileVersion = 3) => ({ name: m.name, version: 
     "node_modules/@unset-sh/brand": { version: "0.1.0", resolved: "https://npm.pkg.github.com/a.tgz", integrity: "sha512-test" },
     "node_modules/typescript": { version: "6.0.0", resolved: "https://registry.npmjs.org/typescript/-/typescript-6.0.0.tgz", integrity: "sha512-test", dev: true } } });
 const prepare = (m = manifest(), l = lock(m), context = staging) => preparePackage({ manifest: m, lock: l, context, npmPackage: true, install: true });
+
+test("publish manifest refusals never expose arbitrary configuration keys or values", () => {
+  const changed = { ...manifest(), publishConfig: { registry: "https://npm.pkg.github.com", SECRET7: "PRIVATE_VALUE" } };
+  assert.throws(() => prepare(changed, lock(changed)), (error) => {
+    const message = channelFailure(error);
+    assert.match(message, /Invalid publishable manifest/);
+    assert.doesNotMatch(message, /SECRET7|PRIVATE_VALUE/);
+    return true;
+  });
+});
 
 test("staging changes only the root package and root lock versions while preserving every selected dependency", () => {
   for (const version of [2, 3]) {
