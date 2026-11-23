@@ -18,14 +18,16 @@ test("channel release keeps consumer execution read-only and gates central publi
     assert.match(job, /repository: \$\{\{ job\.workflow_repository \}\}\n\s+ref: \$\{\{ job\.workflow_sha \}\}/);
   }
   assert.match(jobs.build, /ref: \$\{\{ github\.sha \}\}/);
-  assert.ok(jobs.build.indexOf("release-channel-run.mjs prepare") < jobs.build.indexOf("npm ci --ignore-scripts"));
-  assert.match(jobs.build, /npm pack --ignore-scripts/);
+  assert.ok(jobs.build.indexOf("release-channel-run.mjs prepare") < jobs.build.indexOf("bun install --frozen-lockfile --ignore-scripts"));
+  assert.match(jobs.build, /bun pm pack --ignore-scripts /);
   assert.match(jobs.publish, /name: channel-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/);
-  const order = ["release-channel-run.mjs verify", "actions/attest@", "release-channel-run.mjs reserve", "npm publish", "gh release create", "release-channel-run.mjs confirm"];
+  const order = ["release-channel-run.mjs verify", "actions/attest@", "release-channel-run.mjs reserve", "bun publish", "gh release create", "release-channel-run.mjs confirm"];
   const positions = order.map((s) => jobs.publish.indexOf(s));
   assert.ok(positions.every((p) => p >= 0)); assert.deepEqual([...positions].sort((a, b) => a - b), positions);
-  assert.match(jobs.publish, /env -i PATH="\$PATH" HOME="\$HOME" NPM_CONFIG_USERCONFIG="\$NPM_CONFIG_USERCONFIG" NODE_AUTH_TOKEN="\$NODE_AUTH_TOKEN"/);
-  assert.match(jobs.publish, /npm publish --ignore-scripts --tag "\$DIST_TAG" --registry https:\/\/npm\.pkg\.github\.com/);
+  // As in releases-package.yml: a new folder with only the package and `{}`, HOME set to it, three names.
+  assert.match(jobs.publish, /folder="\$\(mktemp -d\)"\n\s+cp "release\/files\/\$package" "\$folder\/"\n\s+printf '\{\}\\n' > "\$folder\/package\.json"\n\s+cd "\$folder"\n/);
+  assert.match(jobs.publish, /env -i PATH="\$PATH" HOME="\$folder" NPM_CONFIG_TOKEN="\$NPM_CONFIG_TOKEN" \\\n\s+bun publish --ignore-scripts --tag "\$DIST_TAG" --registry https:\/\/npm\.pkg\.github\.com "\.\/\$package"\n/);
+  assert.equal(jobs.publish.match(/bun publish/g).length, 1, "Bun publishes in one place");
   assert.match(jobs.publish, /--verify-tag/); assert.match(jobs.publish, /--prerelease --latest=false/);
   assert.doesNotMatch(jobs.publish, /--clobber|--force|release delete|git push/);
 });

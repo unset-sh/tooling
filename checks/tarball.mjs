@@ -1,4 +1,4 @@
-// Builds tar archives byte by byte for the checks, in the form `npm pack` writes, with a hook to bend one
+// Builds tar archives byte by byte for the checks, in the form `bun pm pack` writes, with a hook to bend one
 // header out of that form. The repository has no dependencies, and a tar library would also refuse to write
 // most of the archives the checks need.
 import { gzipSync } from "node:zlib";
@@ -16,8 +16,8 @@ export function header({ name, folder = "", size, type = "0" }, { before, after 
   const block = Buffer.alloc(BLOCK);
   block.write(name, 0, "latin1");
   block.write("000644 \0", 100, "latin1");
-  block.write(`${size.toString(8).padStart(10, "0")} \0`, 124, "latin1");
-  block.write("3560116604 \0", 136, "latin1");
+  block.write(`${size.toString(8).padStart(11, "0")} `, 124, "latin1");
+  block.write("03560116604 ", 136, "latin1");
   block.write(type, 156, "latin1");
   block.write("ustar\x0000", 257, "latin1");
   block.write("000000 \0", 329, "latin1");
@@ -26,7 +26,7 @@ export function header({ name, folder = "", size, type = "0" }, { before, after 
   before?.(block);
   block.fill(" ", 148, 156);
   const sum = block.reduce((total, byte) => total + byte, 0);
-  block.write(`${sum.toString(8).padStart(6, "0")} \0`, 148, "latin1");
+  block.write(`${sum.toString(8).padStart(6, "0")}\0 `, 148, "latin1");
   after?.(block);
   return block;
 }

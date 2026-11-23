@@ -1,7 +1,7 @@
 // Gathers the files a release attaches, and lists them again before they are published.
 //
-//   node scripts/release-files.mjs collect <repository> <folder> <destination>
-//   node scripts/release-files.mjs list <folder>
+//   bun scripts/release-files.mjs collect <repository> <folder> <destination>
+//   bun scripts/release-files.mjs list <folder>
 //
 // `collect` copies every file of <folder>, a folder inside <repository> that the repository's build wrote,
 // into <destination>. `list` prints the names in a folder, one per line, and is run on both sides of the

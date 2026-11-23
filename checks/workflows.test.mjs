@@ -1,7 +1,7 @@
 // What the workflow files promise, checked on their text. Each test names the mistake it would catch.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { inputsOf, jobsOf, readText, runBlocks, topLevel, workflowFiles } from "./repo.mjs";
+import { inputsOf, jobsOf, pinnedBun, readText, runBlocks, SETUP_BUN, topLevel, workflowFiles } from "./repo.mjs";
 
 const REUSABLE = [".github/workflows/ci-check.yml", ".github/workflows/releases-package.yml", ".github/workflows/releases-channel.yml"];
 const release = readText(".github/workflows/releases-package.yml");
@@ -109,9 +109,36 @@ test("the plan refuses any start but a push to main, before anything else", () =
 });
 
 test("the plan checks the release environment, the package and the changelog before anything is built", () => {
-  assert.match(releaseJobs.plan, /node workflows\/scripts\/release-gate\.mjs/);
-  assert.match(releaseJobs.plan, /^ {10}name="\$\(node workflows\/scripts\/release-manifest\.mjs repository\/package\.json --npm-package --name\)"$/m);
-  assert.match(releaseJobs.plan, /node workflows\/scripts\/release-notes\.mjs repository\/CHANGELOG\.md/);
+  assert.match(releaseJobs.plan, /bun workflows\/scripts\/release-gate\.mjs/);
+  assert.match(releaseJobs.plan, /^ {10}name="\$\(bun workflows\/scripts\/release-manifest\.mjs repository\/package\.json --npm-package --name\)"$/m);
+  assert.match(releaseJobs.plan, /bun workflows\/scripts\/release-notes\.mjs repository\/CHANGELOG\.md/);
+});
+
+test("every workflow runs on the exact Bun it names, with no Node and no npm command", () => {
+  // The branch policy has no checkout to read a version file from, so it names the version itself, which is
+  // held to this repository's .bun-version.
+  const version = readText(".bun-version").trim();
+  for (const path of workflowFiles()) {
+    const text = readText(path);
+    assert.doesNotMatch(text, /actions\/setup-node@|node-version|\.nvmrc|shell: node|\bnpm (ci|install|run|pack|publish|exec)\b|\bnpx\b/, path);
+    const setups = [...text.matchAll(/^( *)- uses: oven-sh\/setup-bun@[^\n]*\n(?:\1 {2}.*\n)+/gm)];
+    for (const [step, indent] of setups) {
+      const file = /bun-version-file: (\S+)/.exec(step);
+      if (file !== null) {
+        assert.ok(text.includes(pinnedBun(file[1], indent.length)), `${path}: setup-bun for ${file[1]} is not followed by the version check`);
+      } else {
+        assert.equal(path, ".github/workflows/ci-branch-policy.yml", `${path}: setup-bun names no version file`);
+        assert.match(step, new RegExp(`bun-version: ${version.replaceAll(".", "\\.")}\n`), path);
+        assert.match(text, new RegExp(`run: test "\\$\\(bun --version\\)" = ${version.replaceAll(".", "\\.")}\n`), path);
+      }
+      assert.match(step, /no-cache: true/, path);
+      assert.match(step, /token: ""/, path);
+    }
+    const uses = [...text.matchAll(/oven-sh\/setup-bun@\S+/g)].map(([use]) => use);
+    for (const use of uses) assert.equal(`${use} # v2.2.0`, SETUP_BUN, path);
+    assert.equal(uses.length, setups.length, path);
+    if (/\bbun /.test(text)) assert.ok(setups.length > 0 || /uses: \.\/\.github\/workflows\//.test(text), `${path} runs Bun without installing it`);
+  }
 });
 
 test("no step hides a failed command inside an echo", () => {
@@ -120,7 +147,7 @@ test("no step hides a failed command inside an echo", () => {
     for (const block of runBlocks(readText(path))) {
       for (const line of block.split("\n")) {
         if (/^\s*#/.test(line)) continue;
-        assert.doesNotMatch(line, /\becho\b.*\$\((?:node|git|gh|npm) /, `${path}: ${line.trim()}`);
+        assert.doesNotMatch(line, /\becho\b.*\$\((?:bun|node|git|gh|npm) /, `${path}: ${line.trim()}`);
       }
     }
   }
@@ -156,25 +183,27 @@ test("only the publish job can write, and only it waits on the release environme
 test("the publish job reads the release environment again before it touches what was built", () => {
   // The wait for approval can last days, and "Re-run failed jobs" starts publish without plan.
   const publish = releaseJobs.publish;
-  const gate = publish.indexOf("node workflows/scripts/release-gate.mjs");
+  const gate = publish.indexOf("bun workflows/scripts/release-gate.mjs");
   assert.ok(gate !== -1, "publish does not check the environment");
   assert.ok(gate < publish.indexOf("actions/download-artifact@"), "publish downloads before it checks the environment");
 });
 
 test("a packed package is read again in the publish job, before it is attested or published", () => {
-  // npm takes settings from the package.json inside the file it publishes, and the build job made that file.
+  // bun publish takes settings from the package.json inside the file it publishes, and the build job made that file.
   const publish = releaseJobs.publish;
-  const check = publish.indexOf('node workflows/scripts/release-package.mjs "release/files/$package" "$NAME" "$VERSION"');
+  const check = publish.indexOf('bun workflows/scripts/release-package.mjs "release/files/$package" "$NAME" "$VERSION"');
   assert.ok(check !== -1, "publish does not read the packed package");
   assert.ok(check < publish.indexOf("actions/attest@"), "the package is attested before it is read");
   assert.match(publish, /NAME: \$\{\{ needs\.plan\.outputs\.name \}\}\n\s+VERSION: \$\{\{ needs\.plan\.outputs\.version \}\}/);
   assert.match(releaseJobs.plan, /^ {6}name: \$\{\{ steps\.package\.outputs\.name \}\}$/m);
-  // npm starts in a folder that holds that one file, named whole: no glob, no other release file beside it.
-  // It also starts with four names in its environment and nothing else of the job's.
-  assert.match(publish, /folder="\$\(mktemp -d\)"\n\s+cp "release\/files\/\$package" "\$folder\/"\n\s+cd "\$folder"\n\s+env -i PATH="\$PATH" HOME="\$HOME" NPM_CONFIG_USERCONFIG="\$NPM_CONFIG_USERCONFIG" NODE_AUTH_TOKEN="\$NODE_AUTH_TOKEN" \\\n\s+npm publish --ignore-scripts "\.\/\$package"\n/);
-  assert.equal(publish.match(/npm publish/g).length, 1, "npm publishes in one place");
+  // Bun starts in a folder that holds that one file, named whole, and a package.json of `{}`: no glob, no
+  // other release file or settings file beside it. HOME is that folder, so no settings file of the runner's
+  // is read either, and it starts with three names in its environment and nothing else of the job's.
+  assert.match(publish, /folder="\$\(mktemp -d\)"\n\s+cp "release\/files\/\$package" "\$folder\/"\n\s+printf '\{\}\\n' > "\$folder\/package\.json"\n\s+cd "\$folder"\n\s+env -i PATH="\$PATH" HOME="\$folder" NPM_CONFIG_TOKEN="\$NPM_CONFIG_TOKEN" \\\n\s+bun publish --ignore-scripts --registry https:\/\/npm\.pkg\.github\.com "\.\/\$package"\n/);
+  assert.equal(publish.match(/bun publish/g).length, 1, "Bun publishes in one place");
+  assert.match(publish, /^ {10}NPM_CONFIG_TOKEN: \$\{\{ github\.token \}\}$/m);
   // The build job makes the same check right after packing, so a refusal comes before the approval.
-  assert.match(releaseJobs.build, /npm pack --ignore-scripts [^\n]*\n\s+node \.\.\/workflows\/scripts\/release-package\.mjs "\$RUNNER_TEMP\/release\/files"\/\*\.tgz "\$NAME" "\$VERSION"\n/);
+  assert.match(releaseJobs.build, /bun pm pack --ignore-scripts [^\n]*\n\s+bun \.\.\/workflows\/scripts\/release-package\.mjs "\$RUNNER_TEMP\/release\/files"\/\*\.tgz "\$NAME" "\$VERSION"\n/);
   assert.doesNotMatch(publish, /working-directory:/);
 });
 
@@ -186,7 +215,7 @@ test("the publish job runs none of the calling repository's code", () => {
   const checkouts = [...publish.matchAll(/uses: actions\/checkout@[0-9a-f]{40}[^\n]*\n((?:\s+.*\n){0,6})/g)];
   assert.equal(checkouts.length, 1);
   assert.match(checkouts[0][1], /repository: \$\{\{ job\.workflow_repository \}\}\n\s+ref: \$\{\{ job\.workflow_sha \}\}/);
-  assert.match(publish, /npm publish --ignore-scripts /);
+  assert.match(publish, /bun publish --ignore-scripts /);
 });
 
 test("every job takes its scripts from this repository at the commit the workflow runs from", () => {
@@ -210,7 +239,7 @@ test("the workflow creates its own tag at the commit it built, and refuses one t
   const publish = releaseJobs.publish;
   assert.match(publish, /gh release create "v\$VERSION" "\$\{assets\[@\]\}" \\\n\s+--target "\$GITHUB_SHA"/);
   assert.doesNotMatch(release, /--verify-tag/);
-  const order = ["The release environment is still the owner's", "Exactly what was built", "The packed package is the one main describes", "The tag does not exist yet", "actions/attest@", "npm publish", "gh release create", "The published tag points at this commit"];
+  const order = ["The release environment is still the owner's", "Exactly what was built", "The packed package is the one main describes", "The tag does not exist yet", "actions/attest@", "bun publish", "gh release create", "The published tag points at this commit"];
   const positions = order.map((marker) => publish.indexOf(marker));
   assert.ok(positions.every((position) => position !== -1), `a publish step is missing: ${positions}`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "the publish steps are out of order");

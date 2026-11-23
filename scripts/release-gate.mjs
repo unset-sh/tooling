@@ -1,6 +1,6 @@
 // Checks, before any release is built, that the `release` environment really holds the owner's approval.
 //
-//   node scripts/release-gate.mjs <environment.json> <branch-policies.json>
+//   bun scripts/release-gate.mjs <environment.json> <branch-policies.json>
 //
 // GitHub creates an environment a workflow names if none exists, with no protection at all, so a missing or
 // loosened environment would publish with no one's approval. The release workflow reads the environment and

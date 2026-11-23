@@ -1,6 +1,6 @@
 // Reads the version a release would publish from a repository's package.json, and says what stops it.
 //
-//   node scripts/release-manifest.mjs <package.json> [--npm-package [--name]]
+//   bun scripts/release-manifest.mjs <package.json> [--npm-package [--name]]
 //
 // Prints the version. The version becomes the tag v<version>, so only three plain numbers are accepted: no
 // pre-release or build suffix until a repository needs one.

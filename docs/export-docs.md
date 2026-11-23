@@ -14,24 +14,24 @@ This guide describes the **unreleased implementation at version 0.0.0**. The org
 
 ## Before you start
 
-Work from the root of a checkout of `unset-sh/tooling`, with Git and Node 26.12.0 available. Select a reviewed source commit whose implementation and documentation have been checked. Tooling's source must contain public pages under `docs/`; other consumers, including `.github`, must contain them under `docs/site/`. Every source needs a root `LICENSE`. Uncommitted edits are never copied into an export.
+Work from the root of a checkout of `unset-sh/tooling`, with Git and Bun 1.4.4 available. Select a reviewed source commit whose implementation and documentation have been checked. Tooling's source must contain public pages under `docs/`; other consumers, including `.github`, must contain them under `docs/site/`. Every source needs a root `LICENSE`. Uncommitted edits are never copied into an export.
 
 The output must be an absolute path to a directory that does not yet exist. Its parent directory must already exist. Choose a fresh destination for each export so the command cannot mix sections from different revisions.
 
 ## Export a committed revision
 
-1. Run the source repository's checks against the intended revision. For tooling, run `npm run check`. Commit documentation changes before selecting the revision that will contain them.
+1. Run the source repository's checks against the intended revision. For tooling, run `bun run check`. Commit documentation changes before selecting the revision that will contain them.
 2. Obtain the source's full 40-character lowercase commit identifier with `git rev-parse HEAD`, or use the full identifier of another checked commit already available in that checkout.
 3. Replace `FULL_40_SHA` below with that identifier and `/absolute/fresh-output` with your fresh output path. Run from the tooling repository root:
 
 ```sh
-npm run docs:export -- --revision FULL_40_SHA --out /absolute/fresh-output
+bun run docs:export --revision FULL_40_SHA --out /absolute/fresh-output
 ```
 
 The default source is the tooling checkout and the default repository is `unset-sh/tooling`. To export another source, pass its absolute checkout path and repository name. This illustrative command exports the organisation's `.github` documentation:
 
 ```sh
-node scripts/export-docs.mjs --revision FULL_40_SHA --out /absolute/fresh-output \
+bun scripts/export-docs.mjs --revision FULL_40_SHA --out /absolute/fresh-output \
   --root /absolute/github-checkout --repository unset-sh/.github
 ```
 
@@ -63,7 +63,7 @@ If the command refuses an existing output directory, choose another fresh destin
 
 The [reusable documentation-export workflow](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/shared/docs/export.yml) accepts `workflow_call` only, with no inputs, stored secrets, or outputs. It uses `contents: read` and uploads a `docs-<commit>` artifact for 14 days, where the commit is the caller's `github.sha`. The artifact preserves the section directory shown above.
 
-The workflow checks out the consumer at `github.sha` into `source/`. It checks out the central helper into `tooling/` at the called workflow's own repository and full commit, after validating that identity. Node comes from the tooling checkout's `.nvmrc`. This keeps export implementation tied to the caller's approved tooling pin while exporting the consumer's selected source revision.
+The workflow checks out the consumer at `github.sha` into `source/`. It checks out the central helper into `tooling/` at the called workflow's own repository and full commit, after validating that identity. Bun comes from the tooling checkout's `.bun-version`. This keeps export implementation tied to the caller's approved tooling pin while exporting the consumer's selected source revision.
 
 The reusable workflow does not run consumer check or build commands. A caller must run its checks first and make export depend on that job. Tooling's [local documentation caller](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/tooling/docs/self.yml) does this for pull requests, pushes to `main`, and manual dispatch. For example, a tooling pull request first runs the check job; only success permits export of that run's `github.sha`. A failed check prevents the artifact job, and a missing section index or licence fails export.
 

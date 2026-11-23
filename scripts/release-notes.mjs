@@ -1,6 +1,6 @@
 // Prints the changelog entry of one version, for the approval page and the release page.
 //
-//   node scripts/release-notes.mjs <CHANGELOG.md> <version>
+//   bun scripts/release-notes.mjs <CHANGELOG.md> <version>
 //
 // An entry starts at a line "## v<version>" and runs to the next "## " line. A release with no entry, or an
 // empty one, fails here, so no release goes out without saying what changes for whoever takes it.
@@ -30,7 +30,7 @@ export function versionsIn(changelog) {
 if (startedAsScript(import.meta.url)) {
   const [file, version] = process.argv.slice(2);
   if (file === undefined || version === undefined) {
-    console.error("usage: node scripts/release-notes.mjs <CHANGELOG.md> <version>");
+    console.error("usage: bun scripts/release-notes.mjs <CHANGELOG.md> <version>");
     process.exitCode = 1;
   } else {
     try {

@@ -1,6 +1,9 @@
-// Root-only version preparation; never invoke npm version or lifecycle scripts.
-// npm 11 lockfiles v2/v3 describe the root in both top-level fields and packages[""].
-// https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json/ (read 2026-11-23)
+// Root-only version preparation; never invoke `bun pm version` or lifecycle scripts.
+// bun.lock (lockfileVersion 2, as Bun 1.4.4 writes it) is JSON with trailing commas. It names the root under
+// workspaces[""] with its name and dependency blocks but not its version, so raising the root version leaves
+// the lock as it is and `bun install --frozen-lockfile` still accepts it (seen with Bun 1.4.4). Each entry of
+// "packages" is an array whose first item is "<name>@<resolution>".
+// https://bun.com/docs/install/lockfile (read 2026-11-23)
 import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
@@ -40,6 +43,28 @@ function packageIdentity(manifest, context, expectedVersion) {
   insist(problems.length === 0, "Invalid publishable manifest; check package identity and registry settings");
 }
 
+const LOCK_FIELDS = new Set(["lockfileVersion", "configVersion", "workspaces", "packages"]);
+
+/** Refuses a bun.lock that is not the root's own, links or patches anything, or selects a version it may not. */
+function checkLock(lock, manifest, context) {
+  insist(object(lock) && lock.lockfileVersion === 2 && Object.keys(lock).every((field) => LOCK_FIELDS.has(field)) &&
+    object(lock.workspaces) && Object.keys(lock.workspaces).length === 1 && object(lock.workspaces[""]) &&
+    lock.workspaces[""].name === manifest.name && object(lock.packages), "Inconsistent or unsupported root package lock");
+  for (const field of DEPENDENCIES) insist(isDeepStrictEqual(lock.workspaces[""][field], manifest[field]), "Root lock dependency declarations differ from source");
+  const entries = Object.entries(lock.packages);
+  insist(entries.length <= 10000, "Package lock has too many entries");
+  for (const [key, entry] of entries) {
+    insist(Array.isArray(entry) && typeof entry[0] === "string", "Unsupported linked or workspace package lock entry");
+    const at = entry[0].lastIndexOf("@");
+    const name = entry[0].slice(0, at);
+    const selected = entry[0].slice(at + 1);
+    insist(at > 0 && (key === name || key.endsWith(`/${name}`)), "Unsupported linked or workspace package lock entry");
+    // A link, file, git or workspace resolution is not a version, so it fails here as well.
+    insist(stableVersion(selected) || (context.channel === "staging" && name.startsWith("@unset-sh/") && stagingVersion(selected)),
+      "Package lock selects an invalid or prerelease dependency");
+  }
+}
+
 export function preparePackage({ manifest, lock, context, npmPackage = false, install = false }) {
   insist(object(manifest), "Invalid source manifest");
   const version = channelVersion(manifest.version, context);
@@ -50,45 +75,32 @@ export function preparePackage({ manifest, lock, context, npmPackage = false, in
   if (install || (npmPackage && DEPENDENCIES.some((field) => Object.keys(manifest[field] ?? {}).length > 0))) {
     insist(lock !== null && lock !== undefined, "Installation or package dependencies require a root package lock");
   }
-  if (lock !== null && lock !== undefined) {
-    insist(object(lock) && [2, 3].includes(lock.lockfileVersion) && lock.name === manifest.name && lock.version === manifest.version &&
-      object(lock.packages) && object(lock.packages[""]) && lock.packages[""].name === manifest.name &&
-      lock.packages[""].version === manifest.version && lock.packages[""].workspaces === undefined, "Inconsistent or unsupported root package lock");
-    for (const field of DEPENDENCIES) insist(isDeepStrictEqual(lock.packages[""][field], manifest[field]), "Root lock dependency declarations differ from source");
-    const entries = Object.entries(lock.packages);
-    insist(entries.length <= 10000, "Package lock has too many entries");
-    for (const [path, entry] of entries) {
-      insist(object(entry) && !entry.link && (path === "" || path.startsWith("node_modules/")), "Unsupported linked or workspace package lock entry");
-      if (path === "") continue;
-      insist(stableVersion(entry.version) || (context.channel === "staging" &&
-        /(?:^|\/)node_modules\/@unset-sh\/[^/]+$/.test(path) && stagingVersion(entry.version)), "Package lock selects an invalid or prerelease dependency");
-    }
-  }
+  if (lock !== null && lock !== undefined) checkLock(lock, manifest, context);
   const transformed = structuredClone(manifest);
   transformed.version = version;
-  const transformedLock = lock == null ? null : structuredClone(lock);
-  if (transformedLock) { transformedLock.version = version; transformedLock.packages[""].version = version; }
-  return { version, manifest: transformed, lock: transformedLock };
+  return { version, manifest: transformed, lock };
 }
 
-export function regularJson(path, limit = 1024 * 1024, missing = false) {
+export function regularJson(path, limit = 1024 * 1024, missing = false, { trailingCommas = false } = {}) {
   const stat = lstatSync(path, { throwIfNoEntry: false });
   if (!stat && missing) return null;
   insist(stat?.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && stat.size <= limit, "Expected bounded regular unlinked JSON file");
   const bytes = readFileSync(path);
   insist(bytes.length <= limit, "JSON file exceeds size bound");
-  try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); }
+  // bun.lock ends its entries with commas; Bun.JSONC reads that, and comments, and nothing else differs.
+  try { const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); return trailingCommas ? Bun.JSONC.parse(text) : JSON.parse(text); }
   catch { throw new Error("Invalid UTF-8 JSON data"); }
 }
 
 export function prepareCheckout(root, options) {
   insist(isAbsolute(root) && realpathSync(root) === resolve(root), "Checkout root must not have symbolic link ancestors");
-  insist(!lstatSync(join(root, "npm-shrinkwrap.json"), { throwIfNoEntry: false }), "npm-shrinkwrap.json is not supported by channel releases");
+  for (const file of ["npm-shrinkwrap.json", "package-lock.json", "bun.lockb"]) {
+    insist(!lstatSync(join(root, file), { throwIfNoEntry: false }), `${file} is not supported by channel releases; use bun.lock`);
+  }
   const result = preparePackage({ ...options, manifest: regularJson(join(root, "package.json")),
-    lock: regularJson(join(root, "package-lock.json"), 16 * 1024 * 1024, true) });
+    lock: regularJson(join(root, "bun.lock"), 16 * 1024 * 1024, true, { trailingCommas: true }) });
   if (result.version === null) return result;
   writeFileSync(join(root, "package.json"), `${JSON.stringify(result.manifest, null, 2)}\n`);
-  if (result.lock) writeFileSync(join(root, "package-lock.json"), `${JSON.stringify(result.lock, null, 2)}\n`);
   return result;
 }
 

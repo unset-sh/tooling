@@ -241,10 +241,10 @@ export function generate(root, { write = false } = {}) {
 }
 
 function main(args) {
-  if (args.length !== 1 && args.length !== 3) throw new Error("usage: node scripts/workflows.mjs --write|--check [--root <absolute-directory>]");
+  if (args.length !== 1 && args.length !== 3) throw new Error("usage: bun scripts/workflows.mjs --write|--check [--root <absolute-directory>]");
   const mode = args[0];
   if (!["--write", "--check"].includes(mode) || (args.length === 3 && (args[1] !== "--root" || !isAbsolute(args[2])))) {
-    throw new Error("usage: node scripts/workflows.mjs --write|--check [--root <absolute-directory>]");
+    throw new Error("usage: bun scripts/workflows.mjs --write|--check [--root <absolute-directory>]");
   }
   const root = args[2] ?? fileURLToPath(new URL("../", import.meta.url));
   const changes = generate(root, { write: mode === "--write" });

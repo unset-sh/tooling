@@ -27,7 +27,7 @@ Alex manages the first three settings before a repository adopts this workflow:
 3. A ruleset protecting `main` with pull requests and the appropriate required checks.
 4. A `package.json` version consisting of three numeric components. Keep `0.0.0` until the first release is approved.
 5. A `CHANGELOG.md` entry headed `## v<version>` for the version being released.
-6. A `.nvmrc` naming the Node version for the consumer's check and build.
+6. A `.bun-version` naming the exact Bun version for the consumer's check and build, and a committed `bun.lock` when `install` is on.
 
 An existing version tag without a corresponding GitHub release must be reconciled before adoption. The workflow refuses it. The environment validator also refuses absent or incompatible protection settings; the owner fixes those settings rather than bypassing the check.
 
@@ -35,8 +35,8 @@ An existing version tag without a corresponding GitHub release must be reconcile
 
 | Input | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `install` | Boolean | `false` | Run `npm ci --ignore-scripts` before checking. |
-| `check` | String | `npm run check` | Consumer command that must succeed before building. |
+| `install` | Boolean | `false` | Run `bun install --frozen-lockfile --ignore-scripts` before checking. |
+| `check` | String | `bun run check` | Consumer command that must succeed before building. |
 | `build` | String | Empty | Optional consumer command producing release files. |
 | `files` | String | Empty | Repository-relative directory whose direct files are attached and attested. |
 | `npm-package` | Boolean | `false` | Pack, attest, attach, and publish the npm package to GitHub Packages. |
@@ -50,11 +50,11 @@ With no artifact inputs, the result is a version tag and release page; there is 
 
 The release-file collector accepts at most 50 direct, plainly named regular files, rejects subdirectories and symbolic links, and rejects duplicate names that differ only by case. The selected directory must stay inside the consumer repository and contain files.
 
-An npm package must be named `@unset-sh/...`, use `https://npm.pkg.github.com` as its only `publishConfig` setting, and use released, exact dependency versions. The package validator accepts a restricted archive format and refuses unsafe paths, links, and `.git` content. These checks run before npm receives the artifact; npm can read configuration and other data from a packed package.
+An npm package must be named `@unset-sh/...`, use `https://npm.pkg.github.com` as its only `publishConfig` setting, and use released, exact dependency versions. The package validator accepts a restricted archive format and refuses unsafe paths, links, and `.git` content. These checks run before Bun receives the artifact; `bun publish` reads its settings from the packed package, and npm, which others may install with, reads more.
 
 ## Permissions and publication boundary
 
-The caller grants `contents: write`, `packages: write`, `id-token: write`, `attestations: write`, and `actions: read`. The workflow narrows those permissions per job. `plan` and `build` have read access; only `publish` writes and enters the protected environment.
+The caller grants `contents: write`, `packages: write`, `id-token: write`, `attestations: write`, and `actions: read`. The workflow narrows those permissions per job. `plan` and `build` have read access; `build` gives its install step alone a token that reads packages, in `NPM_CONFIG_TOKEN`, for `@unset-sh` dependencies on GitHub Packages. Only `publish` writes and enters the protected environment.
 
 The consumer's commands run in `build`. The publish job checks out the central helper scripts at the called workflow's revision, rechecks the environment, validates the downloaded artifacts, and runs no consumer code. It uses no stored secret. These controls protect this publication path; they do not stop a person or another workflow with write permission from publishing by a different path.
 
@@ -86,7 +86,7 @@ gh attestation verify RELEASE_FILE --repo unset-sh/CONSUMER_REPOSITORY \
 
 The signer path identifies the central release workflow. The source ref restricts the consumer's source to `main`. Add `--signer-digest APPROVED_COMMIT_SHA` when the verification policy must require a particular central workflow commit.
 
-Installing a package with npm does not run this verification. Automatic verification of each consumed `@unset-sh/*` package against its lockfile integrity and attestation is not implemented here.
+Installing a package with Bun or npm does not run this verification. Automatic verification of each consumed `@unset-sh/*` package against its lockfile integrity and attestation is not implemented here.
 
 ## Verify a workflow version
 
@@ -109,6 +109,6 @@ The ability of an assistant's token to approve a waiting deployment remains an o
 
 ## Source and evidence
 
-The contract was checked against [`workflows/shared/releases/package.yml`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/shared/releases/package.yml), [`release-gate.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/release-gate.mjs), [`release-files.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/release-files.mjs), and [`release-package.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/release-package.mjs). The repository pins Node 26.12.0 and npm 11.20.0 for its release helpers; their [checks](https://github.com/unset-sh/tooling/tree/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/checks) include refused environments and hostile package archives. Run `npm run check` from this repository's root to exercise the local checks.
+The contract was checked against [`workflows/shared/releases/package.yml`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/workflows/shared/releases/package.yml), [`release-gate.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/release-gate.mjs), [`release-files.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/release-files.mjs), and [`release-package.mjs`](https://github.com/unset-sh/tooling/blob/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/scripts/release-package.mjs). The repository pins Bun 1.4.4 for its release helpers, packing and publishing; their [checks](https://github.com/unset-sh/tooling/tree/c7a291f820c5fc7b8ceb732954e0141c8c31b2e3/checks) include refused environments and hostile package archives. Run `bun run check` from this repository's root to exercise the local checks.
 
 GitHub's [reusable workflow reference](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations) describes the caller context and permission ceiling. Its [attestation guidance](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating) explains verification with an expected signer workflow.
