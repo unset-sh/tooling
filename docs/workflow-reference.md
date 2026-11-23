@@ -711,6 +711,27 @@ Verify tooling’s implementation and the executable workflows generated from it
 
 Source SHA-256: `f8e1112c8042f774f3810bea1989d396dc676ea08027915eb1671515192f430a`.
 
+### .github/workflows/releases-channel.yml
+
+Publish separate staging prereleases and stable releases from an exact same-repository staging promotion, without changing the legacy owner-approved release path.
+
+**What it does**
+
+1. Validate the public push identity, immutable package and changelog, active branch rules and pre-existing channel environment; stable requires the exact merged staging pull request and both merge parents.
+2. Prepare only supported root manifest and lock versions, then run consumer checks, build and script-free packing with read-only permissions.
+3. Recheck authority and committed source, bind same-run artifacts to repository, commit, channel, version and attempt, and validate plain files and strict package archives before attestation.
+4. Atomically reserve a new tag, publish npm with an explicit registry and staging or latest tag from an isolated environment, create the prerelease or stable release page, and verify the tag again.
+
+**Produces**
+
+- Derived version and channel, with released=true only after successful publication and exact tag verification; source version 0.0.0 skips publication.
+- Immutable version tags, release pages and optional attested assets and GitHub Packages versions; no caller adoption or environment changes.
+- Refusal on unavailable evidence, invalid promotion, incompatible protections, unsupported package/lock data, artifact mismatch or reused version. Hidden ruleset bypasses and human intent require separate settings and process controls.
+
+[Reviewed source at 42f07ecbfbe4](https://github.com/unset-sh/tooling/blob/42f07ecbfbe4e6106e7903fe2a5671db51232f7d/.github/workflows/releases-channel.yml).
+
+Source SHA-256: `8b2b1785233c21dab5cbfcd0288e9a43cb51a75365733b6b3aab9cf143c80611`.
+
 ### .github/workflows/releases-package.yml
 
 Provide a shared release pipeline that builds once and publishes a new main-branch version through the owner’s release approval.

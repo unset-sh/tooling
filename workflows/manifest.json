@@ -34,6 +34,10 @@
       "output": ".github/workflows/releases-package.yml"
     },
     {
+      "source": "workflows/shared/releases/channel.yml",
+      "output": ".github/workflows/releases-channel.yml"
+    },
+    {
       "source": "workflows/shared/docs/export.yml",
       "output": ".github/workflows/automation-docs-export.yml"
     },

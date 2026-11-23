@@ -5,6 +5,12 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Staged release channels:** the separate `releases-channel.yml` entry point derives immutable staging
+  prereleases and publishes stable versions only from an exact merged same-repository staging promotion.
+  It prepares supported root manifests and locks without changing dependency selections, rechecks active
+  rules and pre-existing channel environments, validates artifacts against committed source, and reserves
+  tags without overwriting them. The legacy approved release path remains unchanged. No caller or environment
+  is activated; human promotion and settings audits remain separate responsibilities.
 - Restore the docs site's map refresh timer after moving the default branch to staging. A constrained
   dispatcher requests only the existing main site workflow; it does not promote staging content.
 - Give tooling's documentation validation the distinct `validate-docs / Check` context, preserving

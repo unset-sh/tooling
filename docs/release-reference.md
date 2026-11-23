@@ -10,6 +10,8 @@ params:
 
 This reference describes `.github/workflows/releases-package.yml`, generated from `workflows/shared/releases/package.yml`, at `c7a291f820c5fc7b8ceb732954e0141c8c31b2e3`. The implementation is **unreleased, at version 0.0.0**. The workflow publishes nothing at that version. Its source checks do not establish that a complete GitHub release has run successfully.
 
+This contract retains the owner's environment approval. The separate [staging/main channel workflow](release-channels.md) implements automatic publication after human promotion; adoption requires a coordinated caller and environment change.
+
 ## Trigger and ownership
 
 The workflow is reusable through `workflow_call`. The consuming repository supplies a caller triggered by a push to `main` when `package.json` changes. The release workflow itself refuses any event other than a push to `refs/heads/main`.

@@ -24,6 +24,8 @@ after editing a source or its manifest mapping, then `npm run check`.
 Repository-specific automation belongs under `workflows/<repository>/` when it is maintained here.
 Only `tooling/` has such entries today; other repositories retain their own workflows until a reviewed migration.
 The [workflow catalogue guide](docs/workflow-map.md) explains the automatically refreshed organisation map.
+The [staged release guide](docs/release-channels.md) describes the separate staging/main publication contract
+and its explicit activation prerequisites.
 
 [unset-sh/.github](https://github.com/unset-sh/.github) owns the organisation profile, community defaults,
 repository map, and native workflow-picker templates. [unset-sh/agent-kit](https://github.com/unset-sh/agent-kit)
