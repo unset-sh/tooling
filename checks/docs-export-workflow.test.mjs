@@ -51,8 +51,8 @@ test("tooling's docs caller waits for its own checks before exporting", () => {
   const caller = readText(".github/workflows/automation-docs-self.yml");
   assert.equal(topLevel(caller, "on"), "on:\n  pull_request:\n  push:\n    branches: [main]\n  workflow_dispatch:\n");
   const jobs = jobsOf(caller);
-  assert.deepEqual(Object.keys(jobs), ["check", "export"]);
-  assert.match(jobs.check, /^ {4}uses: \.\/\.github\/workflows\/ci-check\.yml$/m);
-  assert.match(jobs.export, /^ {4}needs: check\n {4}uses: \.\/\.github\/workflows\/automation-docs-export\.yml$/m);
+  assert.deepEqual(Object.keys(jobs), ["validate-docs", "export"]);
+  assert.match(jobs['validate-docs'], /^ {4}uses: \.\/\.github\/workflows\/ci-check\.yml$/m);
+  assert.match(jobs.export, /^ {4}needs: validate-docs\n {4}uses: \.\/\.github\/workflows\/automation-docs-export\.yml$/m);
   for (const job of Object.values(jobs)) assert.match(job, /^ {4}permissions:\n {6}contents: read$/m);
 });

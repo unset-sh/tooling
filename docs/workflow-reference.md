@@ -431,7 +431,43 @@ Provide a shared way to package committed public documentation with verifiable s
 
 Source SHA-256: `2d1461df9ac798d9ff5c37e45339df30c3f80e14ff6da0a7a1a0f27c912e9c8f`.
 
+### .github/workflows/automation-docs-map-schedule.yml
+
+Keep the docs site’s approved main build refreshing every registered map when staging is the default branch.
+
+**What it does**
+
+1. Accept only scheduled or manual calls from unset-sh/docs on staging, and run the central helper at the exact reusable-workflow commit.
+2. Use the docs job token to request only site.yml on main through the fixed GitHub workflow-dispatch endpoint; no consumer code runs and no repository content is written.
+3. Validate the returned run identity and print its URL so collection, build and deployment can be verified separately.
+
+**Produces**
+
+- A requested main site run. A successful dispatch is not proof that the map refresh or site deployment succeeded.
+
+[Reviewed source at b0a4aa66e09d](https://github.com/unset-sh/tooling/blob/b0a4aa66e09dfdb05d4b94d70eec3896f96565f9/.github/workflows/automation-docs-map-schedule.yml).
+
+Source SHA-256: `523025404ca31c72f229fd7f9f70f6bd642204ef73ce31512a95e4e756bcade6`.
+
 ### .github/workflows/automation-docs-self.yml
+
+Check and package tooling’s own maintained documentation using the shared workflows it provides.
+
+**What it does**
+
+1. Run the shared Node checks under the distinct validate-docs / Check context on pull requests, main pushes and manual runs.
+2. After validation succeeds, export the committed tooling docs and licence with source revision and file hashes.
+3. Upload the provenance-bearing section for downstream import; this workflow does not write the docs repository or deploy the site.
+
+**Produces**
+
+- A docs-\<commit\> artifact retained for 14 days; publication is a separate step.
+
+[Reviewed source at b0a4aa66e09d](https://github.com/unset-sh/tooling/blob/b0a4aa66e09dfdb05d4b94d70eec3896f96565f9/.github/workflows/automation-docs-self.yml).
+
+Source SHA-256: `2ae97fb737faad6e46b9b524be7a88dbb82b8455ce7a2e1ab639457c2ce84b29`.
+
+#### Additional reviewed version 1
 
 Check and package tooling’s own maintained documentation using the shared workflows it provides.
 
