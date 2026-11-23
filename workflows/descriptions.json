@@ -309,6 +309,52 @@
     },
     {
       "repository": "tooling",
+      "path": ".github/workflows/ci-branch-policy.yml",
+      "reviewedCommit": "8adf511bed6a0f1627237d4e062056fe0c6e04fd",
+      "reviewedSha256": "da74e0945258546204a5d88e780529643aafc3b55e46e77d0a4d2697ee923e8b",
+      "purpose": "Validate that feature work enters staging and only same-repository staging promotes to main.",
+      "steps": [
+        "Read the original pull-request event as JSON with no checkout, token permissions, repository code or API calls.",
+        "Reject missing or inconsistent metadata, non-PR events and bases other than staging or main.",
+        "Allow feature and fork PRs into staging; require a staging head from the same repository for main.",
+        "Report the branch-policy result without identifying a human, approving a PR or publishing anything."
+      ],
+      "outputs": [
+        "The Validate branch policy job conclusion, for callers to require alongside their product checks."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/ci-branch-policy-self.yml",
+      "reviewedCommit": "8adf511bed6a0f1627237d4e062056fe0c6e04fd",
+      "reviewedSha256": "b5ef9684b9ef797b2a6a91890793a14c0715e58362883cea4212d603a0433fe6",
+      "purpose": "Apply the shared PR branch policy to tooling itself.",
+      "steps": [
+        "Run on all pull requests, including retargeting and ready-for-review events, without path or base filters.",
+        "Call the branch-policy implementation from the same commit with no token permissions."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result; no merges, settings changes or releases."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/ci-self.yml",
+      "reviewedCommit": "8adf511bed6a0f1627237d4e062056fe0c6e04fd",
+      "reviewedSha256": "cc13916e879cda827cbb19dc03ebd0a4af58e8543d5ca6d7a479abb81096dd65",
+      "purpose": "Verify tooling’s implementation and the executable workflows generated from its organised workflow sources.",
+      "steps": [
+        "Run for pull requests and pushes to staging or main.",
+        "Run the local reusable check workflow, which checks generated workflow files and runs tooling’s test suites.",
+        "Download the pinned actionlint release and verify its SHA-256.",
+        "Lint the executable workflow files, suppressing only the two documented job-context fields that the pinned linter does not recognise."
+      ],
+      "outputs": [
+        "Check and workflow-lint results; this workflow does not release or publish tooling."
+      ]
+    },
+    {
+      "repository": "tooling",
       "path": ".github/workflows/automation-docs-export.yml",
       "reviewedCommit": "22b6eb497c2782800523879a89a350c01cf1d2c1",
       "reviewedSha256": "f90f0e968a80c039aaa7791459c4ebeed1ca66f5da0b4a8a92c903e6efda57a6",
