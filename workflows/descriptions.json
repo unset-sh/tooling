@@ -1154,6 +1154,24 @@
       ]
     },
     {
+      "outputs": [
+        "The check result for the calling repository.",
+        "An optional check-output artifact retained for 14 days when a path is configured and files are available."
+      ],
+      "path": ".github/workflows/ci-check.yml",
+      "purpose": "Provide a reusable Bun-based check job that each calling repository configures with its own validation command.",
+      "repository": "tooling",
+      "reviewedCommit": "b0ed87075ba4a0c6502f72e668600eb2a169b979",
+      "reviewedSha256": "f4b7df4d6241b2852ecd32b68b61d83477c7fa1c82d1abf67f0be6b92343aeb0",
+      "steps": [
+        "When the caller sets postgres-image, run that Postgres image as a service on the runner's loopback with trust authentication, refuse the job unless the image is postgres:<tag>@sha256:<64 hex>, and set PGHOST, PGPORT, PGUSER and PGDATABASE for the check; with it empty, start no service.",
+        "Check out the caller, install the exact Bun version its .bun-version names, and refuse any other version.",
+        "Optionally install dependencies from the committed bun.lock with bun install --frozen-lockfile --ignore-scripts, failing when bun.lock is missing; only that step holds the job’s package-read token, as NPM_CONFIG_TOKEN, for @unset-sh packages on GitHub Packages.",
+        "Run the caller’s check command, defaulting to bun run check.",
+        "If the caller specifies an output path, attempt to retain it even when the check fails."
+      ]
+    },
+    {
       "repository": "tooling",
       "path": ".github/workflows/ci-check.yml",
       "reviewedCommit": "21488c94f00f1c68f32fc3b811615b6ea4ab353c",

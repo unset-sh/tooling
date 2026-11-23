@@ -53,6 +53,7 @@ The shared workflow checks out the consuming repository, takes Bun from its `.bu
 | `command` | `bun run check` | Command that must succeed, run from the repository root. |
 | `keep` | Empty | Retain files at this path as the `check-output` artifact for 14 days, including after a check failure. Missing files produce a warning. |
 | `timeout-minutes` | `10` | Maximum duration of the check job. |
+| `postgres-image` | Empty | A Postgres image pinned by digest, `postgres:<tag>@sha256:<64 hex>`, run as a service beside the check. It listens on the runner's loopback with no password (`POSTGRES_HOST_AUTH_METHOD=trust`), and the check sees `PGHOST`, `PGPORT`, `PGUSER` and `PGDATABASE` for it. Any other value fails the job. Empty starts no service. |
 
 ## Verify the result
 

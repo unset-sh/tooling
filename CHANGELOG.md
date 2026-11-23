@@ -5,6 +5,11 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **A Postgres service for the check:** `ci-check.yml` takes an optional `postgres-image`, a Postgres image pinned
+  by digest (`postgres:<tag>@sha256:<64 hex>`). When it is set, the job runs that image as a service on the
+  runner's loopback with no password, refuses any image not in that form, and sets `PGHOST`, `PGPORT`, `PGUSER`
+  and `PGDATABASE` for the check. Empty, the default, starts nothing, so existing callers are unchanged. First
+  caller: `unset-sh/backend`, whose tests need a real database.
 - **Bun replaces Node (Alex, 2026-11-23):** every workflow installs Bun 1.4.4 (1.4.5, released 2026-11-19, is still inside the 7-day wait) with `oven-sh/setup-bun` v2.2.0 at a
   full commit, with no cache and no token, and then refuses any other version. A caller now needs a `.bun-version`
   naming an exact Bun version in place of `.nvmrc`, and a committed `bun.lock` in place of `package-lock.json` when
