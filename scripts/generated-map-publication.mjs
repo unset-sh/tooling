@@ -250,7 +250,7 @@ async function responseJson(response) {
   finally { reader.releaseLock(); }
 }
 
-export async function publishGeneratedMap({ snapshot, githubToken, fetchImpl = fetch }) {
+export async function publishGeneratedMap({ snapshot, githubToken, appSlug, installationId, fetchImpl = fetch }) {
   snapshot = structuredClone(validateSnapshot(snapshot));
   if (typeof githubToken !== "string" || githubToken.length === 0 || /[\r\n]/.test(githubToken)) refuse("A GitHub token is required");
   const api = async (method, path, body, statuses = [200]) => {
@@ -269,6 +269,8 @@ export async function publishGeneratedMap({ snapshot, githubToken, fetchImpl = f
     if (response.status >= 400) { await response.body?.cancel().catch(() => {}); return { status: response.status }; }
     return { status: response.status, data: await responseJson(response) };
   };
+  const { automationApp, assertAutomationAppToken } = await import("./automation-app.mjs");
+  await assertAutomationAppToken({ githubToken, repository: repositoryName, appSlug, installationId, fetchImpl });
   const checkBase = async () => {
     const { data } = await api("GET", `/git/ref/heads/${mapBase}`);
     if (data?.ref !== `refs/heads/${mapBase}` || data.object?.type !== "commit" || data.object.sha !== snapshot.commit) refuse("Source main branch moved; regenerate the map");
@@ -307,10 +309,9 @@ export async function publishGeneratedMap({ snapshot, githubToken, fetchImpl = f
   const { data: newTree } = await api("POST", "/git/trees", { base_tree: base.tree.sha, tree: updated }, [201]);
   if (!isSha(newTree?.sha)) refuse("GitHub returned an invalid generated tree");
   const title = "Refresh generated organisation map";
-  // The workflow uses only github.token. Use its documented bot identity for DCO,
-  // while GitHub retains the authenticated actor as author and committer:
-  // https://github.com/actions/checkout/blob/3d3c42e5aac5ba805825da76410c181273ba90b1/README.md#push-a-commit-using-the-built-in-token
-  const signoff = "Signed-off-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>";
+  // The fixed, verified App owns the PR. GitHub keeps its authenticated actor
+  // as commit author/committer; the DCO identity comes only from reviewed config.
+  const signoff = automationApp.signoff;
   const message = `${title}\n\n${signoff}`;
   // Creating the tree from the immutable base and only these blobs proves all
   // other paths are unchanged. A retry may reuse that exact tree and sole parent.
@@ -329,19 +330,19 @@ export async function publishGeneratedMap({ snapshot, githubToken, fetchImpl = f
   const { data: prs } = await api("GET", `/pulls?state=all&head=unset-sh%3Aautomation%2Fmap-${snapshot.commit}&per_page=100`);
   if (!Array.isArray(prs) || prs.length > 1) refuse("Invalid or ambiguous existing publication pull requests");
   const pr = prs.length === 1 ? prs[0] : (await api("POST", "/pulls", {
-    title, head: branch, base: mapBase, body: `## What changes\n\nRefresh the generated organisation map from validated repos.json. Only MAP.md and the generated profile map block change.\n\n## Readiness\n\n- [x] Independent — can merge after checks and independent review\n- [ ] Dependent — requires prerequisites\n\nPrerequisites and order: None.\nTested combination: Source main revision ${snapshot.commit}; generated PR head ${commit.sha}.\n\n## Validation\n\nThe source map generator and repository checks passed before publication. Separate exact-head dispatch checks must pass before a person merges this PR into main.\n\n## Documentation\n\nMAP.md and the generated profile block are the documentation outputs. Merging into main remains a human action.`,
+    title, head: branch, base: mapBase, body: `## What changes\n\nRefresh the generated organisation map from validated repos.json. Only MAP.md and the generated profile map block change.\n\n## Readiness\n\n- [x] Independent — can merge after checks and independent review\n- [ ] Dependent — requires prerequisites\n\nPrerequisites and order: None.\nTested combination: Source main revision ${snapshot.commit}; generated PR head ${commit.sha}.\n\n## Validation\n\nThe source map generator and repository checks passed before publication. The App-created pull request starts ordinary PR checks. Required checks and independent review must pass before a person merges this PR into main.\n\n## Documentation\n\nMAP.md and the generated profile block are the documentation outputs. Merging into main remains a human action.`,
   }, [201])).data;
   if (!Number.isSafeInteger(pr?.number) || pr.number <= 0 || pr.state !== "open" || pr.head?.sha !== commit.sha ||
       pr.head.ref !== branch || pr.head.repo?.full_name !== repositoryName || pr.base?.ref !== mapBase ||
       pr.base.sha !== snapshot.commit || pr.base.repo?.full_name !== repositoryName) refuse("GitHub returned an unexpected existing or new publication pull request");
   // Retry only this automation's bot-owned PR. Never adopt a manually opened
   // or foreign PR as a generated update, even when it names the same branch.
-  if (pr.user?.login !== "github-actions[bot]" || pr.user.id !== 41898282 || pr.user.type !== "Bot") {
+  if (pr.user?.login !== automationApp.bot.login || pr.user.id !== automationApp.bot.id || pr.user.type !== automationApp.bot.type) {
     refuse("Publication pull request must have the expected bot author");
   }
   const url = `https://github.com/unset-sh/.github/pull/${pr.number}`;
   await checkBase();
-  // The generated PR enters normal review. Dispatch is a separate job;
+  // The App mutation starts ordinary PR checks. The PR enters normal review;
   // publication never merges, promotes production, or updates a protected ref.
   return { status: "pending", number: pr.number, head: commit.sha, base: snapshot.commit, url };
 }
@@ -349,6 +350,8 @@ export async function publishGeneratedMap({ snapshot, githubToken, fetchImpl = f
 async function main() {
   const githubToken = process.env.GH_TOKEN;
   delete process.env.GH_TOKEN;
+  const appSlug = process.env.AUTOMATION_APP_SLUG;
+  const installationId = process.env.AUTOMATION_APP_INSTALLATION_ID;
   const [mode, ...args] = process.argv.slice(2);
   const allowed = mode === "stage" ? ["--root", "--out", "--commit"] : mode === "publish" ? ["--snapshot"] : [];
   const options = {};
@@ -365,7 +368,7 @@ async function main() {
         process.env.GITHUB_REF !== `refs/heads/${mapBase}` || !["push", "schedule", "workflow_dispatch"].includes(process.env.GITHUB_EVENT_NAME)) {
       refuse("Generated map workflow context does not match the snapshot");
     }
-    result = await publishGeneratedMap({ snapshot, githubToken });
+    result = await publishGeneratedMap({ snapshot, githubToken, appSlug, installationId });
   }
   console.log(`${result.status}${result.url ? ` ${result.url}` : ""}`);
   if (mode === "publish" && result.number && process.env.GITHUB_OUTPUT) {
