@@ -2,6 +2,423 @@
   "schemaVersion": 1,
   "workflows": [
     {
+      "repository": ".github",
+      "path": ".github/workflows/map-publish.yml",
+      "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
+      "reviewedSha256": "2ef756167ac23630c44bb07893e539f04409fa8cf61f00c27c9fe27071b9c8a5",
+      "purpose": "Prepare and check generated organisation-map staging pull requests while preserving normal review and human promotion to main.",
+      "steps": [
+        "Run on relevant staging pushes, an hourly schedule or manual staging dispatch, serialising publication runs.",
+        "Call the reviewed tooling publisher with contents, pull-request and Actions write permissions at the caller boundary; the reusable implementation separates read-only generation, output-only publication and exact-head check dispatch."
+      ],
+      "outputs": [
+        "A generated-only staging PR and links to its three requested check runs when rendered views change. The workflow does not merge or promote main."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/org-map.yml",
+      "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
+      "reviewedSha256": "bfbe97ab008b6e02472c44ddf3e5e427b7bf3056907d5b77bbf568e7975a0f41",
+      "purpose": "Validate the curated organisation map and report differences from public GitHub metadata, with a separate verified path for generated-map PR checks.",
+      "steps": [
+        "On ordinary pull requests and pushes, regenerate the map from repos.json and run the repository checks with read-only contents permission.",
+        "For generated manual dispatches, first verify the actual bot-owned staging PR and exact head/base through the central branch-policy workflow; fail the required map check before checkout when proof fails.",
+        "For a verified generated dispatch, require regeneration to leave MAP.md and profile/README.md unchanged, proving the committed outputs are current.",
+        "On the daily schedule or an ordinary manual run, compare public repository metadata and maintain the org-map-drift issue. Generated dispatches cannot enter this writable drift job."
+      ],
+      "outputs": [
+        "The Check the organisation map result and regenerated workspace views; the check itself does not commit those views.",
+        "A drift issue created, updated or closed according to the public metadata comparison."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/docs-export.yml",
+      "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
+      "reviewedSha256": "36f79b9eddc9e2c6e8a78300f6c0c4945396d361c51944e0fee28277b272d651",
+      "purpose": "Check the organisation map and package maintained documentation, including fail-closed checks for generated-map PR dispatches.",
+      "steps": [
+        "Run on pull requests, staging or main pushes, and manual dispatches. Generated dispatch identities or generated branch refs first activate the central real-PR verifier.",
+        "Keep the existing check / Check context: run the shared map-regeneration and repository-check command after valid proof or an ordinary event; select only a fixed failing command with dependency installation disabled when generated proof fails.",
+        "After checks succeed, use the pinned exporter to package the committed docs/site pages and root licence with source revision and hashes."
+      ],
+      "outputs": [
+        "The check / Check result and a provenance-bearing docs-<commit> artifact retained for 14 days. This workflow neither writes the docs repository nor deploys the site."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
+      "reviewedSha256": "335f8cedd87253ca4a74ca9c3ace6555dce68e27c49290ca53e92d0f054c754a",
+      "purpose": "Validate staging and main PR origins, and verify actual generated-map staging PRs requested through manual dispatch.",
+      "steps": [
+        "Run the shared policy on pull-request creation, updates, reopening, retargeting or readiness changes without branch or path filters.",
+        "For manual generated-map checks, require the pull-request number and exact expected head/base and pass them to the reviewed central real-PR verifier.",
+        "Retain the shared ordinary PR rules: feature or fork contributions may target staging, while main promotion must originate from staging in the same repository."
+      ],
+      "outputs": [
+        "The policy / Validate branch policy check. It neither proves human intent nor approves, merges or promotes a pull request."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/docs-import.yml",
+      "reviewedCommit": "9dc1178224bc2f09fc7ac0aabf59a6620d864dbc",
+      "reviewedSha256": "7b8ce28ca3c3a007c97db4f38dd6564f8dcad9824944305ed32e832409aff5e1",
+      "purpose": "Keep the tooling and organisation documentation sections current through reviewed staging pull requests from exact stable source exports.",
+      "steps": [
+        "Run hourly and on demand only on the default staging branch, serialize runs without cancelling active work, and process the fixed tooling and github source keys independently.",
+        "Call the reviewed central documentation receiver at a full commit pin, with separate preparation, content-publication and Actions-dispatch permission scopes.",
+        "Leave the generated section-only pull requests and production promotion to the normal required checks and owner review."
+      ],
+      "outputs": [
+        "The central receiver’s bounded same-run import artifacts, generated staging PRs when content changes, and verified requested run URLs for the existing documentation and branch-policy checks."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "9dc1178224bc2f09fc7ac0aabf59a6620d864dbc",
+      "reviewedSha256": "75a1f53c1e4686c59eaf9df3f225819db23859d8651b4c76abbd57e397521ade",
+      "purpose": "Validate the documentation framework and source pages while preserving the same required check for normal changes and independently verified generated import PRs.",
+      "steps": [
+        "Run for relevant PR updates and pushes to staging or main; accept generated-import dispatches only with the fixed PR, expected head and expected base inputs.",
+        "For every dispatch, load a pinned central verifier and validate the actual bot PR, source provenance, current head/base and complete section-only proof before checking out consumer code.",
+        "Install the locked tooling without lifecycle scripts, run tests and workflow/map guards, check ordinary PR documentation impact, lint workflows, and build both real content and preview fixtures."
+      ],
+      "outputs": [
+        "The required Validate documentation result, including checked ordinary and preview site output; malformed dispatch proof fails the job and prevents consumer execution."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "9dc1178224bc2f09fc7ac0aabf59a6620d864dbc",
+      "reviewedSha256": "7dfa1a629a2ce51acaa8bb62d1c75dd6513df38bf71018d477a5402b87e8055b",
+      "purpose": "Apply the shared development and promotion branch policy to ordinary PRs and exact generated documentation import checks.",
+      "steps": [
+        "Run on PR opening, synchronization, reopening, metadata edits and readiness changes without branch or path filters.",
+        "Forward the three fixed generated-PR identity inputs on workflow dispatch to the pinned central branch-policy workflow.",
+        "Preserve the shared policy job’s existing required context and permission-free validation; generated dispatches must prove the actual bot PR, current head/base and owned changes."
+      ],
+      "outputs": [
+        "The stable policy / Validate branch policy result for ordinary PR metadata or a verified generated import dispatch."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "ff0e35a129a52914cb0e6f0bb15465165032fed5",
+      "reviewedSha256": "b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/docs-export.yml",
+      "reviewedCommit": "ff0e35a129a52914cb0e6f0bb15465165032fed5",
+      "reviewedSha256": "0964f49eff7f993f64684dd8dc5ea8a703ec6a3f41f9872a60e464ed373cf3d6",
+      "purpose": "Prepare the organisation’s maintained documentation for the central docs site after regenerating and checking the organisation map.",
+      "steps": [
+        "On pull requests, pushes to staging or main and manual runs, use shared CI to regenerate MAP.md and the profile map block from repos.json, then run the organisation’s tests and check the generated result.",
+        "After validation succeeds, export the committed docs/site pages and licence into the github section with source revision and file hashes.",
+        "Upload the isolated export for a later publishing step; regenerated map views are not committed or included as documentation sources by this workflow."
+      ],
+      "outputs": [
+        "A docs-<commit> artifact retained for 14 days, containing the github documentation section and provenance; this workflow does not publish to the docs repository."
+      ]
+    },
+    {
+      "repository": ".github",
+      "path": ".github/workflows/org-map.yml",
+      "reviewedCommit": "ff0e35a129a52914cb0e6f0bb15465165032fed5",
+      "reviewedSha256": "08ad77151af55bb31ae002471582d0b37776eb16b13e0928583d3d1b69583af7",
+      "purpose": "Validate the organisation map regenerated from its curated source and report differences between that source and public GitHub repositories.",
+      "steps": [
+        "On pull requests and pushes to staging or main, regenerate the map and profile from repos.json, then run tests and check the generated result without committing it.",
+        "On daily scheduled or manual runs, compare public repository names, descriptions, archive status and licences with the curated map; private entries are skipped.",
+        "Create or update one org-map-drift issue when differences appear, and close it when the comparison matches.",
+        "Leave ownership descriptions and source metadata to a reviewed source change; the drift job does not rewrite repos.json, while the separate publisher updates derived Markdown views."
+      ],
+      "outputs": [
+        "Validation results for the regenerated organisation map.",
+        "An automatically maintained drift issue when public repository metadata differs."
+      ]
+    },
+    {
+      "repository": "agent-kit",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "08c51e50526aed44f84f6284a72dd8a8df173f3d",
+      "reviewedSha256": "56fa8d0acc712a2e16ce28cfc651aafd08dca129c7facd38824099dbd22a1dd0",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": "agent-kit",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "08c51e50526aed44f84f6284a72dd8a8df173f3d",
+      "reviewedSha256": "f1a9eb9d233f406b0eaea388e62d064b7d7f762e41df799db0856903999d278d",
+      "purpose": "Check that the shared agent rules, skills and synchronisation tools can be distributed as a consistent bundle.",
+      "steps": [
+        "Run for pull requests targeting staging or main and for pushes to either branch.",
+        "Run the repository’s checks against the kit and its synchronisation behaviour.",
+        "Collect the shipped rules, skills, agents and sync.mjs into a deterministically ordered bundle.",
+        "Record the source commit, kit version and each shipped file’s SHA-256 in the bundle."
+      ],
+      "outputs": [
+        "A locally built dist/agent-kit.json and its checksum in the job log; CI does not upload or publish the bundle."
+      ]
+    },
+    {
+      "repository": "backend",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "19ea29a840bb38cec37a5aa4626c5b6353eb43a9",
+      "reviewedSha256": "e2c2752b510a0cf77a10670ff3a0efb901c3ea0a824f286a089741cab4445ba9",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": "brand",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "a29c94293613e119faf5cdd0eab0a6e18664b618",
+      "reviewedSha256": "b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": "brand",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "a29c94293613e119faf5cdd0eab0a6e18664b618",
+      "reviewedSha256": "762b08d9112ee7cc295416df67f73718e5de66cfec07bcc1b59cfbcbd45d22e3",
+      "purpose": "Check the brand contract and package, then verify that the brand site builds at both a domain root and a repository subpath.",
+      "steps": [
+        "Run on pull requests, including edits and ready-for-review events, and on pushes to staging or main.",
+        "Install the pinned dependencies and check that generated brand assets and syntax examples are current.",
+        "Run the brand and component-gallery tests.",
+        "Install the verified Hugo binary and build the site once at the root and once under /brand."
+      ],
+      "outputs": [
+        "Validation results for the brand package and two local site builds; this workflow does not publish them."
+      ]
+    },
+    {
+      "repository": "deployment",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "979b2bfb88953f1449fbfdc69ba8b4bb1f81c462",
+      "reviewedSha256": "e2c2752b510a0cf77a10670ff3a0efb901c3ea0a824f286a089741cab4445ba9",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "1231232ba9f2e6717908f706c4887fd7209f22a4",
+      "reviewedSha256": "b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "1231232ba9f2e6717908f706c4887fd7209f22a4",
+      "reviewedSha256": "bb4d65f74b734c3d1c1e966b77c1b478d583f39071aa87aa81c8b1b541a409dd",
+      "purpose": "Check documentation sources, publication safeguards and rendered pages before changes reach the documentation site.",
+      "steps": [
+        "Run on pull requests, including edits and ready-for-review events, and on pushes to staging or main.",
+        "Install the pinned tooling without lifecycle scripts and run the Node and Python checks, workflow guards and organisation-map integrity check.",
+        "For pull requests, check whether the changes have the required documentation impact.",
+        "Lint the workflow files with the pinned actionlint image.",
+        "Build the real documentation and a separate fixture preview, checking generated HTML, assets, links and navigation."
+      ],
+      "outputs": [
+        "Validation results and local builds of the real site and documentation fixtures; CI does not deploy them."
+      ]
+    },
+    {
+      "repository": "lexicons",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "27e6e5b573d49c8bc01171c6cf6d275382a5f07e",
+      "reviewedSha256": "56fa8d0acc712a2e16ce28cfc651aafd08dca129c7facd38824099dbd22a1dd0",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": "lexicons",
+      "path": ".github/workflows/check.yml",
+      "reviewedCommit": "27e6e5b573d49c8bc01171c6cf6d275382a5f07e",
+      "reviewedSha256": "3cafa0c4df5ca6b9db7a871884f7191db63045803fc3f900895bb439f91b3d22",
+      "purpose": "Validate the AT Protocol lexicon schemas, examples and reference documentation together.",
+      "steps": [
+        "Run for pull requests targeting staging or main and for pushes to either branch.",
+        "Typecheck and lint the validation tooling, then run its tests.",
+        "Parse the schemas with the official AT Protocol libraries and build validators to resolve their references.",
+        "Validate authored examples and their coverage, and check generated reference documentation, local links and schema provenance hashes."
+      ],
+      "outputs": [
+        "A check result reporting schema, example, documentation, link or provenance problems; no release or documentation export is published."
+      ]
+    },
+    {
+      "repository": "pds",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "1ff1df8bdd9dfc5bf1260053df0e6f46d97b38cc",
+      "reviewedSha256": "e2c2752b510a0cf77a10670ff3a0efb901c3ea0a824f286a089741cab4445ba9",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": "profile-recipes",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "a6eadbb3e570e59b06cde65b0c9181c300b4cc39",
+      "reviewedSha256": "b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": "profile-recipes",
+      "path": ".github/workflows/dco.yml",
+      "reviewedCommit": "a6eadbb3e570e59b06cde65b0c9181c300b4cc39",
+      "reviewedSha256": "ea93c82d7aa1f38b38f399a7976206b476b7a6d00f31a9dcdcc41e9db7f5e0c1",
+      "purpose": "Check that eligible pull-request commits carry a Developer Certificate of Origin sign-off.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review.",
+        "Read the pull request’s base and head commits from the full checkout history.",
+        "Exempt the owner’s and bot-authored pull requests, and ignore merge commits.",
+        "Report each remaining commit that lacks a correctly formed Signed-off-by line."
+      ],
+      "outputs": [
+        "The DCO check result for the pull request."
+      ]
+    },
+    {
+      "repository": "profile-recipes",
+      "path": ".github/workflows/validate.yml",
+      "reviewedCommit": "a6eadbb3e570e59b06cde65b0c9181c300b4cc39",
+      "reviewedSha256": "9c154b37b606968c1d2254d69be1fe01fd744b5891d7a733974e140350e7f8c1",
+      "purpose": "Check that profile recipes satisfy their schemas and can produce the showcase and documentation export.",
+      "steps": [
+        "Run on pull requests, including edits and ready-for-review events, and on pushes to staging or main.",
+        "Typecheck the tooling, run its tests and validate every recipe against the vendored upstream schemas.",
+        "Render the recipe showcase pages.",
+        "Prepare an isolated documentation export and check its source provenance without publishing it."
+      ],
+      "outputs": [
+        "Recipe-validation results, locally rendered showcase pages and a temporary documentation export."
+      ]
+    },
+    {
+      "repository": "rendering",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "d47afdae9dcd542dc2f343ba8254b85b650ae828",
+      "reviewedSha256": "56fa8d0acc712a2e16ce28cfc651aafd08dca129c7facd38824099dbd22a1dd0",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
+      "repository": "rendering",
+      "path": ".github/workflows/ci.yml",
+      "reviewedCommit": "d47afdae9dcd542dc2f343ba8254b85b650ae828",
+      "reviewedSha256": "2132298e8c7fd2e5a6b3566ca0773f436986f7df3699fad7e3aa777d9afebec1",
+      "purpose": "Check the image-rendering package and keep a visual gallery for reviewing its output.",
+      "steps": [
+        "Run for pull requests targeting staging or main and for pushes to either branch.",
+        "Install dependencies, then typecheck, lint, build the package and run its tests.",
+        "Attempt to draw the gallery even when an earlier check fails.",
+        "Upload any generated gallery output so reviewers can inspect the rendered images."
+      ],
+      "outputs": [
+        "A gallery artifact retained for 14 days when gallery files are available.",
+        "Validation results and a local package build."
+      ]
+    },
+    {
+      "repository": "web",
+      "path": ".github/workflows/branch-policy.yml",
+      "reviewedCommit": "8239c4ac24059c236524aef1433f1582255d2d25",
+      "reviewedSha256": "e2c2752b510a0cf77a10670ff3a0efb901c3ea0a824f286a089741cab4445ba9",
+      "purpose": "Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.",
+      "steps": [
+        "Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.",
+        "Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.",
+        "The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule."
+      ],
+      "outputs": [
+        "The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes."
+      ]
+    },
+    {
       "repository": "tooling",
       "path": ".github/workflows/automation-docs-import.yml",
       "purpose": "Prepare checked staging documentation imports from the two allowlisted stable source repositories without automating production promotion.",
