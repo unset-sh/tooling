@@ -42,7 +42,12 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
   administrator bypass. Preserve the legacy release contract; consumer activation and settings remain explicit.
   The token cannot prove hidden ruleset bypass actors or whether a same-account merger was human; document
   those boundaries and retain the separate settings audit and human-only promotion rule.
-- No stored secrets in shared workflows. Use job-scoped permissions, disable persisted checkout credentials, and
+- No stored secrets in shared workflows except the owner-approved `automation-app-private-key` input in the
+  isolated docs-import and organisation-map publishers. The owner creates and stores that App private key by hand;
+  agents never create, read or place it. Only the pinned token action receives the key, mints for the single fixed
+  target repository with Contents/Pull requests write, and revokes after the job. The built-in job token stays
+  read-only; source preparation and consumer code never receive the App token. Use job-scoped permissions,
+  disable persisted checkout credentials, and
   pass expression values through `env`, never interpolate them into shell scripts. Central helper checkouts must
   fail closed unless their repository and full commit identity match the running workflow.
 - Raising Node also raises npm. Re-read npm's publish/archive handling before changing the pinned version; hostile
