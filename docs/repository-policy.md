@@ -14,7 +14,7 @@ This implementation is unreleased at version `0.0.0`. Tooling includes its own c
 
 ## Before you start
 
-Choose a reviewed full tooling commit and retain your existing application checks. The workflow needs GitHub Actions access to tooling and `contents: read`. It accepts no workflow inputs or stored secrets, installs no consumer dependencies, and executes no consumer scripts. Node comes from the pinned tooling checkout, independently of the consumer's runtime.
+Choose a reviewed full tooling commit and retain your existing application checks. The workflow needs GitHub Actions access to tooling and `contents: read`. It accepts no workflow inputs or stored secrets, installs no consumer dependencies, and executes no consumer scripts. Bun comes from the pinned tooling checkout, independently of the consumer's runtime.
 
 Review all workflow and policy configuration changes. A pull request can change its own caller, exceptions, or inspected manifests; this check is not a tamper-proof server-side rule. Branch rules and independent review remain necessary.
 

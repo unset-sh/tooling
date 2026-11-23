@@ -8,7 +8,7 @@ automatic update propagation is not implemented.
 
 | Path | Maintained here |
 | --- | --- |
-| `workflows/shared/ci/` | Reusable Node checks |
+| `workflows/shared/ci/` | Reusable checks |
 | `workflows/shared/releases/` | Reusable protected package and release-asset publication |
 | `workflows/shared/docs/` | Reusable documentation exports |
 | `workflows/tooling/` | This repository's CI, documentation and release callers |
@@ -18,8 +18,8 @@ automatic update propagation is not implemented.
 | `docs/` | Human documentation exported to the `tooling/` section in `unset-sh/docs` |
 
 Start with the [documentation overview](docs/_index.md), [caller guide](docs/use-workflows.md),
-or [workflow layout](docs/workflow-layout.md). With the Node version in `.nvmrc`, run `npm run workflows`
-after editing a source or its manifest mapping, then `npm run check`.
+or [workflow layout](docs/workflow-layout.md). With the Bun version in `.bun-version`, run `bun run workflows`
+after editing a source or its manifest mapping, then `bun run check`.
 
 Repository-specific automation belongs under `workflows/<repository>/` when it is maintained here.
 Only `tooling/` has such entries today; other repositories retain their own workflows until a reviewed migration.

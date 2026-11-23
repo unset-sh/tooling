@@ -36,15 +36,21 @@ jobs:
           ref: ${{ job.workflow_sha }}
           path: tooling
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version-file: tooling/.nvmrc
-          package-manager-cache: false
+          bun-version-file: tooling/.bun-version
+          no-cache: true # never restore a runner from a cache another run wrote
+          token: "" # an exact version needs no API call, so the action gets no token
+      - name: Bun is the exact version tooling/.bun-version names
+        env:
+          BUN_VERSION_FILE: tooling/.bun-version
+        # setup-bun falls back to the latest release when the file is missing or unreadable; this refuses that.
+        run: test "$(bun --version)" = "$(cat "$BUN_VERSION_FILE")"
       - name: Export committed public documentation
         env:
           SOURCE_REPOSITORY: ${{ github.repository }}
           SOURCE_REVISION: ${{ github.sha }}
-        run: node tooling/scripts/export-docs.mjs --root "$GITHUB_WORKSPACE/source" --repository "$SOURCE_REPOSITORY" --revision "$SOURCE_REVISION" --out "$RUNNER_TEMP/docs-export"
+        run: bun tooling/scripts/export-docs.mjs --root "$GITHUB_WORKSPACE/source" --repository "$SOURCE_REPOSITORY" --revision "$SOURCE_REVISION" --out "$RUNNER_TEMP/docs-export"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: docs-${{ github.sha }}

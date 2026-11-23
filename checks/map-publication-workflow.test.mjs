@@ -37,7 +37,7 @@ test("all three jobs refuse other repositories, refs and events before checking 
 test("only successful checked output reaches the same-run artifact and publisher", () => {
   const jobs = jobsOf(workflow());
   const generate = jobs.generate;
-  const steps = ["npm run map", "npm run check", "generated-map-publication.mjs stage", "actions/upload-artifact@"];
+  const steps = ["bun run map", "bun run check", "generated-map-publication.mjs stage", "actions/upload-artifact@"];
   const positions = steps.map(step => generate.indexOf(step));
   assert.ok(positions.every(position => position >= 0));
   assert.deepEqual(positions, [...positions].sort((a, b) => a - b));

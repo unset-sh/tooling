@@ -13,5 +13,5 @@ test('the docs schedule dispatcher cannot execute consumer code or publish site 
   assert.match(workflow, /ref: \$\{\{ job\.workflow_sha \}\}/);
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /schedule\|workflow_dispatch/);
-  assert.match(workflow, /node tooling\/scripts\/docs-map-schedule\.mjs/);
+  assert.match(workflow, /bun tooling\/scripts\/docs-map-schedule\.mjs/);
 });

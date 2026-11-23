@@ -18,6 +18,7 @@ jobs:
     uses: ./.github/workflows/ci-check.yml
     permissions:
       contents: read
+      packages: read # ci-check's job asks for it; this repository installs nothing
 
   actionlint:
     runs-on: ubuntu-24.04

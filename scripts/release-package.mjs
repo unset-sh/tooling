@@ -1,35 +1,34 @@
-// Reads the package.json inside a packed npm package, and says what stops it from being published.
+// Reads the package.json inside a packed package, and says what stops it from being published.
 //
-//   node scripts/release-package.mjs <package.tgz> <name> <version>
+//   bun scripts/release-package.mjs <package.tgz> <name> <version>
 //
 // The packed file is made by the job that runs the calling repository's code, so the job that publishes it
-// trusts nothing about it. npm reads the "publishConfig" of the package it publishes as settings ("for
-// historical reasons, publishConfig in package.json can contain ANY config keys that npm supports in .npmrc
-// files and elsewhere", npm 11.20.0 lib/commands/publish.js), also for a packed file, so a package could tell
-// npm to send the token that can write through a proxy of its own. The checks made on main's package.json
-// never saw this file.
+// trusts nothing about it. The checks made on main's package.json never saw this file.
 //
-// Two tar readers can read two different package.json files out of one archive: npm drops the first folder of
-// every entry, so `other/package.json` after `package/package.json` is the one it publishes, and it skips a
-// header it finds invalid where another reader stops or goes on. So this reader does not interpret an archive
-// the way npm would. It accepts only the one plain form `npm pack` writes, in which there is nothing to
-// interpret, and refuses everything else:
+// Two tar readers can read two different package.json files out of one archive. `bun publish` takes the
+// name, version and manifest it sends from the first `package/package.json` it meets, while `bun install`
+// (like npm) drops the first folder of every entry and keeps the last file written, so `other/package.json`
+// after `package/package.json` is what a consumer unpacks (both seen with Bun 1.4.4 and checked in
+// checks/release-package.test.mjs). npm, which people outside the organisation may still install with, also
+// reads "publishConfig" as settings, strips a Windows drive letter as a root on every system, and follows
+// `.git/HEAD` to any file on the machine when it publishes. So this reader does not interpret an archive the
+// way any one tool would. It accepts only the one plain form `bun pm pack` writes, in which there is nothing
+// to interpret, and refuses everything else:
 //   - gzip with no byte after it, unpacking to tar blocks to the end;
-//   - every header laid out byte for byte as node-tar 7.5.22 writes it for a regular file (npm 11.20.0,
-//     node_modules/tar/dist/commonjs/header.js): no extended header, no link, no folder entry;
+//   - every header laid out byte for byte as `bun pm pack` writes it for a regular file (Bun 1.4.4): no
+//     extended header, no link, no folder entry;
 //   - every entry under `package/`, by a plain path, no path twice, exactly one `package/package.json`;
-//   - no colon, backslash or other character node-tar rewrites for Windows. node-tar reads the root of a
-//     path by the Windows rules on every system and drops it (strip-absolute-path.js, called from
-//     unpack.js), so `package/c:package.json` is written over package.json;
-//   - no `.git` anywhere. npm does more with a packed file than read its package.json: before it publishes
-//     it unpacks the file and fills in fields from what lies beside the manifest, and for "gitHead" it reads
-//     `.git/HEAD` and then whatever file that names, anywhere on the machine (@npmcli/package-json 7.0.5
-//     lib/normalize.js), and sends the content to the registry. Its own environment holds the token.
-// The second review of pull request 1 read the rest of that path (README and AUTHORS are copied from inside
-// the package; bin, man and main are only listed or tested for existence) and found nothing else that
-// leaves the package. Raising `.nvmrc` raises npm: read that path again then (CLAUDE.md).
-// checks/release-package.test.mjs packs a real package with the npm that runs the checks, and compares this
-// reader with npm's own on honest and on hostile archives.
+//   - no colon, backslash or other character node-tar rewrites for Windows. node-tar, which npm uses, reads
+//     the root of a path by the Windows rules on every system and drops it (tar 7.5.22
+//     strip-absolute-path.js, called from unpack.js), so `package/c:package.json` is written over
+//     package.json by npm. `bun install` keeps such a name as it is;
+//   - no `.git` anywhere. npm fills in "gitHead" from `.git/HEAD` and whatever file that names, anywhere on
+//     the machine (@npmcli/package-json 7.0.5 lib/normalize.js), and sends it to the registry. `bun publish`
+//     sends no gitHead, but a package that would leak through npm is refused all the same.
+// Raising `.bun-version` raises the packer and the publisher: run checks/release-package.test.mjs on the new
+// version and read what it changes before taking it (CLAUDE.md). That file packs real packages with the Bun
+// that runs the checks, publishes them to a local registry, installs them, and compares this reader with
+// what Bun does on honest and on hostile archives.
 
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
@@ -42,18 +41,19 @@ const MAX_UNPACKED = 512 * 1024 * 1024;
 const MANIFEST = "package/package.json";
 
 const empty = (length) => new RegExp(`^\\0{${length}}$`);
-const octal = (length) => new RegExp(`^[0-7]{${length - 2}} \\0$`);
 const octalOrEmpty = (length) => new RegExp(`^(?:[0-7]{${length - 2}} \\0|\\0{${length}})$`);
 
-// Every byte of a header, as `npm pack` writes it. Anything else is refused, not skipped.
+// Every byte of a header, as `bun pm pack` writes it. Anything else is refused, not skipped. Bun ends the
+// size and time with a space and the checksum with a NUL and then a space, where node-tar ends all three
+// with a space and a NUL; only Bun's form is accepted, since only Bun packs.
 const HEADER = [
   ["name", 0, 100, /^[\x20-\x7e]+\0*$/],
   ["mode", 100, 8, octalOrEmpty(8)],
   ["owner", 108, 8, octalOrEmpty(8)],
   ["group", 116, 8, octalOrEmpty(8)],
-  ["size", 124, 12, octal(12)],
-  ["time", 136, 12, octalOrEmpty(12)],
-  ["checksum", 148, 8, octal(8)],
+  ["size", 124, 12, /^[0-7]{11} $/],
+  ["time", 136, 12, /^[0-7]{11} $/],
+  ["checksum", 148, 8, /^[0-7]{6}\0 $/],
   ["link name", 157, 100, empty(100)],
   ["format", 257, 8, /^ustar\x0000$/],
   ["owner and group names", 265, 64, empty(64)],
@@ -83,13 +83,13 @@ function untilNul(text) {
 function entryOf(header) {
   const type = header.latin1Slice(156, 157);
   if (EXTENDED.has(type)) {
-    throw new Error("it holds an extended header, which npm writes for a file name that is not plain ASCII or is too long; rename that file");
+    throw new Error("it holds an extended header, which bun pm pack writes for a file name that is not plain ASCII or is too long; rename that file");
   }
   if (type !== "0") throw new Error(`it holds an entry that is not a regular file (tar type ${JSON.stringify(type)})`);
   const fields = {};
   for (const [name, start, length, form] of HEADER) {
     fields[name] = header.latin1Slice(start, start + length);
-    if (!form.test(fields[name])) throw new Error(`a header's ${name} field is not in the form npm pack writes`);
+    if (!form.test(fields[name])) throw new Error(`a header's ${name} field is not in the form bun pm pack writes`);
   }
   let sum = 8 * 0x20;
   for (let index = 0; index < BLOCK; index += 1) {
@@ -118,7 +118,7 @@ function checkPath(path, files, folders) {
   files.add(folded);
 }
 
-/** The package.json inside a packed package, parsed. Throws on anything but the plain form `npm pack` writes. */
+/** The package.json inside a packed package, parsed. Throws on anything but the plain form `bun pm pack` writes. */
 export function packedManifest(tarball, { checkEntry } = {}) {
   let archive;
   let used;
@@ -126,7 +126,8 @@ export function packedManifest(tarball, { checkEntry } = {}) {
     // gunzipSync stops at a zero byte after the stream and ignores the rest, which would then be attested
     // and published unread. With `info` it also returns the engine, whose bytesWritten is how much of the
     // file it took up. Node's documentation (v26.12.0 doc/api/zlib.md) only calls that "the number of bytes
-    // written to the engine", so a check holds it to this meaning on the Node that runs.
+    // written to the engine", and Bun implements node:zlib on its own, so a check holds it to this meaning on
+    // the Bun that runs.
     const unpacked = gunzipSync(tarball, { maxOutputLength: MAX_UNPACKED, info: true });
     archive = unpacked.buffer;
     used = unpacked.engine.bytesWritten;
@@ -164,7 +165,7 @@ export function packedManifest(tarball, { checkEntry } = {}) {
   }
 }
 
-/** The file name `npm pack` gives a package (npm 11.20.0 lib/utils/tar.js). */
+/** The file name `bun pm pack` gives a package, the same as npm's (seen with Bun 1.4.4; npm 11.20.0 lib/utils/tar.js). */
 export function packedName(name, version) {
   return `${name.replace("@", "").replace("/", "-")}-${version}.tgz`;
 }

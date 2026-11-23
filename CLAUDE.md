@@ -11,16 +11,17 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
 
 ## Rules
 
-- Use Node 26 (`.nvmrc`), no dependencies, and `node:test`. Actions are pinned by full commit SHA.
+- Use Bun (`.bun-version`, Alex 2026-11-23: "Bun is actually going to be replacing Node"), no dependencies, and
+  `bun test`. Actions are pinned by full commit SHA; workflows install Bun only through `pinnedBun` in `checks/repo.mjs`.
 - Reusable implementations live in `workflows/shared/<purpose>/`; repository-specific automation lives in
   `workflows/<repository>/<purpose>/`. Add a folder with its first implementation, not as a placeholder.
-  Register every source and its stable executable path in `workflows/manifest.json`, then run `npm run workflows`.
+  Register every source and its stable executable path in `workflows/manifest.json`, then run `bun run workflows`.
   Commit generated `.github/workflows/` files, never edit them. A source move must preserve consumer entry points.
   There are no starter templates here. The generator retains optional template support for its isolated fixtures.
-- `npm run check` checks generation freshness, the release scripts, docs exporter and workflow security invariants.
+- `bun run check` checks generation freshness, the release scripts, docs exporter and workflow security invariants.
   Preserve every release refusal when moving code. Inputs, outputs, check names and signer paths are external contracts.
 - Maintain workflow purposes, responsibilities and results in `workflows/descriptions.json`, reviewed against exact
-  committed executable bytes. Keep older descriptions needed by pinned callers. Run `npm run workflows:describe`
+  committed executable bytes. Keep older descriptions needed by pinned callers. Run `bun run workflows:describe`
   to regenerate `docs/workflow-reference.md`; do not edit that generated reference directly. Review descriptions
   when supporting implementations change too, because the map's automatic freshness signal compares YAML bytes.
   Live collection reads reviewed metadata from tooling's resolved default-branch commit independently of its
@@ -45,8 +46,8 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
 - No stored secrets in shared workflows. Use job-scoped permissions, disable persisted checkout credentials, and
   pass expression values through `env`, never interpolate them into shell scripts. Central helper checkouts must
   fail closed unless their repository and full commit identity match the running workflow.
-- Raising Node also raises npm. Re-read npm's publish/archive handling before changing the pinned version; hostile
-  archive comparisons in `checks/release-package.test.mjs` must pass against its bundled npm.
+- Raising `.bun-version` raises the packer, publisher and installer. Re-read Bun's pack, publish and install handling
+  before changing it; hostile archive comparisons in `checks/release-package.test.mjs` must pass against that Bun.
 - Record caller-visible changes in `CHANGELOG.md`. Keep version `0.0.0` until the first approved release. Consumer
   calls use full reviewed commit pins. Automatic adoption and automatic merging need their own implementation.
 - The organisation-map publisher may update only `unset-sh/.github:MAP.md` and the marked profile block, through a
