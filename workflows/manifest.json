@@ -2,6 +2,10 @@
   "schemaVersion": 1,
   "workflows": [
     {
+      "source": "workflows/github/docs/map.yml",
+      "output": ".github/workflows/automation-org-map.yml"
+    },
+    {
       "source": "workflows/shared/ci/check.yml",
       "output": ".github/workflows/ci-check.yml"
     },

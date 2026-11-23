@@ -12,6 +12,7 @@ test("the generated workflows include the shared workflows and their callers", (
     ".github/workflows/automation-docs-export.yml",
     ".github/workflows/automation-docs-self.yml",
     ".github/workflows/automation-maps-refresh.yml",
+    ".github/workflows/automation-org-map.yml",
     ".github/workflows/ci-check.yml",
     ".github/workflows/ci-self.yml",
     ".github/workflows/releases-package.yml",

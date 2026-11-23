@@ -35,6 +35,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 - [Release workflow reference](release-reference.md): inspect inputs, approval requirements, publication boundaries, and verification.
 - [Export the public documentation](export-docs.md): package an exact source revision for a reviewed import.
 - [Refresh every published map](map-refresh.md): register map generators and connect their complete snapshot to the build.
+- [Publish the organisation's Markdown views](organisation-map-publication.md): keep the GitHub map and profile current after source changes.
 - [Manage a documentation publishing key](manage-docs-publishing-key.md): operate the separate credential used by an existing source publisher.
 - [Organisation workflow map](https://docs.unset.sh/workflows/): find declared triggers, jobs, and exact reusable-workflow connections across public repositories.
 - [Workflow reference](workflow-reference.md): read each reviewed workflow's purpose, responsibilities, and results.
