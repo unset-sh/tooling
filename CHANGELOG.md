@@ -5,6 +5,11 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- Restore the docs site's map refresh timer after moving the default branch to staging. A constrained
+  dispatcher requests only the existing main site workflow; it does not promote staging content.
+- Give tooling's documentation validation the distinct `validate-docs / Check` context, preserving
+  `check / Check` for required CI and keeping export dependent on successful validation.
+
 - Add an opt-in read-only PR metadata check for purpose labels, readiness, validation and documentation declarations.
 
 - **PR branch policy:** `ci-branch-policy.yml` validates PR event metadata without a checkout or token.

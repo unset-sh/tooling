@@ -1,0 +1,44 @@
+name: docs-map-schedule
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  dispatch:
+    name: Request the main site refresh
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Verify the timer and central helper identities
+        env:
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_REF: ${{ github.ref }}
+          EVENT: ${{ github.event_name }}
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+        run: |
+          if [ "$SOURCE_REPOSITORY" != unset-sh/docs ] || [ "$SOURCE_REF" != refs/heads/staging ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::Expected the docs staging timer and pinned tooling.'
+            exit 1
+          fi
+          case "$EVENT" in schedule|workflow_dispatch) ;; *) exit 1 ;; esac
+      - name: Check out only the reviewed central helper
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: tooling/.nvmrc
+          package-manager-cache: false
+      - name: Request the existing main workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tooling/scripts/docs-map-schedule.mjs
