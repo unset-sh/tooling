@@ -1,0 +1,114 @@
+name: branch-policy
+
+on:
+  workflow_call:
+    inputs:
+      pull-request:
+        type: string
+        default: ""
+      expected-head:
+        type: string
+        default: ""
+      expected-base:
+        type: string
+        default: ""
+      flow:
+        # staged: work targets staging and only same-repository staging promotes to main.
+        # main: the repository has no staging branch, and every pull request targets main.
+        type: string
+        default: staged
+
+permissions: {}
+
+jobs:
+  policy:
+    name: Validate branch policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26.12.0
+          package-manager-cache: false
+      - name: Validate the pull request event
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          FLOW: ${{ inputs.flow }}
+        # Read GitHub's event as data. No checkout, repository code, token or API call is needed.
+        # This checks branch origin, not whether a human is using the GitHub account.
+        shell: node {0}
+        run: |
+          const { readFileSync } = require('node:fs');
+          try {
+            if (process.env.GITHUB_EVENT_NAME !== 'pull_request') {
+              throw new Error('Branch policy requires a pull_request event.');
+            }
+            let event;
+            try { event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')); }
+            catch { throw new Error('Cannot read valid pull request event JSON.'); }
+            const repository = process.env.GITHUB_REPOSITORY;
+            const pr = event?.pull_request;
+            const text = value => typeof value === 'string' && value.length > 0;
+            if (!text(repository) || event?.repository?.full_name !== repository ||
+                !text(pr?.base?.ref) || !text(pr?.head?.ref) ||
+                pr?.base?.repo?.full_name !== repository || !text(pr?.head?.repo?.full_name)) {
+              throw new Error('Missing or inconsistent pull request metadata.');
+            }
+            const flow = process.env.FLOW;
+            if (flow === 'main') {
+              if (pr.base.ref !== 'main') throw new Error('Pull requests must target main.');
+            } else if (flow === 'staged') {
+              if (pr.base.ref !== 'staging' && pr.base.ref !== 'main') {
+                throw new Error('Pull requests must target staging or main.');
+              }
+              if (pr.base.ref === 'main' &&
+                  (pr.head.ref !== 'staging' || pr.head.repo.full_name !== repository)) {
+                throw new Error('Only same-repository staging may promote to main.');
+              }
+            } else {
+              throw new Error('Unknown branch flow.');
+            }
+            console.log('Branch policy passed.');
+          } catch (error) {
+            console.error(`::error::${error.message}`);
+            process.exitCode = 1;
+          }
+      - name: Load the pinned validator for an owned generated dispatch
+        if: github.event_name == 'workflow_dispatch'
+        id: helper
+        env:
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          PULL_REQUEST: ${{ inputs.pull-request }}
+          EXPECTED_HEAD: ${{ inputs.expected-head }}
+          EXPECTED_BASE: ${{ inputs.expected-base }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$PULL_REQUEST" =~ ^[1-9][0-9]*$ ]] || ! [[ "$EXPECTED_HEAD" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$EXPECTED_BASE" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_SHA" != "$EXPECTED_HEAD" ]; then
+            echo "::error::Invalid generated dispatch or helper identity."
+            exit 1
+          fi
+          if ! { [ "$GITHUB_REPOSITORY" = unset-sh/docs ] && [[ "$GITHUB_REF" =~ ^refs/heads/automation/docs-(tooling|github)$ ]]; } && ! { [ "$GITHUB_REPOSITORY" = unset-sh/.github ] && [ "$GITHUB_REF" = "refs/heads/automation/map-$EXPECTED_BASE" ]; }; then
+            echo "::error::Unsupported generated dispatch repository or branch."
+            exit 1
+          fi
+          policy_directory="$(mktemp -d "$RUNNER_TEMP/branch-policy.XXXXXX")"
+          clean_git() {
+            env -i PATH="$PATH" LANG=C GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c core.hooksPath=/dev/null -c http.followRedirects=false "$@"
+          }
+          clean_git init -q "$policy_directory"
+          clean_git -C "$policy_directory" fetch --quiet --depth=1 https://github.com/unset-sh/tooling.git "$WORKFLOW_SHA"
+          clean_git -C "$policy_directory" checkout --quiet --detach "$WORKFLOW_SHA"
+          actual_revision="$(clean_git -C "$policy_directory" rev-parse HEAD)"
+          if [ "$actual_revision" != "$WORKFLOW_SHA" ]; then exit 1; fi
+          echo "path=$policy_directory" >> "$GITHUB_OUTPUT"
+      - name: Verify the actual generated pull request before satisfying branch policy
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          HELPER: ${{ steps.helper.outputs.path }}
+          PULL_REQUEST: ${{ inputs.pull-request }}
+          EXPECTED_HEAD: ${{ inputs.expected-head }}
+          EXPECTED_BASE: ${{ inputs.expected-base }}
+        run: node "$HELPER/scripts/automation-dispatch.mjs" --pull-request "$PULL_REQUEST" --expected-head "$EXPECTED_HEAD" --expected-base "$EXPECTED_BASE"

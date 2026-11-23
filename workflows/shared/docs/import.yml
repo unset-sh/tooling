@@ -1,0 +1,155 @@
+name: docs-import
+
+on:
+  workflow_call:
+    inputs:
+      source:
+        type: string
+        required: true
+
+permissions: {}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Validate the receiver and central helper identity
+        env:
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          IMPORT_SOURCE: ${{ inputs.source }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
+            echo "::error::Invalid documentation receiver, source or helper identity."
+            exit 1
+          fi
+      - name: Check out this workflow's own scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: tooling/.nvmrc
+          package-manager-cache: false
+      - name: Resolve the reviewed source export
+        id: source
+        env:
+          IMPORT_SOURCE: ${{ inputs.source }}
+          DOCS_GITHUB_TOKEN: ${{ github.token }}
+        run: node tooling/scripts/docs-import.mjs resolve --source "$IMPORT_SOURCE"
+      - name: Read the immutable documentation source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ steps.source.outputs.repository }}
+          ref: ${{ steps.source.outputs.revision }}
+          path: source
+          persist-credentials: false
+      - name: Re-export and validate committed documentation as data
+        env:
+          IMPORT_SOURCE: ${{ inputs.source }}
+          SOURCE_REVISION: ${{ steps.source.outputs.revision }}
+          EXPORT_RUN: ${{ steps.source.outputs.run-id }}
+          DOCS_GITHUB_TOKEN: ${{ github.token }}
+        run: node tooling/scripts/docs-import.mjs stage --source "$IMPORT_SOURCE" --revision "$SOURCE_REVISION" --run-id "$EXPORT_RUN" --root "$GITHUB_WORKSPACE/source" --out "$RUNNER_TEMP/docs-import.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: docs-import-${{ inputs.source }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/docs-import.json
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      changed: ${{ steps.publish.outputs.changed }}
+      pull-request: ${{ steps.publish.outputs.pull-request }}
+      expected-head: ${{ steps.publish.outputs.expected-head }}
+      expected-base: ${{ steps.publish.outputs.expected-base }}
+      branch: ${{ steps.publish.outputs.branch }}
+    steps:
+      - name: Validate the receiver and central helper identity
+        env:
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          IMPORT_SOURCE: ${{ inputs.source }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
+            echo "::error::Invalid documentation receiver, source or helper identity."
+            exit 1
+          fi
+      - name: Check out this workflow's own scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: tooling/.nvmrc
+          package-manager-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: docs-import-${{ inputs.source }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/docs-import
+      - name: Validate the snapshot and prepare its main pull request
+        id: publish
+        env:
+          IMPORT_SOURCE: ${{ inputs.source }}
+          DOCS_GITHUB_TOKEN: ${{ github.token }}
+        run: node tooling/scripts/docs-import.mjs publish --source "$IMPORT_SOURCE" --snapshot "$RUNNER_TEMP/docs-import/docs-import.json"
+  dispatch:
+    needs: publish
+    if: needs.publish.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+    steps:
+      - name: Validate the receiver and central helper identity
+        env:
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          IMPORT_SOURCE: ${{ inputs.source }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
+            echo "::error::Invalid documentation receiver, source or helper identity."
+            exit 1
+          fi
+      - name: Check out this workflow's own scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: tooling/.nvmrc
+          package-manager-cache: false
+      - name: Dispatch the real required checks for the verified import head
+        env:
+          DOCS_GITHUB_TOKEN: ${{ github.token }}
+          PULL_REQUEST: ${{ needs.publish.outputs.pull-request }}
+          EXPECTED_HEAD: ${{ needs.publish.outputs.expected-head }}
+          EXPECTED_BASE: ${{ needs.publish.outputs.expected-base }}
+          IMPORT_BRANCH: ${{ needs.publish.outputs.branch }}
+        run: node tooling/scripts/docs-import.mjs dispatch --pull-request "$PULL_REQUEST" --expected-head "$EXPECTED_HEAD" --expected-base "$EXPECTED_BASE" --branch "$IMPORT_BRANCH"

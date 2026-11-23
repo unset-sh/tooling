@@ -5,12 +5,12 @@ weight: 20
 type: docs
 params:
   doc_kind: explanation
-  checked_source_revision: "4274bca9d17d5eda5d1be6eca3bd796863bd859e"
+  checked_source_revision: "50b5ae0db21922603e3dc74530589db49bed2700"
 ---
 
 The repository separates shared implementations, repository-specific automation, and maintained human documentation. A manifest maps each authored workflow to its executable file in the flat `.github/workflows/` directory required by GitHub.
 
-This page describes the **unreleased implementation at `4274bca9d17d5eda5d1be6eca3bd796863bd859e`**. It explains the source and execution boundaries; it does not imply that every organisation repository already calls these workflows.
+This page describes the **unreleased implementation at `50b5ae0db21922603e3dc74530589db49bed2700`**. It explains the source and execution boundaries; it does not imply that every organisation repository already calls these workflows.
 
 ## Authored sources and executable entry points
 
@@ -25,31 +25,51 @@ tooling/
 │   ├── manifest.json             Explicit source-to-entry-point mappings
 │   ├── descriptions.json         Reviewed purposes, responsibilities, and results
 │   ├── shared/
-│   │   ├── ci/check.yml
+│   │   ├── ci/
+│   │   │   ├── check.yml
+│   │   │   ├── branch-policy.yml
+│   │   │   ├── pr-policy.yml
+│   │   │   └── repository-policy.yml
 │   │   ├── docs/
 │   │   │   ├── export.yml
 │   │   │   └── maps.yml
-│   │   └── releases/package.yml
+│   │   └── releases/
+│   │       ├── package.yml
+│   │       └── channel.yml
+│   ├── github/docs/map.yml
 │   └── tooling/
-│       ├── ci/self.yml
+│       ├── ci/
+│       │   ├── self.yml
+│       │   ├── branch-policy.yml
+│       │   ├── pr-policy.yml
+│       │   └── repository-policy.yml
 │       ├── docs/self.yml
 │       └── release/self.yml
 └── .github/workflows/            Generated executable files
 ```
 
-`workflows/shared/docs/` contains documentation automation reusable by any adopting repository. A future `workflows/docs/` directory would contain automation specifically maintained here for the `unset-sh/docs` repository. Only `workflows/tooling/` has repository-specific entries today. Other repositories retain their own workflows until a reviewed migration; empty placeholder folders would imply adoption that has not happened.
+`workflows/shared/docs/` contains documentation automation reusable by any adopting repository. `workflows/docs/` contains automation specifically maintained here for the `unset-sh/docs` repository, including its timer for approved main site builds. `workflows/tooling/` contains tooling's callers; `workflows/github/` contains the organisation-map publisher maintained for `unset-sh/.github`. Other repositories retain their own workflows until a reviewed migration; empty placeholder folders would imply adoption that has not happened.
 
-The [manifest](https://github.com/unset-sh/tooling/blob/4274bca9d17d5eda5d1be6eca3bd796863bd859e/workflows/manifest.json) records these exact mappings:
+The [manifest](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/workflows/manifest.json) records these exact mappings:
 
 | Authored source | Generated entry point | Responsibility |
 | --- | --- | --- |
+| `workflows/docs/pages/schedule.yml` | `.github/workflows/automation-docs-map-schedule.yml` | Request the approved main site refresh from the docs main timer |
 | `workflows/shared/ci/check.yml` | `.github/workflows/ci-check.yml` | Shared Node check |
 | `workflows/tooling/ci/self.yml` | `.github/workflows/ci-self.yml` | This repository's check caller |
+| `workflows/shared/ci/branch-policy.yml` | `.github/workflows/ci-branch-policy.yml` | Validate PR origins for staged or main-only repositories |
+| `workflows/tooling/ci/branch-policy.yml` | `.github/workflows/ci-branch-policy-self.yml` | This repository's branch-policy caller |
+| `workflows/shared/ci/pr-policy.yml` | `.github/workflows/ci-pr-policy.yml` | Validate current PR purpose labels and readiness, validation and documentation declarations |
+| `workflows/tooling/ci/pr-policy.yml` | `.github/workflows/ci-pr-policy-self.yml` | This repository's PR-metadata caller |
+| `workflows/shared/ci/repository-policy.yml` | `.github/workflows/ci-repository-policy.yml` | Read-only dependency/action pins, kit integrity and working-artifact path checks |
+| `workflows/tooling/ci/repository-policy.yml` | `.github/workflows/ci-repository-policy-self.yml` | This repository's repository-policy caller |
+| `workflows/shared/releases/channel.yml` | `.github/workflows/releases-channel.yml` | Separate immutable staging prereleases and stable publication from exact human promotions |
 | `workflows/shared/releases/package.yml` | `.github/workflows/releases-package.yml` | Protected package and release-asset publication |
 | `workflows/tooling/release/self.yml` | `.github/workflows/releases-self.yml` | This repository's release caller |
 | `workflows/shared/docs/export.yml` | `.github/workflows/automation-docs-export.yml` | Reusable export of a consumer's committed public documentation |
 | `workflows/shared/docs/maps.yml` | `.github/workflows/automation-maps-refresh.yml` | Refresh every registered map and upload one complete validated JSON snapshot |
 | `workflows/tooling/docs/self.yml` | `.github/workflows/automation-docs-self.yml` | This repository's check and documentation-export caller |
+| `workflows/github/docs/map.yml` | `.github/workflows/automation-org-map.yml` | Publish validated generated organisation-map views through a bounded pull request |
 
 The executable names remain stable for existing callers, including the `automation-docs-` filenames. New responsibilities, such as a shared deployment, need a concrete implementation, contract, and manifest entry before they appear here. Native picker templates are maintained directly in [`unset-sh/.github/workflow-templates/`](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates); they are not generated by tooling.
 
@@ -91,14 +111,14 @@ If someone edits the generated file directly, the freshness check reports the mi
 
 ## Keep dependency pins current
 
-The [Renovate configuration](https://github.com/unset-sh/tooling/blob/4274bca9d17d5eda5d1be6eca3bd796863bd859e/.github/renovate.json) includes authored category YAML in `github-actions.managerFilePatterns` alongside the manager's default generated-workflow matching. This lets update proposals reach the source pins as well as their executable copies. Before accepting an update, regenerate from the category sources and run `npm run check`; a bot edit does not replace the generation-freshness gate.
+The [Renovate configuration](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/.github/renovate.json) includes authored category YAML in `github-actions.managerFilePatterns` alongside the manager's default generated-workflow matching. This lets update proposals reach the source pins as well as their executable copies. Before accepting an update, regenerate from the category sources and run `npm run check`; a bot edit does not replace the generation-freshness gate.
 
 ## Why keep generated copies
 
-The shared and repository namespaces make ownership visible as the catalogue grows. GitHub requires executable YAML in a flat directory, so this choice also creates committed copies. The [generator tests](https://github.com/unset-sh/tooling/blob/4274bca9d17d5eda5d1be6eca3bd796863bd859e/scripts/workflows.test.mjs) and `npm run check` catch missing, stale, and orphaned generated output. Review still needs to assess each workflow's behaviour and permissions.
+The shared and repository namespaces make ownership visible as the catalogue grows. GitHub requires executable YAML in a flat directory, so this choice also creates committed copies. The [generator tests](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/scripts/workflows.test.mjs) and `npm run check` catch missing, stale, and orphaned generated output. Review still needs to assess each workflow's behaviour and permissions.
 
 ## Source and related guidance
 
-The implementation is [`scripts/workflows.mjs`](https://github.com/unset-sh/tooling/blob/4274bca9d17d5eda5d1be6eca3bd796863bd859e/scripts/workflows.mjs), with commands in [`package.json`](https://github.com/unset-sh/tooling/blob/4274bca9d17d5eda5d1be6eca3bd796863bd859e/package.json). The relevant GitHub rules cover [reusable workflow locations](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) and [organisation starter templates](https://docs.github.com/en/actions/how-tos/reuse-automations/create-workflow-templates).
+The implementation is [`scripts/workflows.mjs`](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/scripts/workflows.mjs), with commands in [`package.json`](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/package.json). The relevant GitHub rules cover [reusable workflow locations](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) and [organisation starter templates](https://docs.github.com/en/actions/how-tos/reuse-automations/create-workflow-templates).
 
 To use these entry points, follow [Prepare a repository to use shared workflows](use-workflows.md). The [documentation export guide](export-docs.md) follows `workflows/shared/docs/export.yml` from a checked commit to an artifact. For the package and release-asset publication boundary, read the [release reference](release-reference.md). Moving implementation here does not activate an organisation-wide run or update a consumer pin; [automatic adoption remains planned](use-workflows.md#planned-automatic-adoption).

@@ -69,6 +69,50 @@ An upgrade is a reviewed change to the pinned commit. Reverting that caller chan
 
 Prepare the owner-managed environment and repository settings in the [release reference](release-reference.md#prerequisites), then adapt the [release caller template](https://github.com/unset-sh/.github/blob/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates/release.yml). A successful check migration alone does not establish that publication or attestation verification works.
 
+## Validate staging and main pull requests
+
+The reusable `ci-branch-policy.yml` needs no token permissions. It reads the original `pull_request` event
+without checking out or executing consumer code. Its `flow` input names the repository's branch model:
+
+| `flow` | For | Accepted pull requests |
+| --- | --- | --- |
+| `staged` (default) | Repositories with `staging` and stable `main` | Feature branches or forks into `staging`; only `staging` from the same repository into `main` |
+| `main` | Repositories that work directly on `main` (org-0010: tooling, agent-kit, .github, docs) | Any branch or fork into `main`; every other base fails |
+
+Missing event metadata, another base branch, a non-PR event or an unknown `flow` value fails the check. The
+generated-dispatch path for documentation imports and the organisation map does not read `flow`.
+
+Install a small caller with a reviewed full tooling commit:
+
+```yaml
+name: branch-policy
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+permissions: {}
+jobs:
+  policy:
+    uses: unset-sh/tooling/.github/workflows/ci-branch-policy.yml@APPROVED_COMMIT_SHA
+    permissions: {}
+    # with:
+    #   flow: main  # only in a repository with no staging branch
+```
+
+Switch a repository to `flow: main` only after its default branch is `main` and its staging branch rules are
+gone; until then the staged rules keep refusing feature PRs into `main`. `flow` lives in the caller, and a
+`pull_request` run uses the caller from the PR's own merge ref, so a PR in a staged repository that adds
+`flow: main` passes its own check. Review any change to that line as a branch-policy change.
+
+Do not add path or base-branch filters: all PRs need the check, including retargeted PRs. The reusable job
+name is `Validate branch policy`; with caller job `policy`, expect `policy / Validate branch policy` and
+confirm the actual run before requiring that status. Keep application checks required alongside it.
+
+This check does not identify a human, approve or merge a PR, change branch settings, or publish anything.
+The rule that only a human merges into main still applies, including when agents share that account.
+Repository rules must separately prevent direct updates and require this check. A `pull_request` workflow
+can itself be modified by a PR; review workflow and caller changes as policy changes rather than treating
+this status as a tamper-proof server-side rule. The staging release and deployment transition remains separate.
+
 ## Planned automatic adoption
 
 Automatic propagation of tooling updates is **not implemented**. The intended sequence is an owner-approved tooling release, a consumer pull request updating the full commit pin, required consumer checks, eligible automatic merging, and the consumer's delivery workflow. Release publication retains its owner approval.

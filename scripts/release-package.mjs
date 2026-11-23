@@ -119,7 +119,7 @@ function checkPath(path, files, folders) {
 }
 
 /** The package.json inside a packed package, parsed. Throws on anything but the plain form `npm pack` writes. */
-export function packedManifest(tarball) {
+export function packedManifest(tarball, { checkEntry } = {}) {
   let archive;
   let used;
   try {
@@ -149,6 +149,8 @@ export function packedManifest(tarball) {
     const next = start + Math.ceil(size / BLOCK) * BLOCK;
     if (next > archive.length) throw new Error(`${JSON.stringify(path)} is cut short`);
     if (!isZero(archive.subarray(start + size, next))) throw new Error(`the padding after ${JSON.stringify(path)} is not empty`);
+    // An opt-in channel policy may reject extra entries; legacy callers retain identical behavior.
+    checkEntry?.(path);
     if (path === MANIFEST) manifest = archive.subarray(start, start + size);
     position = next;
   }

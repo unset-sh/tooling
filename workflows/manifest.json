@@ -2,6 +2,26 @@
   "schemaVersion": 1,
   "workflows": [
     {
+      "source": "workflows/docs/pages/schedule.yml",
+      "output": ".github/workflows/automation-docs-map-schedule.yml"
+    },
+    {
+      "source": "workflows/shared/ci/repository-policy.yml",
+      "output": ".github/workflows/ci-repository-policy.yml"
+    },
+    {
+      "source": "workflows/tooling/ci/repository-policy.yml",
+      "output": ".github/workflows/ci-repository-policy-self.yml"
+    },
+    {
+      "source": "workflows/shared/ci/branch-policy.yml",
+      "output": ".github/workflows/ci-branch-policy.yml"
+    },
+    {
+      "source": "workflows/tooling/ci/branch-policy.yml",
+      "output": ".github/workflows/ci-branch-policy-self.yml"
+    },
+    {
       "source": "workflows/github/docs/map.yml",
       "output": ".github/workflows/automation-org-map.yml"
     },
@@ -12,6 +32,10 @@
     {
       "source": "workflows/shared/releases/package.yml",
       "output": ".github/workflows/releases-package.yml"
+    },
+    {
+      "source": "workflows/shared/releases/channel.yml",
+      "output": ".github/workflows/releases-channel.yml"
     },
     {
       "source": "workflows/shared/docs/export.yml",
@@ -32,6 +56,18 @@
     {
       "source": "workflows/tooling/release/self.yml",
       "output": ".github/workflows/releases-self.yml"
+    },
+    {
+      "source": "workflows/shared/ci/pr-policy.yml",
+      "output": ".github/workflows/ci-pr-policy.yml"
+    },
+    {
+      "source": "workflows/tooling/ci/pr-policy.yml",
+      "output": ".github/workflows/ci-pr-policy-self.yml"
+    },
+    {
+      "source": "workflows/shared/docs/import.yml",
+      "output": ".github/workflows/automation-docs-import.yml"
     }
   ]
 }

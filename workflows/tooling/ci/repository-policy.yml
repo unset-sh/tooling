@@ -1,0 +1,14 @@
+name: repository-policy
+
+on:
+  pull_request:
+  push:
+    branches: [staging, main]
+
+permissions: {}
+
+jobs:
+  policy:
+    uses: ./.github/workflows/ci-repository-policy.yml
+    permissions:
+      contents: read
