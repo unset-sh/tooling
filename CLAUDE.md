@@ -36,6 +36,12 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
   2026-11-22; that authorizes the repository/signer path migration, not weakening an approval or verification gate.
 - The release `publish` job runs no consuming-repository code and treats all build output as untrusted. Only that
   job writes and uses the protected `release` environment. Check and documentation-export jobs are read-only.
+- The separate staged-channel release follows Alex's approved staging/main delivery decision: humans merge
+  the exact staging promotion, then checks/build and publication run without another manual approval. Its
+  pre-existing `release-staging`/`release-stable` environments must restrict the matching branch and forbid
+  administrator bypass. Preserve the legacy release contract; consumer activation and settings remain explicit.
+  The token cannot prove hidden ruleset bypass actors or whether a same-account merger was human; document
+  those boundaries and retain the separate settings audit and human-only promotion rule.
 - No stored secrets in shared workflows. Use job-scoped permissions, disable persisted checkout credentials, and
   pass expression values through `env`, never interpolate them into shell scripts. Central helper checkouts must
   fail closed unless their repository and full commit identity match the running workflow.
@@ -46,6 +52,10 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
 - The organisation-map publisher may update only `unset-sh/.github:MAP.md` and the marked profile block, through
   a validated generated-only PR. Keep consumer generation read-only, isolate the write token, preserve authored
   text, bind artifacts and merges to exact source/head revisions, and respect every GitHub merge refusal.
+- The repository-policy job reads committed policy inputs without executing consumer helpers. Keep action-pin
+  scanning parser-backed, offline and bounded, verify the fixed scanner archive before extraction, and fail on parser
+  errors. Exceptions match exact paths/references with reasons; never add broad bypasses or print raw scanner output.
+  Installed kit checks compare lock hashes without running sync.mjs. Path checks do not identify every AI artifact.
 - Never commit on `main`, a shared branch or a detached HEAD. Use your own `claude/<task>` or `cursor/<task>` branch.
   Land through a PR; do not merge your own implementation PR. Release setup and approval remain the owner's action;
   document what has not run rather than treating local tests as proof of live release behaviour.

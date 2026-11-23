@@ -431,7 +431,43 @@ Provide a shared way to package committed public documentation with verifiable s
 
 Source SHA-256: `2d1461df9ac798d9ff5c37e45339df30c3f80e14ff6da0a7a1a0f27c912e9c8f`.
 
+### .github/workflows/automation-docs-map-schedule.yml
+
+Keep the docs site’s approved main build refreshing every registered map when staging is the default branch.
+
+**What it does**
+
+1. Accept only scheduled or manual calls from unset-sh/docs on staging, and run the central helper at the exact reusable-workflow commit.
+2. Use the docs job token to request only site.yml on main through the fixed GitHub workflow-dispatch endpoint; no consumer code runs and no repository content is written.
+3. Validate the returned run identity and print its URL so collection, build and deployment can be verified separately.
+
+**Produces**
+
+- A requested main site run. A successful dispatch is not proof that the map refresh or site deployment succeeded.
+
+[Reviewed source at b0a4aa66e09d](https://github.com/unset-sh/tooling/blob/b0a4aa66e09dfdb05d4b94d70eec3896f96565f9/.github/workflows/automation-docs-map-schedule.yml).
+
+Source SHA-256: `523025404ca31c72f229fd7f9f70f6bd642204ef73ce31512a95e4e756bcade6`.
+
 ### .github/workflows/automation-docs-self.yml
+
+Check and package tooling’s own maintained documentation using the shared workflows it provides.
+
+**What it does**
+
+1. Run the shared Node checks under the distinct validate-docs / Check context on pull requests, main pushes and manual runs.
+2. After validation succeeds, export the committed tooling docs and licence with source revision and file hashes.
+3. Upload the provenance-bearing section for downstream import; this workflow does not write the docs repository or deploy the site.
+
+**Produces**
+
+- A docs-\<commit\> artifact retained for 14 days; publication is a separate step.
+
+[Reviewed source at b0a4aa66e09d](https://github.com/unset-sh/tooling/blob/b0a4aa66e09dfdb05d4b94d70eec3896f96565f9/.github/workflows/automation-docs-self.yml).
+
+Source SHA-256: `2ae97fb737faad6e46b9b524be7a88dbb82b8455ce7a2e1ab639457c2ce84b29`.
+
+#### Additional reviewed version 1
 
 Check and package tooling’s own maintained documentation using the shared workflows it provides.
 
@@ -567,6 +603,77 @@ Provide a reusable Node-based check job that each calling repository configures 
 
 Source SHA-256: `b2fb5be2127833a3317b7a4102db2e1aa5be4ad829e731b980ee386ce29f90a9`.
 
+### .github/workflows/ci-pr-policy-self.yml
+
+Apply the shared pull-request metadata check to tooling changes when their code, description or labels change.
+
+**What it does**
+
+1. Run on opened, synchronized, reopened, edited, labeled, unlabeled and ready-for-review pull requests, without path filters.
+2. Call tooling’s local reusable PR policy workflow with read-only contents and pull-request permissions, cancelling superseded runs for the same PR.
+3. Use the repository’s purpose labels and PR template to make missing declarations actionable.
+
+**Produces**
+
+- The policy / PR policy check on tooling pull requests. Ruleset enforcement and adoption in other repositories are separate rollout steps.
+
+[Reviewed source at c65eee545658](https://github.com/unset-sh/tooling/blob/c65eee545658a893d7f82b041757ccf2f58d4935/.github/workflows/ci-pr-policy-self.yml).
+
+Source SHA-256: `8216cc1b806ec417eb5346f8814734d7e2ee22c767d136a3dc647ca873cf76ab`.
+
+### .github/workflows/ci-pr-policy.yml
+
+Validate current pull-request labels and readiness, validation and documentation declarations without executing pull-request code.
+
+**What it does**
+
+1. Require a real pull-request event, bind its repository, number and head to current metadata fetched from the fixed GitHub API endpoint, and refuse changed or unavailable identities.
+2. Require exactly one supported purpose label, one readiness choice, prerequisite and tested-combination fields, and authored validation and documentation sections.
+3. Ignore comments and code examples, reject duplicate sections and placeholders, and run only the central helper at the exact reusable-workflow commit with read-only permissions.
+
+**Produces**
+
+- A PR policy check result. This validates declarations, not their truth or sufficiency; it does not merge, release or grant a policy exception.
+
+[Reviewed source at c65eee545658](https://github.com/unset-sh/tooling/blob/c65eee545658a893d7f82b041757ccf2f58d4935/.github/workflows/ci-pr-policy.yml).
+
+Source SHA-256: `045e38c5b7cc3f215daed8fa3c01ff11d01f56fad745a14b21daeeb1188acca6`.
+
+### .github/workflows/ci-repository-policy-self.yml
+
+Apply the shared repository policy checks to tooling pull requests and staging or main pushes.
+
+**What it does**
+
+1. Run on every pull request and pushes to staging or main without path filters.
+2. Call the local reusable repository-policy workflow with read-only contents permission and tooling’s committed scope configuration.
+
+**Produces**
+
+- The policy / Repository policy check for tooling. Ruleset enforcement remains a separate setting.
+
+[Reviewed source at cac06e938139](https://github.com/unset-sh/tooling/blob/cac06e938139f53192e9e2fa85805b62ebfe2856/.github/workflows/ci-repository-policy-self.yml).
+
+Source SHA-256: `fe759f6e8612346fea735a0398fabb0cbb8fdb0190b82c560b8fee4da0f76529`.
+
+### .github/workflows/ci-repository-policy.yml
+
+Check declared dependency and action pins, installed agent-kit integrity and forbidden working-artifact paths without executing consumer code.
+
+**What it does**
+
+1. Verify the central workflow identity and check out the consumer and tooling helpers at their exact event and workflow commits.
+2. Install checksum-verified zizmor 1.32.0, parse committed workflow and configured action definitions offline, and fail on parser or scanner errors.
+3. Read the committed policy configuration and npm manifests, compare installed-kit bytes with their lock, inspect forbidden path prefixes, and apply only reasoned exact exceptions.
+
+**Produces**
+
+- A Repository policy check result with bounded diagnostics. This does not establish semantic policy compliance, release authenticity, dependency age or licence correctness; other repositories must adopt it explicitly.
+
+[Reviewed source at cac06e938139](https://github.com/unset-sh/tooling/blob/cac06e938139f53192e9e2fa85805b62ebfe2856/.github/workflows/ci-repository-policy.yml).
+
+Source SHA-256: `d791880f4d5be1a69e54ef17cef9500adca5e2010fdc2439f029d87da4210948`.
+
 ### .github/workflows/ci-self.yml
 
 Verify tooling’s implementation and the executable workflows generated from its organised workflow sources.
@@ -603,6 +710,27 @@ Verify tooling’s implementation and the executable workflows generated from it
 [Reviewed source at 22b6eb497c27](https://github.com/unset-sh/tooling/blob/22b6eb497c2782800523879a89a350c01cf1d2c1/.github/workflows/ci-self.yml).
 
 Source SHA-256: `f8e1112c8042f774f3810bea1989d396dc676ea08027915eb1671515192f430a`.
+
+### .github/workflows/releases-channel.yml
+
+Publish separate staging prereleases and stable releases from an exact same-repository staging promotion, without changing the legacy owner-approved release path.
+
+**What it does**
+
+1. Validate the public push identity, immutable package and changelog, active branch rules and pre-existing channel environment; stable requires the exact merged staging pull request and both merge parents.
+2. Prepare only supported root manifest and lock versions, then run consumer checks, build and script-free packing with read-only permissions.
+3. Recheck authority and committed source, bind same-run artifacts to repository, commit, channel, version and attempt, and validate plain files and strict package archives before attestation.
+4. Atomically reserve a new tag, publish npm with an explicit registry and staging or latest tag from an isolated environment, create the prerelease or stable release page, and verify the tag again.
+
+**Produces**
+
+- Derived version and channel, with released=true only after successful publication and exact tag verification; source version 0.0.0 skips publication.
+- Immutable version tags, release pages and optional attested assets and GitHub Packages versions; no caller adoption or environment changes.
+- Refusal on unavailable evidence, invalid promotion, incompatible protections, unsupported package/lock data, artifact mismatch or reused version. Hidden ruleset bypasses and human intent require separate settings and process controls.
+
+[Reviewed source at 42f07ecbfbe4](https://github.com/unset-sh/tooling/blob/42f07ecbfbe4e6106e7903fe2a5671db51232f7d/.github/workflows/releases-channel.yml).
+
+Source SHA-256: `8b2b1785233c21dab5cbfcd0288e9a43cb51a75365733b6b3aab9cf143c80611`.
 
 ### .github/workflows/releases-package.yml
 

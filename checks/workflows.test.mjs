@@ -3,20 +3,26 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { inputsOf, jobsOf, readText, runBlocks, topLevel, workflowFiles } from "./repo.mjs";
 
-const REUSABLE = [".github/workflows/ci-check.yml", ".github/workflows/releases-package.yml"];
+const REUSABLE = [".github/workflows/ci-check.yml", ".github/workflows/releases-package.yml", ".github/workflows/releases-channel.yml"];
 const release = readText(".github/workflows/releases-package.yml");
 const releaseJobs = jobsOf(release);
 
 test("the generated workflows include the shared workflows and their callers", () => {
   assert.deepEqual(workflowFiles(), [
     ".github/workflows/automation-docs-export.yml",
+    ".github/workflows/automation-docs-map-schedule.yml",
     ".github/workflows/automation-docs-self.yml",
     ".github/workflows/automation-maps-refresh.yml",
     ".github/workflows/automation-org-map.yml",
     ".github/workflows/ci-branch-policy-self.yml",
     ".github/workflows/ci-branch-policy.yml",
     ".github/workflows/ci-check.yml",
+    ".github/workflows/ci-pr-policy-self.yml",
+    ".github/workflows/ci-pr-policy.yml",
+    ".github/workflows/ci-repository-policy-self.yml",
+    ".github/workflows/ci-repository-policy.yml",
     ".github/workflows/ci-self.yml",
+    ".github/workflows/releases-channel.yml",
     ".github/workflows/releases-package.yml",
     ".github/workflows/releases-self.yml",
   ]);
@@ -78,7 +84,7 @@ test("no value reaches a shell script except through the environment", () => {
 });
 
 test("the shipped workflows can only be called, never started on their own", () => {
-  for (const path of [...REUSABLE, ".github/workflows/ci-branch-policy.yml", ".github/workflows/automation-docs-export.yml", ".github/workflows/automation-maps-refresh.yml"]) {
+  for (const path of [...REUSABLE, ".github/workflows/ci-branch-policy.yml", ".github/workflows/ci-repository-policy.yml", ".github/workflows/automation-docs-export.yml", ".github/workflows/automation-maps-refresh.yml"]) {
     const on = topLevel(readText(path), "on");
     assert.match(on, /^on:\n {2}workflow_call:\n/, `${path} is not a called workflow`);
     const triggers = on.split("\n").filter((line) => /^ {2}\S/.test(line));

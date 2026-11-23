@@ -13,12 +13,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
+  validate-docs:
     uses: ./.github/workflows/ci-check.yml
     permissions:
       contents: read
   export:
-    needs: check
+    needs: validate-docs
     uses: ./.github/workflows/automation-docs-export.yml
     permissions:
       contents: read

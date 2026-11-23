@@ -5,6 +5,23 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Staged release channels:** the separate `releases-channel.yml` entry point derives immutable staging
+  prereleases and publishes stable versions only from an exact merged same-repository staging promotion.
+  It prepares supported root manifests and locks without changing dependency selections, rechecks active
+  rules and pre-existing channel environments, validates artifacts against committed source, and reserves
+  tags without overwriting them. The legacy approved release path remains unchanged. No caller or environment
+  is activated; human promotion and settings audits remain separate responsibilities.
+- Restore the docs site's map refresh timer after moving the default branch to staging. A constrained
+  dispatcher requests only the existing main site workflow; it does not promote staging content.
+- Give tooling's documentation validation the distinct `validate-docs / Check` context, preserving
+  `check / Check` for required CI and keeping export dependent on successful validation.
+
+- **Repository policy:** `ci-repository-policy.yml` adds an opt-in `Repository policy` check for declared npm
+  dependency pins, parsed workflow/action references, installed agent-kit lock integrity, and forbidden working-artifact
+  paths. It reads an exact committed tree without running consumer code. Configuration and reasoned exact exceptions
+  live in `.github/repository-policy.json`; stale exceptions and incomplete scans fail. Other consumers need adoption.
+- Add an opt-in read-only PR metadata check for purpose labels, readiness, validation and documentation declarations.
+
 - **PR branch policy:** `ci-branch-policy.yml` validates PR event metadata without a checkout or token.
   Feature and fork PRs may target `staging`; only same-repository `staging` may target stable `main`.
   Its job is named `Validate branch policy`. Tooling calls it on every PR and checks pushes to both branches.
