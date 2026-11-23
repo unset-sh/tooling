@@ -5,7 +5,7 @@ weight: 20
 type: docs
 params:
   doc_kind: explanation
-  checked_source_revision: "50b5ae0db21922603e3dc74530589db49bed2700"
+  checked_source_revision: "f79febcdb09e51a5e7b2ca29bca430726799418a"
 ---
 
 The repository separates shared implementations, repository-specific automation, and maintained human documentation. A manifest maps each authored workflow to its executable file in the flat `.github/workflows/` directory required by GitHub.
@@ -50,7 +50,7 @@ tooling/
 
 `workflows/shared/docs/` contains documentation automation reusable by any adopting repository. `workflows/docs/` contains automation specifically maintained here for the `unset-sh/docs` repository, including its timer for approved main site builds. `workflows/tooling/` contains tooling's callers; `workflows/github/` contains the organisation-map publisher maintained for `unset-sh/.github`. Other repositories retain their own workflows until a reviewed migration; empty placeholder folders would imply adoption that has not happened.
 
-The [manifest](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/workflows/manifest.json) records these exact mappings:
+The [manifest](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/workflows/manifest.json) records these exact mappings:
 
 | Authored source | Generated entry point | Responsibility |
 | --- | --- | --- |
@@ -111,14 +111,14 @@ If someone edits the generated file directly, the freshness check reports the mi
 
 ## Keep dependency pins current
 
-The [Renovate configuration](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/.github/renovate.json) includes authored category YAML in `github-actions.managerFilePatterns` alongside the manager's default generated-workflow matching. This lets update proposals reach the source pins as well as their executable copies. Before accepting an update, regenerate from the category sources and run `npm run check`; a bot edit does not replace the generation-freshness gate.
+The [Renovate configuration](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/.github/renovate.json) includes authored category YAML in `github-actions.managerFilePatterns` alongside the manager's default generated-workflow matching. This lets update proposals reach the source pins as well as their executable copies. Before accepting an update, regenerate from the category sources and run `npm run check`; a bot edit does not replace the generation-freshness gate.
 
 ## Why keep generated copies
 
-The shared and repository namespaces make ownership visible as the catalogue grows. GitHub requires executable YAML in a flat directory, so this choice also creates committed copies. The [generator tests](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/scripts/workflows.test.mjs) and `npm run check` catch missing, stale, and orphaned generated output. Review still needs to assess each workflow's behaviour and permissions.
+The shared and repository namespaces make ownership visible as the catalogue grows. GitHub requires executable YAML in a flat directory, so this choice also creates committed copies. The [generator tests](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/scripts/workflows.test.mjs) and `npm run check` catch missing, stale, and orphaned generated output. Review still needs to assess each workflow's behaviour and permissions.
 
 ## Source and related guidance
 
-The implementation is [`scripts/workflows.mjs`](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/scripts/workflows.mjs), with commands in [`package.json`](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/package.json). The relevant GitHub rules cover [reusable workflow locations](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) and [organisation starter templates](https://docs.github.com/en/actions/how-tos/reuse-automations/create-workflow-templates).
+The implementation is [`scripts/workflows.mjs`](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/scripts/workflows.mjs), with commands in [`package.json`](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/package.json). The relevant GitHub rules cover [reusable workflow locations](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) and [organisation starter templates](https://docs.github.com/en/actions/how-tos/reuse-automations/create-workflow-templates).
 
 To use these entry points, follow [Prepare a repository to use shared workflows](use-workflows.md). The [documentation export guide](export-docs.md) follows `workflows/shared/docs/export.yml` from a checked commit to an artifact. For the package and release-asset publication boundary, read the [release reference](release-reference.md). Moving implementation here does not activate an organisation-wide run or update a consumer pin; [automatic adoption remains planned](use-workflows.md#planned-automatic-adoption).

@@ -5,7 +5,7 @@ weight: 16
 type: docs
 params:
   doc_kind: guide
-  checked_source_revision: "082e488ec41047ae79e5da2ba4327538d0e758c6"
+  checked_source_revision: "f79febcdb09e51a5e7b2ca29bca430726799418a"
 ---
 
 The shared documentation receiver prepares a pull request in `unset-sh/docs` when an allowlisted source's stable documentation changes. Source pages remain maintained in their owning repository. An isolated publisher uses the organisation's scoped GitHub App to open or update the PR, which starts ordinary pull-request checks. The receiver never merges.
@@ -72,6 +72,6 @@ If docs later adopts PR-metadata policy, its purpose labels and eligible-event c
 
 ## Source and verification
 
-The [shared workflow](https://github.com/unset-sh/tooling/blob/082e488ec41047ae79e5da2ba4327538d0e758c6/workflows/shared/docs/import.yml), [receiver CLI](https://github.com/unset-sh/tooling/blob/082e488ec41047ae79e5da2ba4327538d0e758c6/scripts/docs-import.mjs), and [publication helper](https://github.com/unset-sh/tooling/blob/082e488ec41047ae79e5da2ba4327538d0e758c6/scripts/docs-import-publication.mjs) define the import contract. `npm run check` exercises source substitution, path/hash refusal, App identity and repository scope, token destinations, real CLI credential removal, API failures, ref races, provenance and bounded reads. A real Git fixture proves that advancing main and updating the import preserves its section-only three-dot diff and reconciliation parents.
+The [shared workflow](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/workflows/shared/docs/import.yml), [receiver CLI](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/scripts/docs-import.mjs), and [publication helper](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/scripts/docs-import-publication.mjs) define the import contract. `npm run check` exercises source substitution, path/hash refusal, App identity and repository scope, token destinations, real CLI credential removal, API failures, ref races, provenance and bounded reads. A real Git fixture proves that advancing main and updating the import preserves its section-only three-dot diff and reconciliation parents.
 
 The App action is pinned to [v3.3.0](https://github.com/actions/create-github-app-token/tree/64ab729a6294000f5aa4a4bc0b73d1f32bc45510), including its token revocation behavior. Installation scope follows GitHub's [repository listing contract](https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation). Local verification covers implementation behavior; live eligible-check verification remains an adoption prerequisite.

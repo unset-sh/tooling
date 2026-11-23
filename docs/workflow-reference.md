@@ -956,6 +956,26 @@ Source SHA-256: `2d1461df9ac798d9ff5c37e45339df30c3f80e14ff6da0a7a1a0f27c912e9c8
 
 ### .github/workflows/automation-docs-import.yml
 
+Prepare App-owned documentation import PRs into docs main from reviewed stable source exports, leaving eligible ordinary PR checks and merge review visible to the owner.
+
+**What it does**
+
+1. Run only in unset-sh/docs on main; resolve one of the two allowlisted stable source revisions with its exact successful push export, re-export committed files as data, and upload the bounded same-run snapshot with read-only permissions.
+2. In an isolated central-code publisher, mint a one-repository App token using only the explicitly mapped key. Verify fixed public App identity and exact docs repository scope; the built-in token remains contents-read only.
+3. Validate source Git objects, complete provenance, section ownership and current source/base refs; publish only that section through automation/docs-app-tooling or automation/docs-app-github with non-forced updates and App-owned PR metadata.
+4. Let App-created PRs or real head updates start ordinary pull\_request workflows. Do not dispatch checks automatically, approve withheld runs, adopt old job-token PRs or merge.
+
+**Produces**
+
+- A seven-day docs-import-\<source\>-\<run-id\>-\<run-attempt\> artifact and an App-owned main PR when content changes; valid unchanged content creates no PR.
+- An opened, updated or pending PR result. Activation requires reviewed real App installation identity, owner-placed key, main-only cutover, consumer pins and live PR-visible required-check verification.
+
+[Reviewed source at f79febcdb09e](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/.github/workflows/automation-docs-import.yml).
+
+Source SHA-256: `6c5852ae287558a008fce351b7b4e4ca322f109d5b78ac86ea517efe4916d0d6`.
+
+#### Additional reviewed version 1
+
 Prepare checked documentation imports into docs main from the two allowlisted stable source repositories, leaving the merge to a person.
 
 **What it does**
@@ -967,13 +987,13 @@ Prepare checked documentation imports into docs main from the two allowlisted st
 **Produces**
 
 - A seven-day docs-import-\<source\>-\<run-id\>-\<run-attempt\> artifact and an opened, updated or pending section-only PR into main when content changes; valid unchanged content creates no PR.
-- Verified requested run URLs for the two existing required checks; the workflow never merges a PR.
+- Verified supplemental run URLs for the two existing check workflows; workflow\_dispatch results do not satisfy PR ruleset checks, and the workflow never merges a PR.
 
 [Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/automation-docs-import.yml).
 
 Source SHA-256: `83eb61bfa42007d18d6ada817a4014b0fe08470f6b5a89012ccbf34d53ba2499`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Prepare checked staging documentation imports from the two allowlisted stable source repositories without automating production promotion.
 
@@ -1086,7 +1106,27 @@ Source SHA-256: `f5af37ae29d1678d846d3751390b38a2486d6509d6fc1d94419a09ae8962ca8
 
 ### .github/workflows/automation-org-map.yml
 
-Prepare a generated-only organisation-map pull request into main and request its existing required checks without merging.
+Prepare generated-only organisation-map PRs through the scoped automation App so ordinary PR checks run without the job-token approval step.
+
+**What it does**
+
+1. Regenerate and check the exact unset-sh/.github main revision with read-only permissions, then stage only MAP.md and the generated profile block in a bounded same-run artifact.
+2. In an isolated publisher, mint a short-lived App token for only unset-sh/.github contents and pull-request writes; validate the configured App identity and single-repository scope before publication.
+3. Verify the immutable source, authored profile text, exact generated tree and sole source parent; create or reuse only the matching App-owned main PR. Refuse foreign, legacy job-token, closed or changed PRs.
+4. Let normal PR events start the required checks. The publisher has no Actions-write permission and no automatic manual-dispatch job.
+
+**Produces**
+
+- A seven-day generated-map artifact and an open App-owned PR when views change; unchanged output creates no branch or PR.
+- Ordinary PR checks and independent review still govern merging. The publisher never merges, writes protected refs or changes settings; activation requires the approved main-only cutover and owner-managed App setup.
+
+[Reviewed source at f79febcdb09e](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/.github/workflows/automation-org-map.yml).
+
+Source SHA-256: `dd1316f059cd3f9a8738f4a8bee2620ab0c243b4e5539b797bc19bd4bce99e55`.
+
+#### Additional reviewed version 1
+
+Prepare a generated-only organisation-map pull request into main and request supplemental validation without merging.
 
 **What it does**
 
@@ -1096,13 +1136,13 @@ Prepare a generated-only organisation-map pull request into main and request its
 
 **Produces**
 
-- An open generated PR into main when output changes, plus links to its three requested check runs. Successful dispatch does not prove those checks passed. No automatic merge occurs.
+- An open generated PR into main when output changes, plus links to its three supplemental check runs. workflow\_dispatch results do not satisfy PR ruleset checks. No automatic merge occurs.
 
 [Reviewed source at 064ddd23b6f6](https://github.com/unset-sh/tooling/blob/064ddd23b6f60db14d8dca8eb8babe1052e671d2/.github/workflows/automation-org-map.yml).
 
 Source SHA-256: `470ad5193645f3f38165b4f6b84aaedc8f079fd42421170c68cdc3c360c253d9`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Prepare a generated-only organisation-map staging PR and request supplemental validation without merging or promoting production.
 
@@ -1120,7 +1160,7 @@ Prepare a generated-only organisation-map staging PR and request supplemental va
 
 Source SHA-256: `45c4846bebc27251e2bdfc3d0fc6a1073608d2271e867130e70ed5dac9afcb42`.
 
-#### Additional reviewed version 2
+#### Additional reviewed version 3
 
 Regenerate the organisation’s Markdown map and publish validated changes through a generated-only pull request.
 
@@ -1167,7 +1207,7 @@ Validate normal pull-request branch relationships for staged or main-only reposi
 
 1. For ordinary PR events, read GitHub event metadata without checkout. With the default flow staged, require staging or main as the base and only same-repository staging for main; with flow main, require main as the base from any branch or fork. An unknown flow fails.
 2. For generated dispatches, refuse foreign repository, branch, head or helper identities before anonymously fetching the central validator at the running workflow commit.
-3. Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting the same required check.
+3. Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting a supplemental result; workflow\_dispatch results do not satisfy PR ruleset checks.
 
 **Produces**
 

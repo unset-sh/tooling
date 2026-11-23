@@ -3,12 +3,46 @@
   "workflows": [
     {
       "repository": "tooling",
+      "path": ".github/workflows/automation-docs-import.yml",
+      "purpose": "Prepare App-owned documentation import PRs into docs main from reviewed stable source exports, leaving eligible ordinary PR checks and merge review visible to the owner.",
+      "steps": [
+        "Run only in unset-sh/docs on main; resolve one of the two allowlisted stable source revisions with its exact successful push export, re-export committed files as data, and upload the bounded same-run snapshot with read-only permissions.",
+        "In an isolated central-code publisher, mint a one-repository App token using only the explicitly mapped key. Verify fixed public App identity and exact docs repository scope; the built-in token remains contents-read only.",
+        "Validate source Git objects, complete provenance, section ownership and current source/base refs; publish only that section through automation/docs-app-tooling or automation/docs-app-github with non-forced updates and App-owned PR metadata.",
+        "Let App-created PRs or real head updates start ordinary pull_request workflows. Do not dispatch checks automatically, approve withheld runs, adopt old job-token PRs or merge."
+      ],
+      "outputs": [
+        "A seven-day docs-import-<source>-<run-id>-<run-attempt> artifact and an App-owned main PR when content changes; valid unchanged content creates no PR.",
+        "An opened, updated or pending PR result. Activation requires reviewed real App installation identity, owner-placed key, main-only cutover, consumer pins and live PR-visible required-check verification."
+      ],
+      "reviewedCommit": "f79febcdb09e51a5e7b2ca29bca430726799418a",
+      "reviewedSha256": "6c5852ae287558a008fce351b7b4e4ca322f109d5b78ac86ea517efe4916d0d6"
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/automation-org-map.yml",
+      "reviewedCommit": "f79febcdb09e51a5e7b2ca29bca430726799418a",
+      "reviewedSha256": "dd1316f059cd3f9a8738f4a8bee2620ab0c243b4e5539b797bc19bd4bce99e55",
+      "purpose": "Prepare generated-only organisation-map PRs through the scoped automation App so ordinary PR checks run without the job-token approval step.",
+      "steps": [
+        "Regenerate and check the exact unset-sh/.github main revision with read-only permissions, then stage only MAP.md and the generated profile block in a bounded same-run artifact.",
+        "In an isolated publisher, mint a short-lived App token for only unset-sh/.github contents and pull-request writes; validate the configured App identity and single-repository scope before publication.",
+        "Verify the immutable source, authored profile text, exact generated tree and sole source parent; create or reuse only the matching App-owned main PR. Refuse foreign, legacy job-token, closed or changed PRs.",
+        "Let normal PR events start the required checks. The publisher has no Actions-write permission and no automatic manual-dispatch job."
+      ],
+      "outputs": [
+        "A seven-day generated-map artifact and an open App-owned PR when views change; unchanged output creates no branch or PR.",
+        "Ordinary PR checks and independent review still govern merging. The publisher never merges, writes protected refs or changes settings; activation requires the approved main-only cutover and owner-managed App setup."
+      ]
+    },
+    {
+      "repository": "tooling",
       "path": ".github/workflows/ci-branch-policy.yml",
       "purpose": "Validate normal pull-request branch relationships for staged or main-only repositories, and narrowly verified generated-PR dispatches, without granting the policy job token permissions.",
       "steps": [
         "For ordinary PR events, read GitHub event metadata without checkout. With the default flow staged, require staging or main as the base and only same-repository staging for main; with flow main, require main as the base from any branch or fork. An unknown flow fails.",
         "For generated dispatches, refuse foreign repository, branch, head or helper identities before anonymously fetching the central validator at the running workflow commit.",
-        "Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting the same required check."
+        "Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting a supplemental result; workflow_dispatch results do not satisfy PR ruleset checks."
       ],
       "outputs": [
         "The stable Validate branch policy job result, failing on malformed events, an unknown flow, unsupported generated identities, source proof failures or ref movement."
@@ -27,7 +61,7 @@
       ],
       "outputs": [
         "A seven-day docs-import-<source>-<run-id>-<run-attempt> artifact and an opened, updated or pending section-only PR into main when content changes; valid unchanged content creates no PR.",
-        "Verified requested run URLs for the two existing required checks; the workflow never merges a PR."
+        "Verified supplemental run URLs for the two existing check workflows; workflow_dispatch results do not satisfy PR ruleset checks, and the workflow never merges a PR."
       ],
       "reviewedCommit": "064ddd23b6f60db14d8dca8eb8babe1052e671d2",
       "reviewedSha256": "83eb61bfa42007d18d6ada817a4014b0fe08470f6b5a89012ccbf34d53ba2499"
@@ -35,14 +69,14 @@
     {
       "repository": "tooling",
       "path": ".github/workflows/automation-org-map.yml",
-      "purpose": "Prepare a generated-only organisation-map pull request into main and request its existing required checks without merging.",
+      "purpose": "Prepare a generated-only organisation-map pull request into main and request supplemental validation without merging.",
       "steps": [
         "Run only for unset-sh/.github main pushes, schedules or manual calls; regenerate and check the exact source with read-only permissions.",
         "Publish only MAP.md and the generated profile block through an isolated bot-owned PR into main, verifying exact source/head trees and preserving authored profile text.",
         "Pass only the PR number, head and base to a separate Actions-write job that revalidates the real PR and dispatches the fixed organisation-map, documentation-check and branch-policy workflows at that exact head."
       ],
       "outputs": [
-        "An open generated PR into main when output changes, plus links to its three requested check runs. Successful dispatch does not prove those checks passed. No automatic merge occurs."
+        "An open generated PR into main when output changes, plus links to its three supplemental check runs. workflow_dispatch results do not satisfy PR ruleset checks. No automatic merge occurs."
       ],
       "reviewedCommit": "064ddd23b6f60db14d8dca8eb8babe1052e671d2",
       "reviewedSha256": "470ad5193645f3f38165b4f6b84aaedc8f079fd42421170c68cdc3c360c253d9"

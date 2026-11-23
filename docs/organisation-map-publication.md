@@ -5,7 +5,7 @@ weight: 28
 type: docs
 params:
   doc_kind: reference
-  checked_source_revision: "c2517bded6ea28a6e9ab286c1382613e07fb0d4c"
+  checked_source_revision: "f79febcdb09e51a5e7b2ca29bca430726799418a"
 ---
 
 `automation-org-map.yml` is the shared implementation for `unset-sh/.github`'s committed map and profile views.
@@ -98,4 +98,4 @@ ordinary PR check run require separate runtime evidence.
 Alex reviews this reference with workflow changes and before releases. The central source is
 `workflows/github/docs/map.yml`; `scripts/generated-map-publication.mjs` owns the immutable publication proof,
 and the common App helper owns identity and scope checks. The workflow permission tests and publisher tests cover
-these boundaries. See the [repository rules](https://github.com/unset-sh/tooling/blob/c2517bded6ea28a6e9ab286c1382613e07fb0d4c/CLAUDE.md).
+these boundaries. See the [repository rules](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/CLAUDE.md).

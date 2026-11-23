@@ -5,6 +5,7 @@ weight: 17
 type: docs
 params:
   doc_kind: guide
+  checked_source_revision: "f79febcdb09e51a5e7b2ca29bca430726799418a"
 ---
 
 The organisation's private `unset-sh-automation` GitHub App publishes generated documentation and organisation-map pull requests. Its installation token lets the ordinary PR workflows start without the job-token approval restriction. It never merges, administers repositories or writes check results.
@@ -30,3 +31,5 @@ Source preparation executes pinned central validators with read-only access; sou
 GitHub documents independent App tokens as the route for [automatic PR workflows](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs). Matching successful `workflow_dispatch` jobs do not satisfy [PR ruleset check eligibility](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks#checks-from-some-workflow-jobs-are-not-evaluated). Do not approve withheld runs automatically, manufacture statuses or weaken protections as a substitute.
 
 Alex owns this guide. Review it with the publisher implementation and each App permission or credential change.
+
+The reviewed [identity verifier](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/scripts/automation-app.mjs) and [publisher workflow](https://github.com/unset-sh/tooling/blob/f79febcdb09e51a5e7b2ca29bca430726799418a/workflows/shared/docs/import.yml) enforce this boundary.
