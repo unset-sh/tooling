@@ -62,7 +62,7 @@ export function createDocsApi({ githubToken, fetchImpl = fetch } = {}) {
     const url = new URL(address);
     if (`${url.pathname}${url.search}` !== `/repos/${repository}${path}`) refuseImport("Invalid documentation API path");
     if (method === "POST" && !/^\/(?:git\/(?:blobs|trees|commits|refs)|pulls|actions\/workflows\/(?:ci|branch-policy)\.yml\/dispatches)$/.test(path)) refuseImport("Unsupported documentation mutation");
-    if (method === "PATCH" && !/^\/(?:git\/refs\/heads\/automation\/docs-(?:tooling|github)|pulls\/[1-9][0-9]*)$/.test(path)) refuseImport("Unsupported documentation update");
+    if (method === "PATCH" && !/^\/(?:git\/refs\/heads\/automation\/docs-app-(?:tooling|github)|pulls\/[1-9][0-9]*)$/.test(path)) refuseImport("Unsupported documentation update");
     if (method !== "GET" && !githubToken) refuseImport("Documentation publication requires its job token");
     const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2026-03-10", "Content-Type": "application/json" };
     if (repository === "unset-sh/docs" && githubToken) headers.Authorization = `Bearer ${githubToken}`;

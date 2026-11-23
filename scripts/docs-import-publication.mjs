@@ -3,13 +3,15 @@
 // https://docs.github.com/en/rest/git/trees#create-a-tree
 // https://docs.github.com/en/rest/git/refs#update-a-reference
 import { decodeImportFiles, docsBase, gitBlobHash, importLimits, importSource, isCommit, refuseImport, sha256, validateDocsImport, validateImportPaths, DocsImportError } from "./docs-import-data.mjs";
+import { automationApp, assertAutomationAppToken } from "./automation-app.mjs";
 import { readImportRef, verifyImportSource, verifyImportTree } from "./docs-import-github.mjs";
 
 const repository = "unset-sh/docs";
-const signoff = "Signed-off-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>";
-const branchFor = key => `automation/docs-${key}`;
+const legacyBot = Object.freeze({ login: "github-actions[bot]", id: 41898282, type: "Bot" });
+const signoffFor = bot => `Signed-off-by: ${bot.login} <${bot.id}+${bot.login}@users.noreply.github.com>`;
+const branchFor = key => `automation/docs-app-${key}`;
 const titleFor = key => `Import ${key} documentation`;
-const messageFor = snapshot => `${titleFor(snapshot.source.key)}\n\nSource revision: ${snapshot.source.revision}\nExport run: ${snapshot.source.runId}\nDocs base: ${snapshot.target.baseCommit}\n\n${signoff}`;
+const messageFor = snapshot => `${titleFor(snapshot.source.key)}\n\nSource revision: ${snapshot.source.revision}\nExport run: ${snapshot.source.runId}\nDocs base: ${snapshot.target.baseCommit}\n\n${automationApp.signoff}`;
 const canonicalTree = entries => JSON.stringify(entries.map(({ path, mode, type, sha }) => ({ path, mode, type, sha })).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
 async function commitAt(api, sha) {
@@ -75,9 +77,9 @@ async function validRetainedProvenance(api, base, entries, snapshot, section) {
   return true;
 }
 
-async function previousSnapshot(api, commit, sourceKey, baseRoot, currentBase) {
-  const match = /^Import (tooling|github) documentation\n\nSource revision: ([a-f0-9]{40})\nExport run: ([1-9][0-9]*)\nDocs base: ([a-f0-9]{40})\n\nSigned-off-by: github-actions\[bot\] <41898282\+github-actions\[bot\]@users\.noreply\.github\.com>$/.exec(commit.message);
-  if (!match || match[1] !== sourceKey || !Array.isArray(commit.parents) || ![1, 2].includes(commit.parents.length)
+async function previousSnapshot(api, commit, sourceKey, baseRoot, currentBase, bot = legacyBot) {
+  const match = /^Import (tooling|github) documentation\n\nSource revision: ([a-f0-9]{40})\nExport run: ([1-9][0-9]*)\nDocs base: ([a-f0-9]{40})\n\n(Signed-off-by: [^\r\n]+)$/.exec(commit.message);
+  if (!match || match[1] !== sourceKey || match[5] !== signoffFor(bot) || !Array.isArray(commit.parents) || ![1, 2].includes(commit.parents.length)
     || commit.parents.some(parent => !isCommit(parent.sha))) refuseImport("Existing import branch is not an owned generated commit");
   const [, key, revision, run, previousBase] = match;
   if (commit.parents.length === 2 && (commit.parents[1].sha !== previousBase || commit.parents[0].sha === previousBase)) refuseImport("Import reconciliation must record the docs base as its second parent");
@@ -114,10 +116,10 @@ async function previousSnapshot(api, commit, sourceKey, baseRoot, currentBase) {
   return { root, entries, base: previousBase };
 }
 
-export function validateImportPr(pr, branch, head, base) {
+export function validateImportPr(pr, branch, head, base, bot = legacyBot) {
   if (!Number.isSafeInteger(pr?.number) || pr.number <= 0 || pr.state !== "open" || pr.head?.sha !== head || pr.head.ref !== branch
     || pr.head.repo?.full_name !== repository || pr.base?.ref !== docsBase || pr.base.sha !== base || pr.base.repo?.full_name !== repository
-    || pr.user?.login !== "github-actions[bot]" || pr.user.id !== 41898282 || pr.user.type !== "Bot") refuseImport("Import pull request identity or ownership changed");
+    || pr.user?.login !== bot.login || pr.user.id !== bot.id || pr.user.type !== bot.type) refuseImport("Import pull request identity or ownership changed");
   return pr;
 }
 
@@ -131,8 +133,9 @@ export async function verifyDocsImportHead({ api, key, head, base }) {
   return source;
 }
 
-export async function publishDocsImport({ snapshot, api }) {
+export async function publishDocsImport({ snapshot, api, githubToken, appSlug, installationId, fetchImpl }) {
   snapshot = structuredClone(validateDocsImport(snapshot));
+  await assertAutomationAppToken({ githubToken, repository, appSlug, installationId, fetchImpl });
   const source = await verifyImportSource({ snapshot, api });
   const base = snapshot.target.baseCommit;
   const checkBase = async () => {
@@ -147,13 +150,13 @@ export async function publishDocsImport({ snapshot, api }) {
   let previous;
   if (existing) {
     if (existing.ref !== `refs/heads/${branch}` || existing.object?.type !== "commit" || !isCommit(existing.object.sha)) refuseImport("Invalid existing import branch");
-    previous = await previousSnapshot(api, await commitAt(api, existing.object.sha), snapshot.source.key, baseRoot, base);
+    previous = await previousSnapshot(api, await commitAt(api, existing.object.sha), snapshot.source.key, baseRoot, base, automationApp.bot);
   }
-  const prs = await api(repository, "GET", `/pulls?state=all&head=unset-sh%3Aautomation%2Fdocs-${snapshot.source.key}&sort=created&direction=desc&per_page=100`);
+  const prs = await api(repository, "GET", `/pulls?state=all&head=unset-sh%3Aautomation%2Fdocs-app-${snapshot.source.key}&sort=created&direction=desc&per_page=100`);
   if (!Array.isArray(prs) || prs.length >= 100 || prs.filter(pr => pr.state === "open").length > 1) refuseImport("Ambiguous import pull request history");
   let pr = prs.find(pr => pr.state === "open");
-  if (pr) validateImportPr(pr, branch, existing?.object.sha, base);
-  else if (prs.some(item => item.state !== "closed" || !item.merged_at || item.user?.login !== "github-actions[bot]")) refuseImport("A previous import was closed without merging; review it before retrying");
+  if (pr) validateImportPr(pr, branch, existing?.object.sha, base, automationApp.bot);
+  else if (prs.some(item => item.state !== "closed" || !item.merged_at || item.user?.login !== automationApp.bot.login || item.user?.id !== automationApp.bot.id || item.user?.type !== "Bot")) refuseImport("A previous import was closed without merging; review it before retrying");
   let head = existing?.object.sha;
   let changed = !(previous && previous.base === base && canonicalTree(previous.root.filter(entry => entry.path !== source.section)) === canonicalTree(baseRoot.filter(entry => entry.path !== source.section)) && sameFiles(previous.entries, snapshot));
   if (changed) {
@@ -198,7 +201,7 @@ Source: ${snapshot.source.revision}. Docs main: ${base}. The receiver validated 
 
 ## Validation
 
-Source export: https://github.com/${source.repository}/actions/runs/${snapshot.source.runId}. Documentation CI and branch policy are dispatched separately against this exact PR head. Their results remain required before merge.
+Source export: https://github.com/${source.repository}/actions/runs/${snapshot.source.runId}. The App-created pull request or head update starts the ordinary documentation CI and branch-policy workflows. Their required results must pass before a person merges this PR.
 
 ## Documentation
 
@@ -206,6 +209,6 @@ Only ${source.section}/ changes. Authored source documentation stays in its sour
   const existed = Boolean(pr);
   if (!pr) pr = await api(repository, "POST", "/pulls", { title: titleFor(snapshot.source.key), head: branch, base: docsBase, body }, [201]);
   else if (changed) pr = await api(repository, "PATCH", `/pulls/${pr.number}`, { title: titleFor(snapshot.source.key), body });
-  validateImportPr(pr, branch, head, base);
+  validateImportPr(pr, branch, head, base, automationApp.bot);
   return { status: changed ? (existed ? "updated" : "opened") : "pending", number: pr.number, branch, head, url: `https://github.com/${repository}/pull/${pr.number}` };
 }

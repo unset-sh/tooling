@@ -28,7 +28,7 @@ test("the App key exception is limited to one named input of the fixed repositor
     [path, workflow.replace("repositories: docs", "repositories: docs,tooling")], [path, workflow.replace("owner: unset-sh", "owner: outside")],
     [path, workflow.replace("permission-contents: write", "permission-actions: write")],
     [path, workflow.replace("private-key: ${{ secrets.automation-app-private-key }}", "private-key: ${{ secrets.OTHER }}")],
-    [path, workflow.replace("        with:", "        env:")], [path, workflow + "env:\n  LEAK: ${{ secrets.automation-app-private-key }}\n"],
+    [path, workflow.replace("        with:", "        env:")], [path, workflow + "env:\n  LEAK: ${{ toJSON(secrets) }}\n"], [path, workflow + "env:\n  LEAK: ${{ format('}}{0}', toJSON(secrets)) }}\n"], [path, workflow + "env:\n  LEAK: ${{ secrets.automation-app-private-key }}\n"],
     [path, workflow.replace("permission-pull-requests: write", "permission-pull-requests: write\n          skip-token-revoke: true")]]) {
     assert.throws(() => checkAppSecretBoundary(name, source));
   }

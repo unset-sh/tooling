@@ -5,6 +5,8 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **App-owned documentation imports:** publish through the scoped App on new fixed `automation/docs-app-*` branches, retain read-only source preparation and remove automatic check dispatch. Ordinary PR checks, owner setup and the separate main-only cutover are prerequisites; no old PR is adopted or merged.
+
 - **App-owned organisation map PRs:** the isolated publisher accepts one explicit App private-key secret and
   uses a short-lived token scoped to `.github` contents and PR writes. The built-in token is read-only. App-created
   PRs start ordinary checks; the automatic dispatcher and its Actions-write grant are removed. Exact source/output

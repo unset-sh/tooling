@@ -8,17 +8,14 @@ const jobs = jobsOf(workflow);
 const permissions = job => [...job.slice(job.indexOf("    permissions:"), job.indexOf("    steps:")).matchAll(/^ {6}([a-z-]+): (read|write)$/gm)]
   .map(([, scope, access]) => `${scope}:${access}`);
 
-test("docs imports separate source preparation, content publication and check dispatch permissions", () => {
-  assert.deepEqual(Object.keys(jobs), ["prepare", "publish", "dispatch"]);
+test("docs imports separate source preparation from an App publisher with a read-only built-in token", () => {
+  assert.deepEqual(Object.keys(jobs), ["prepare", "publish"]);
   assert.match(topLevel(workflow, "on"), /^on:\n  workflow_call:/);
   assert.equal(topLevel(workflow, "permissions").trim(), "permissions: {}");
   assert.deepEqual(permissions(jobs.prepare), ["contents:read"]);
-  assert.deepEqual(permissions(jobs.publish), ["contents:write", "pull-requests:write"]);
-  assert.deepEqual(permissions(jobs.dispatch), ["contents:read", "pull-requests:read", "actions:write"]);
+  assert.deepEqual(permissions(jobs.publish), ["contents:read"]);
   assert.match(jobs.publish, /^    needs: prepare$/m);
-  assert.match(jobs.dispatch, /^    needs: publish$/m);
-  assert.match(jobs.dispatch, /^    if: needs\.publish\.outputs\.changed == 'true'$/m);
-  assert.doesNotMatch(workflow, /always\(\)|pull_request_target|workflow_run|secrets[.:]|npm (ci|run)|bash -c/);
+  assert.doesNotMatch(workflow, /always\(\)|pull_request_target|workflow_run|npm (ci|run)|bash -c/);
   for (const block of runBlocks(workflow)) assert.doesNotMatch(block, /\$\{\{/);
 });
 
@@ -39,7 +36,7 @@ test("every job refuses unsafe receiver and helper identity before the first che
 });
 
 test("privileged jobs load only pinned central code and consume the same-run artifact as data", () => {
-  for (const name of ["publish", "dispatch"]) {
+  for (const name of ["publish"]) {
     const job = jobs[name];
     assert.equal((job.match(/uses: actions\/checkout@/g) ?? []).length, 1);
     assert.match(job, /repository: \$\{\{ job\.workflow_repository \}\}\n\s+ref: \$\{\{ job\.workflow_sha \}\}/);
@@ -49,5 +46,14 @@ test("privileged jobs load only pinned central code and consume the same-run art
   assert.ok(jobs.prepare.includes(name)); assert.ok(jobs.publish.includes(name));
   assert.match(jobs.prepare, /repository: \$\{\{ steps\.source\.outputs\.repository \}\}\n\s+ref: \$\{\{ steps\.source\.outputs\.revision \}\}/);
   assert.match(jobs.publish, /docs-import\.mjs publish --source "\$IMPORT_SOURCE" --snapshot "\$RUNNER_TEMP\/docs-import\/docs-import\.json"/);
-  assert.match(jobs.dispatch, /docs-import\.mjs dispatch --pull-request "\$PULL_REQUEST" --expected-head "\$EXPECTED_HEAD" --expected-base "\$EXPECTED_BASE" --branch "\$IMPORT_BRANCH"/);
+});
+
+
+test("only the isolated publisher mints the one-repository App token and passes no key to a shell", () => {
+  assert.doesNotMatch(jobs.prepare, /create-github-app-token|automation-app-private-key|DOCS_APP_TOKEN/);
+  assert.match(jobs.publish, /id: app\n\s+run: node tooling\/scripts\/automation-app\.mjs/);
+  assert.match(jobs.publish, /DOCS_APP_TOKEN: \$\{\{ steps\.token\.outputs\.token \}\}/);
+  assert.match(jobs.publish, /AUTOMATION_APP_SLUG: \$\{\{ steps\.token\.outputs\.app-slug \}\}/);
+  assert.match(jobs.publish, /AUTOMATION_APP_INSTALLATION_ID: \$\{\{ steps\.token\.outputs\.installation-id \}\}/);
+  assert.doesNotMatch(jobs.publish, /DOCS_GITHUB_TOKEN|^      (actions|pull-requests): write/m);
 });

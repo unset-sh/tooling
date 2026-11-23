@@ -4,7 +4,9 @@ import { jobsOf, topLevel } from "./repo.mjs";
 // The owner-approved private key exception is limited to two isolated publishers.
 export function checkAppSecretBoundary(path, text) {
   assert.doesNotMatch(text, /secrets: inherit/);
-  const references = [...text.matchAll(/\bsecrets\s*[.[]/g)];
+  // Count the context conservatively after removing only its exact approved declaration.
+  // Quoted braces inside an expression must not hide a later secret reference.
+  const references = [...text.replace(/^    secrets:$/gm, "").matchAll(/\bsecrets\b/gi)];
   if (!references.length) return;
   const targets = { ".github/workflows/automation-docs-import.yml": "docs", ".github/workflows/automation-org-map.yml": ".github" };
   assert.ok(Object.hasOwn(targets, path), `${path} has no stored-secret exception`);
