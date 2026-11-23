@@ -1333,6 +1333,26 @@ Provide a reusable Bun-based check job that each calling repository configures w
 **What it does**
 
 1. Check out the caller, install the exact Bun version its .bun-version names, and refuse any other version.
+2. Optionally install dependencies from the committed bun.lock with bun install --frozen-lockfile --ignore-scripts, failing when bun.lock is missing; only that step holds the job’s package-read token, as NPM\_CONFIG\_TOKEN, for @unset-sh packages on GitHub Packages.
+3. Run the caller’s check command, defaulting to bun run check.
+4. If the caller specifies an output path, attempt to retain it even when the check fails.
+
+**Produces**
+
+- The check result for the calling repository.
+- An optional check-output artifact retained for 14 days when a path is configured and files are available.
+
+[Reviewed source at 21488c94f00f](https://github.com/unset-sh/tooling/blob/21488c94f00f1c68f32fc3b811615b6ea4ab353c/.github/workflows/ci-check.yml).
+
+Source SHA-256: `21ce241f0a9ca446e1589273470ec04e1de75740282580ed007cf07bf01eeb05`.
+
+#### Additional reviewed version 1
+
+Provide a reusable Bun-based check job that each calling repository configures with its own validation command.
+
+**What it does**
+
+1. Check out the caller, install the exact Bun version its .bun-version names, and refuse any other version.
 2. Optionally install dependencies from the committed bun.lock with bun install --frozen-lockfile --ignore-scripts, failing when bun.lock is missing.
 3. Run the caller’s check command, defaulting to bun run check.
 4. If the caller specifies an output path, attempt to retain it even when the check fails.
@@ -1346,7 +1366,7 @@ Provide a reusable Bun-based check job that each calling repository configures w
 
 Source SHA-256: `06241779cfbc46a02f5c0b91cac33a2e218bf929ec5f26c75eb5f45d01fd09b1`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Provide a reusable Node-based check job that each calling repository configures with its own validation command.
 
@@ -1366,7 +1386,7 @@ Provide a reusable Node-based check job that each calling repository configures 
 
 Source SHA-256: `7bcb733d8dff4194c32c26d427ab73cd3ffffaee1379c2bf0240553f3cfcd924`.
 
-#### Additional reviewed version 2
+#### Additional reviewed version 3
 
 Provide a reusable Node-based check job that each calling repository configures with its own validation command.
 
@@ -1537,6 +1557,27 @@ Publish separate staging prereleases and stable releases from an exact same-repo
 **What it does**
 
 1. Validate the public push identity, immutable package and changelog, active branch rules and pre-existing channel environment; stable requires the exact merged staging pull request and both merge parents.
+2. Prepare only supported root manifest and lock versions, then run consumer checks, build and script-free packing with read-only permissions; only the install step holds a package-read token for @unset-sh dependencies.
+3. Recheck authority and committed source, bind same-run artifacts to repository, commit, channel, version and attempt, and validate plain files and strict package archives before attestation.
+4. Atomically reserve a new tag, publish with bun publish, an explicit registry and the staging or latest tag, from an empty folder and stripped environment, create the prerelease or stable release page, and verify the tag again.
+
+**Produces**
+
+- Derived version and channel, with released=true only after successful publication and exact tag verification; source version 0.0.0 skips publication.
+- Immutable version tags, release pages and optional attested assets and GitHub Packages versions; no caller adoption or environment changes.
+- Refusal on unavailable evidence, invalid promotion, incompatible protections, unsupported package/lock data, artifact mismatch or reused version. Hidden ruleset bypasses and human intent require separate settings and process controls.
+
+[Reviewed source at 21488c94f00f](https://github.com/unset-sh/tooling/blob/21488c94f00f1c68f32fc3b811615b6ea4ab353c/.github/workflows/releases-channel.yml).
+
+Source SHA-256: `967afbacef017f8ee1f7a3fdbb7171fbe512c103dd8f68c097c07ae9c5165eb6`.
+
+#### Additional reviewed version 1
+
+Publish separate staging prereleases and stable releases from an exact same-repository staging promotion, without changing the legacy owner-approved release path.
+
+**What it does**
+
+1. Validate the public push identity, immutable package and changelog, active branch rules and pre-existing channel environment; stable requires the exact merged staging pull request and both merge parents.
 2. Prepare only supported root manifest and lock versions, then run consumer checks, build and script-free packing with read-only permissions.
 3. Recheck authority and committed source, bind same-run artifacts to repository, commit, channel, version and attempt, and validate plain files and strict package archives before attestation.
 4. Atomically reserve a new tag, publish with bun publish, an explicit registry and the staging or latest tag, from an empty folder and stripped environment, create the prerelease or stable release page, and verify the tag again.
@@ -1551,7 +1592,7 @@ Publish separate staging prereleases and stable releases from an exact same-repo
 
 Source SHA-256: `d3d8e6d9918ecc56580db4f9fc2c20c79cf6999f882838a0b73d4cbf78cd766f`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Publish separate staging prereleases and stable releases from an exact same-repository staging promotion, without changing the legacy owner-approved release path.
 
@@ -1580,6 +1621,28 @@ Provide a shared release pipeline that builds once and publishes a new main-bran
 
 1. Accept only a push to main, inspect package.json and existing tags, and skip version 0.0.0 or an unchanged version that is already released.
 2. Before building, validate the release environment’s owner-only review and main-only branch policy, plus the package manifest and changelog.
+3. Run the caller’s checks and optional build, with only the install step holding a package-read token for @unset-sh dependencies, collect configured release files and optionally pack the package with bun pm pack, then show their checksums and notes for review.
+4. After the release environment permits publication, recheck its protections and validate the downloaded artifacts without running the caller’s source code.
+5. Attest the files, optionally publish the packed archive to GitHub Packages with bun publish from an empty folder and stripped environment, create the tag and GitHub release, and verify that the tag names the intended commit.
+
+**Produces**
+
+- A version tag and GitHub release with configured assets and release notes, plus attestations for attached files.
+- An optional GitHub Packages release and a seven-day intermediate release artifact.
+- The version and released workflow outputs for the caller.
+
+[Reviewed source at 21488c94f00f](https://github.com/unset-sh/tooling/blob/21488c94f00f1c68f32fc3b811615b6ea4ab353c/.github/workflows/releases-package.yml).
+
+Source SHA-256: `708208b8ebd8a57dc4a3773f599ee292cee5174d5fc3179689f4615afc14ea7c`.
+
+#### Additional reviewed version 1
+
+Provide a shared release pipeline that builds once and publishes a new main-branch version through the owner’s release approval.
+
+**What it does**
+
+1. Accept only a push to main, inspect package.json and existing tags, and skip version 0.0.0 or an unchanged version that is already released.
+2. Before building, validate the release environment’s owner-only review and main-only branch policy, plus the package manifest and changelog.
 3. Run the caller’s checks and optional build, collect configured release files and optionally pack the package with bun pm pack, then show their checksums and notes for review.
 4. After the release environment permits publication, recheck its protections and validate the downloaded artifacts without running the caller’s source code.
 5. Attest the files, optionally publish the packed archive to GitHub Packages with bun publish from an empty folder and stripped environment, create the tag and GitHub release, and verify that the tag names the intended commit.
@@ -1594,7 +1657,7 @@ Provide a shared release pipeline that builds once and publishes a new main-bran
 
 Source SHA-256: `1dd89a6624c1ae6e374c472c7aa6a1038611fc9ea1b5bb8546418e8be2b7d994`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Provide a shared release pipeline that builds once and publishes a new main-branch version through the owner’s release approval.
 
