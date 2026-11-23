@@ -16,7 +16,43 @@ Maintain these descriptions in `workflows/descriptions.json` and run `npm run wo
 
 ## .github
 
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at ff0e35a129a5](https://github.com/unset-sh/.github/blob/ff0e35a129a52914cb0e6f0bb15465165032fed5/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e`.
+
 ### .github/workflows/docs-export.yml
+
+Prepare the organisation’s maintained documentation for the central docs site after regenerating and checking the organisation map.
+
+**What it does**
+
+1. On pull requests, pushes to staging or main and manual runs, use shared CI to regenerate MAP.md and the profile map block from repos.json, then run the organisation’s tests and check the generated result.
+2. After validation succeeds, export the committed docs/site pages and licence into the github section with source revision and file hashes.
+3. Upload the isolated export for a later publishing step; regenerated map views are not committed or included as documentation sources by this workflow.
+
+**Produces**
+
+- A docs-\<commit\> artifact retained for 14 days, containing the github documentation section and provenance; this workflow does not publish to the docs repository.
+
+[Reviewed source at ff0e35a129a5](https://github.com/unset-sh/.github/blob/ff0e35a129a52914cb0e6f0bb15465165032fed5/.github/workflows/docs-export.yml).
+
+Source SHA-256: `0964f49eff7f993f64684dd8dc5ea8a703ec6a3f41f9872a60e464ed373cf3d6`.
+
+#### Additional reviewed version 1
 
 Prepare the organisation’s maintained documentation for the central docs site after regenerating and checking the organisation map.
 
@@ -34,7 +70,7 @@ Prepare the organisation’s maintained documentation for the central docs site 
 
 Source SHA-256: `9e7ca1b8b2ff183c2da3d0bc9eab4a39c90b036b94d5813c2b5bb1e0f2a75ad4`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Prepare the organisation’s maintained documentation for the central docs site after the organisation checks pass.
 
@@ -78,6 +114,26 @@ Validate the organisation map regenerated from its curated source and report dif
 
 **What it does**
 
+1. On pull requests and pushes to staging or main, regenerate the map and profile from repos.json, then run tests and check the generated result without committing it.
+2. On daily scheduled or manual runs, compare public repository names, descriptions, archive status and licences with the curated map; private entries are skipped.
+3. Create or update one org-map-drift issue when differences appear, and close it when the comparison matches.
+4. Leave ownership descriptions and source metadata to a reviewed source change; the drift job does not rewrite repos.json, while the separate publisher updates derived Markdown views.
+
+**Produces**
+
+- Validation results for the regenerated organisation map.
+- An automatically maintained drift issue when public repository metadata differs.
+
+[Reviewed source at ff0e35a129a5](https://github.com/unset-sh/.github/blob/ff0e35a129a52914cb0e6f0bb15465165032fed5/.github/workflows/org-map.yml).
+
+Source SHA-256: `08ad77151af55bb31ae002471582d0b37776eb16b13e0928583d3d1b69583af7`.
+
+#### Additional reviewed version 1
+
+Validate the organisation map regenerated from its curated source and report differences between that source and public GitHub repositories.
+
+**What it does**
+
 1. On pull requests and main changes, regenerate the map and profile from repos.json, then run tests and check the generated result without committing it.
 2. On daily scheduled or manual runs, compare public repository names, descriptions, archive status and licences with the curated map; private entries are skipped.
 3. Create or update one org-map-drift issue when differences appear, and close it when the comparison matches.
@@ -92,7 +148,7 @@ Validate the organisation map regenerated from its curated source and report dif
 
 Source SHA-256: `f9f81fc280358996016ae43859e05b5288336e6701085e57b58660904d4f6e1f`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Keep the curated organisation map consistent with its source and report differences between the map and public GitHub repositories.
 
@@ -114,7 +170,44 @@ Source SHA-256: `79f6770aad742dbbc4d2089cd3614f04f056d5ef4ceb12494fc7860e05b5569
 
 ## agent-kit
 
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at 08c51e50526a](https://github.com/unset-sh/agent-kit/blob/08c51e50526aed44f84f6284a72dd8a8df173f3d/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `56fa8d0acc712a2e16ce28cfc651aafd08dca129c7facd38824099dbd22a1dd0`.
+
 ### .github/workflows/ci.yml
+
+Check that the shared agent rules, skills and synchronisation tools can be distributed as a consistent bundle.
+
+**What it does**
+
+1. Run for pull requests targeting staging or main and for pushes to either branch.
+2. Run the repository’s checks against the kit and its synchronisation behaviour.
+3. Collect the shipped rules, skills, agents and sync.mjs into a deterministically ordered bundle.
+4. Record the source commit, kit version and each shipped file’s SHA-256 in the bundle.
+
+**Produces**
+
+- A locally built dist/agent-kit.json and its checksum in the job log; CI does not upload or publish the bundle.
+
+[Reviewed source at 08c51e50526a](https://github.com/unset-sh/agent-kit/blob/08c51e50526aed44f84f6284a72dd8a8df173f3d/.github/workflows/ci.yml).
+
+Source SHA-256: `f1a9eb9d233f406b0eaea388e62d064b7d7f762e41df799db0856903999d278d`.
+
+#### Additional reviewed version 1
 
 Check that the shared agent rules, skills and synchronisation tools can be distributed as a consistent bundle.
 
@@ -152,9 +245,66 @@ Publish a tagged version of the agent kit so repositories can adopt a specific, 
 
 Source SHA-256: `451f57474f61c783f79cffff4ae19e0517c6dc953cb8b20bd0e441913542b074`.
 
+## backend
+
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at 19ea29a840bb](https://github.com/unset-sh/backend/blob/19ea29a840bb38cec37a5aa4626c5b6353eb43a9/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `e2c2752b510a0cf77a10670ff3a0efb901c3ea0a824f286a089741cab4445ba9`.
+
 ## brand
 
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at a29c94293613](https://github.com/unset-sh/brand/blob/a29c94293613e119faf5cdd0eab0a6e18664b618/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e`.
+
 ### .github/workflows/ci.yml
+
+Check the brand contract and package, then verify that the brand site builds at both a domain root and a repository subpath.
+
+**What it does**
+
+1. Run on pull requests, including edits and ready-for-review events, and on pushes to staging or main.
+2. Install the pinned dependencies and check that generated brand assets and syntax examples are current.
+3. Run the brand and component-gallery tests.
+4. Install the verified Hugo binary and build the site once at the root and once under /brand.
+
+**Produces**
+
+- Validation results for the brand package and two local site builds; this workflow does not publish them.
+
+[Reviewed source at a29c94293613](https://github.com/unset-sh/brand/blob/a29c94293613e119faf5cdd0eab0a6e18664b618/.github/workflows/ci.yml).
+
+Source SHA-256: `762b08d9112ee7cc295416df67f73718e5de66cfec07bcc1b59cfbcbd45d22e3`.
+
+#### Additional reviewed version 1
 
 Check the brand contract and package, then verify that the brand site builds at both a domain root and a repository subpath.
 
@@ -211,9 +361,67 @@ Publish a checked, tagged brand package to GitHub Packages.
 
 Source SHA-256: `24afea339d625c6878c652a1139b28f5c8ba2d21eea1fe541a1be86c9c5c539f`.
 
+## deployment
+
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at 979b2bfb8895](https://github.com/unset-sh/deployment/blob/979b2bfb88953f1449fbfdc69ba8b4bb1f81c462/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `e2c2752b510a0cf77a10670ff3a0efb901c3ea0a824f286a089741cab4445ba9`.
+
 ## docs
 
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at 1231232ba9f2](https://github.com/unset-sh/docs/blob/1231232ba9f2e6717908f706c4887fd7209f22a4/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e`.
+
 ### .github/workflows/ci.yml
+
+Check documentation sources, publication safeguards and rendered pages before changes reach the documentation site.
+
+**What it does**
+
+1. Run on pull requests, including edits and ready-for-review events, and on pushes to staging or main.
+2. Install the pinned tooling without lifecycle scripts and run the Node and Python checks, workflow guards and organisation-map integrity check.
+3. For pull requests, check whether the changes have the required documentation impact.
+4. Lint the workflow files with the pinned actionlint image.
+5. Build the real documentation and a separate fixture preview, checking generated HTML, assets, links and navigation.
+
+**Produces**
+
+- Validation results and local builds of the real site and documentation fixtures; CI does not deploy them.
+
+[Reviewed source at 1231232ba9f2](https://github.com/unset-sh/docs/blob/1231232ba9f2e6717908f706c4887fd7209f22a4/.github/workflows/ci.yml).
+
+Source SHA-256: `bb4d65f74b734c3d1c1e966b77c1b478d583f39071aa87aa81c8b1b541a409dd`.
+
+#### Additional reviewed version 1
 
 Check documentation sources, publication safeguards and rendered pages before changes reach the documentation site.
 
@@ -311,7 +519,44 @@ Source SHA-256: `ce4a2ed1080f35985efed001cf67ce45bcc1ff864e53e52684d696106f63d61
 
 ## lexicons
 
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at 27e6e5b573d4](https://github.com/unset-sh/lexicons/blob/27e6e5b573d49c8bc01171c6cf6d275382a5f07e/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `56fa8d0acc712a2e16ce28cfc651aafd08dca129c7facd38824099dbd22a1dd0`.
+
 ### .github/workflows/check.yml
+
+Validate the AT Protocol lexicon schemas, examples and reference documentation together.
+
+**What it does**
+
+1. Run for pull requests targeting staging or main and for pushes to either branch.
+2. Typecheck and lint the validation tooling, then run its tests.
+3. Parse the schemas with the official AT Protocol libraries and build validators to resolve their references.
+4. Validate authored examples and their coverage, and check generated reference documentation, local links and schema provenance hashes.
+
+**Produces**
+
+- A check result reporting schema, example, documentation, link or provenance problems; no release or documentation export is published.
+
+[Reviewed source at 27e6e5b573d4](https://github.com/unset-sh/lexicons/blob/27e6e5b573d49c8bc01171c6cf6d275382a5f07e/.github/workflows/check.yml).
+
+Source SHA-256: `3cafa0c4df5ca6b9db7a871884f7191db63045803fc3f900895bb439f91b3d22`.
+
+#### Additional reviewed version 1
 
 Validate the AT Protocol lexicon schemas, examples and reference documentation together.
 
@@ -329,9 +574,66 @@ Validate the AT Protocol lexicon schemas, examples and reference documentation t
 
 Source SHA-256: `9607e1b447520e271c49e21095ab76b8e9570270bcf92798b9da24aa7c8dab23`.
 
+## pds
+
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at 1ff1df8bdd9d](https://github.com/unset-sh/pds/blob/1ff1df8bdd9dfc5bf1260053df0e6f46d97b38cc/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `e2c2752b510a0cf77a10670ff3a0efb901c3ea0a824f286a089741cab4445ba9`.
+
 ## profile-recipes
 
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at a6eadbb3e570](https://github.com/unset-sh/profile-recipes/blob/a6eadbb3e570e59b06cde65b0c9181c300b4cc39/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `b269afcd8aafa0a054f7b607868f51171acfdb19e6012b0b93ed9e7ff3c93a2e`.
+
 ### .github/workflows/dco.yml
+
+Check that eligible pull-request commits carry a Developer Certificate of Origin sign-off.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review.
+2. Read the pull request’s base and head commits from the full checkout history.
+3. Exempt the owner’s and bot-authored pull requests, and ignore merge commits.
+4. Report each remaining commit that lacks a correctly formed Signed-off-by line.
+
+**Produces**
+
+- The DCO check result for the pull request.
+
+[Reviewed source at a6eadbb3e570](https://github.com/unset-sh/profile-recipes/blob/a6eadbb3e570e59b06cde65b0c9181c300b4cc39/.github/workflows/dco.yml).
+
+Source SHA-256: `ea93c82d7aa1f38b38f399a7976206b476b7a6d00f31a9dcdcc41e9db7f5e0c1`.
+
+#### Additional reviewed version 1
 
 Check that eligible pull-request commits carry a Developer Certificate of Origin sign-off.
 
@@ -375,6 +677,25 @@ Check that profile recipes satisfy their schemas and can produce the showcase an
 
 **What it does**
 
+1. Run on pull requests, including edits and ready-for-review events, and on pushes to staging or main.
+2. Typecheck the tooling, run its tests and validate every recipe against the vendored upstream schemas.
+3. Render the recipe showcase pages.
+4. Prepare an isolated documentation export and check its source provenance without publishing it.
+
+**Produces**
+
+- Recipe-validation results, locally rendered showcase pages and a temporary documentation export.
+
+[Reviewed source at a6eadbb3e570](https://github.com/unset-sh/profile-recipes/blob/a6eadbb3e570e59b06cde65b0c9181c300b4cc39/.github/workflows/validate.yml).
+
+Source SHA-256: `9c154b37b606968c1d2254d69be1fe01fd744b5891d7a733974e140350e7f8c1`.
+
+#### Additional reviewed version 1
+
+Check that profile recipes satisfy their schemas and can produce the showcase and documentation export.
+
+**What it does**
+
 1. Typecheck the tooling, run its tests and validate every recipe against the vendored upstream schemas.
 2. Render the recipe showcase pages.
 3. Prepare an isolated documentation export and check its source provenance without publishing it.
@@ -389,7 +710,45 @@ Source SHA-256: `91332579914d7c30380e42b16ead0076b874b5b2377c5e36fd079fb964a52e7
 
 ## rendering
 
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at d47afdae9dcd](https://github.com/unset-sh/rendering/blob/d47afdae9dcd542dc2f343ba8254b85b650ae828/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `56fa8d0acc712a2e16ce28cfc651aafd08dca129c7facd38824099dbd22a1dd0`.
+
 ### .github/workflows/ci.yml
+
+Check the image-rendering package and keep a visual gallery for reviewing its output.
+
+**What it does**
+
+1. Run for pull requests targeting staging or main and for pushes to either branch.
+2. Install dependencies, then typecheck, lint, build the package and run its tests.
+3. Attempt to draw the gallery even when an earlier check fails.
+4. Upload any generated gallery output so reviewers can inspect the rendered images.
+
+**Produces**
+
+- A gallery artifact retained for 14 days when gallery files are available.
+- Validation results and a local package build.
+
+[Reviewed source at d47afdae9dcd](https://github.com/unset-sh/rendering/blob/d47afdae9dcd542dc2f343ba8254b85b650ae828/.github/workflows/ci.yml).
+
+Source SHA-256: `2132298e8c7fd2e5a6b3566ca0773f436986f7df3699fad7e3aa777d9afebec1`.
+
+#### Additional reviewed version 1
 
 Check the image-rendering package and keep a visual gallery for reviewing its output.
 
@@ -827,3 +1186,23 @@ Release tooling itself through its shared release pipeline, attaching the execut
 [Reviewed source at 22b6eb497c27](https://github.com/unset-sh/tooling/blob/22b6eb497c2782800523879a89a350c01cf1d2c1/.github/workflows/releases-self.yml).
 
 Source SHA-256: `2d0f50374b978546520a36cc5f4decd4ffb443a6a9f9395274b2dfe2701763ac`.
+
+## web
+
+### .github/workflows/branch-policy.yml
+
+Check that pull requests target staging and that promotions to main come from the same repository’s staging branch.
+
+**What it does**
+
+1. Run when a pull request opens, updates, reopens, is edited or becomes ready for review, without path or base-branch filters.
+2. Call the pinned shared policy to check event metadata, accept staging or main as the target and require a same-repository staging head for main.
+3. The shared job reads the event JSON with no checkout, token permissions or API calls; human-only promotion remains a separate operating rule.
+
+**Produces**
+
+- The nested policy / Validate branch policy result for repository branch protection; this workflow does not merge or publish changes.
+
+[Reviewed source at 8239c4ac2405](https://github.com/unset-sh/web/blob/8239c4ac24059c236524aef1433f1582255d2d25/.github/workflows/branch-policy.yml).
+
+Source SHA-256: `e2c2752b510a0cf77a10670ff3a0efb901c3ea0a824f286a089741cab4445ba9`.
