@@ -1,0 +1,66 @@
+name: repository-policy
+
+on:
+  workflow_call:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  policy:
+    name: Repository policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Verify this workflow's helper identity
+        env:
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+        run: |
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Expected to run from unset-sh/tooling at a full commit."
+            exit 1
+          fi
+
+      - name: Check out the committed source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.sha }}
+          path: source
+          persist-credentials: false
+
+      - name: Check out this workflow's own helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: tooling/.nvmrc
+          package-manager-cache: false
+
+      - name: Install the verified action parser
+        # v1.32.0 was published on 2026-11-02; this pin was reviewed after the seven-day wait.
+        run: |
+          mkdir "$RUNNER_TEMP/repository-policy-tools"
+          cd "$RUNNER_TEMP/repository-policy-tools"
+          curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error --max-time 120 --retry 2 \
+            --output zizmor.tar.gz https://github.com/zizmorcore/zizmor/releases/download/v1.32.0/zizmor-x86_64-unknown-linux-gnu.tar.gz
+          echo 'bb110cc765eca9cd7efb2e284a956be5974c60027b0970f16397d86208a9957b  zizmor.tar.gz' | sha256sum --check --strict
+          tar --extract --gzip --file zizmor.tar.gz zizmor
+          chmod 700 zizmor
+
+      - name: Inspect committed policy inputs without executing consumer code
+        env:
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: node tooling/scripts/repository-policy.mjs --root "$GITHUB_WORKSPACE/source" --revision "$SOURCE_SHA" --repository "$SOURCE_REPOSITORY" --scanner "$RUNNER_TEMP/repository-policy-tools/zizmor"
