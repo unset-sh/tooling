@@ -131,7 +131,7 @@ Prepare and check generated organisation-map staging pull requests while preserv
 **What it does**
 
 1. Run on relevant staging pushes, an hourly schedule or manual staging dispatch, serialising publication runs.
-2. Call the reviewed tooling publisher with maximum contents, pull-request and Actions write permissions; the reusable implementation separates read-only generation, output-only publication and exact-head check dispatch.
+2. Call the reviewed tooling publisher with contents, pull-request and Actions write permissions at the caller boundary; the reusable implementation separates read-only generation, output-only publication and exact-head check dispatch.
 
 **Produces**
 
@@ -499,7 +499,7 @@ Validate the documentation framework and source pages while preserving the same 
 **What it does**
 
 1. Run for relevant PR updates and pushes to staging or main; accept generated-import dispatches only with the fixed PR, expected head and expected base inputs.
-2. For every dispatch, load a pinned central verifier and validate the actual bot PR, current source/head/base and complete section-only proof before checking out consumer code.
+2. For every dispatch, load a pinned central verifier and validate the actual bot PR, source provenance, current head/base and complete section-only proof before checking out consumer code.
 3. Install the locked tooling without lifecycle scripts, run tests and workflow/map guards, check ordinary PR documentation impact, lint workflows, and build both real content and preview fixtures.
 
 **Produces**

@@ -9,7 +9,7 @@
       "purpose": "Prepare and check generated organisation-map staging pull requests while preserving normal review and human promotion to main.",
       "steps": [
         "Run on relevant staging pushes, an hourly schedule or manual staging dispatch, serialising publication runs.",
-        "Call the reviewed tooling publisher with maximum contents, pull-request and Actions write permissions; the reusable implementation separates read-only generation, output-only publication and exact-head check dispatch."
+        "Call the reviewed tooling publisher with contents, pull-request and Actions write permissions at the caller boundary; the reusable implementation separates read-only generation, output-only publication and exact-head check dispatch."
       ],
       "outputs": [
         "A generated-only staging PR and links to its three requested check runs when rendered views change. The workflow does not merge or promote main."
@@ -85,7 +85,7 @@
       "purpose": "Validate the documentation framework and source pages while preserving the same required check for normal changes and independently verified generated import PRs.",
       "steps": [
         "Run for relevant PR updates and pushes to staging or main; accept generated-import dispatches only with the fixed PR, expected head and expected base inputs.",
-        "For every dispatch, load a pinned central verifier and validate the actual bot PR, current source/head/base and complete section-only proof before checking out consumer code.",
+        "For every dispatch, load a pinned central verifier and validate the actual bot PR, source provenance, current head/base and complete section-only proof before checking out consumer code.",
         "Install the locked tooling without lifecycle scripts, run tests and workflow/map guards, check ordinary PR documentation impact, lint workflows, and build both real content and preview fixtures."
       ],
       "outputs": [
