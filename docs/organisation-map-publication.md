@@ -91,7 +91,7 @@ is tied to an immutable Git object. The tests cover changed refs, forged PRs, ex
 unsafe blobs, returned-run identity mismatches, and the absence of merge or protected-ref mutations. Actual adapter
 adoption and first-run evidence must be checked separately from these local tests.
 
-Required-check and token-trigger references checked on 2026-11-23. API references: GitHub REST [Git database](https://docs.github.com/en/rest/git) and
+Required-check and token-trigger references checked on 2026-11-22. API references: GitHub REST [Git database](https://docs.github.com/en/rest/git) and
 [workflow dispatch](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event).
 
 ## Source and maintenance
