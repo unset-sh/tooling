@@ -1498,6 +1498,23 @@ Apply the shared repository policy checks to tooling pull requests and staging o
 
 Source SHA-256: `fe759f6e8612346fea735a0398fabb0cbb8fdb0190b82c560b8fee4da0f76529`.
 
+#### Additional reviewed version 1
+
+Apply the shared repository policy checks to tooling pull requests and main pushes.
+
+**What it does**
+
+1. Run on every pull request and pushes to main without path filters.
+2. Call the local reusable repository-policy workflow with read-only contents permission and tooling’s committed scope configuration.
+
+**Produces**
+
+- The policy / Repository policy check for tooling. Ruleset enforcement remains a separate setting.
+
+[Reviewed source at b5c9dec33c97](https://github.com/unset-sh/tooling/blob/b5c9dec33c97febe5563616862bdaadd789479e3/.github/workflows/ci-repository-policy-self.yml).
+
+Source SHA-256: `398d8d5a8dc00bd8b88d99097ed297d406710d7fc25132d3e2397933e961d492`.
+
 ### .github/workflows/ci-repository-policy.yml
 
 Check declared dependency and action pins, installed agent-kit integrity and forbidden working-artifact paths without executing consumer code.
@@ -1570,6 +1587,25 @@ Verify tooling’s implementation and the executable workflows generated from it
 [Reviewed source at 22b6eb497c27](https://github.com/unset-sh/tooling/blob/22b6eb497c2782800523879a89a350c01cf1d2c1/.github/workflows/ci-self.yml).
 
 Source SHA-256: `f8e1112c8042f774f3810bea1989d396dc676ea08027915eb1671515192f430a`.
+
+#### Additional reviewed version 2
+
+Verify tooling’s implementation and the executable workflows generated from its organised workflow sources.
+
+**What it does**
+
+1. Run for pull requests and pushes to main.
+2. Run the local reusable check workflow, which checks generated workflow files and runs tooling’s test suites.
+3. Download the pinned actionlint release and verify its SHA-256.
+4. Lint the executable workflow files, suppressing only the two documented job-context fields that the pinned linter does not recognise.
+
+**Produces**
+
+- Check and workflow-lint results; this workflow does not release or publish tooling.
+
+[Reviewed source at b5c9dec33c97](https://github.com/unset-sh/tooling/blob/b5c9dec33c97febe5563616862bdaadd789479e3/.github/workflows/ci-self.yml).
+
+Source SHA-256: `d77735374047b0225afa437b2d5c14e346ed8303bfa3e5be466d22a4dcc9a7d8`.
 
 ### .github/workflows/releases-channel.yml
 

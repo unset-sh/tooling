@@ -29,7 +29,7 @@ test("central helper identity is checked before checkout and scanner installatio
 });
 test("tooling opts in without path filters and its explicit config has no policy bypasses", () => {
   const caller = readText(".github/workflows/ci-repository-policy-self.yml");
-  assert.match(caller, /pull_request:\n {2}push:\n {4}branches: \[staging, main\]/);
+  assert.match(caller, /pull_request:\n {2}push:\n {4}branches: \[main\]/);
   assert.doesNotMatch(caller, /paths:|if:/);
   assert.match(caller, /uses: \.\/\.github\/workflows\/ci-repository-policy.yml/);
   const config = JSON.parse(readText(".github/repository-policy.json"));
