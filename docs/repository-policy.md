@@ -5,6 +5,7 @@ weight: 13
 type: docs
 params:
   doc_kind: guide
+  checked_source_revision: "cac06e938139f53192e9e2fa85805b62ebfe2856"
 ---
 
 Add `ci-repository-policy.yml` to check mechanical repository rules on pull requests and pushes. The shared job reads the exact committed tree, applies the repository's explicit scope, and returns a check named **Repository policy**. Alex maintains the central implementation; each consuming repository owns its configuration, exceptions, and caller review.
@@ -100,3 +101,7 @@ A configuration, parsing, missing-file, source-identity, or size failure stops t
 Bounds include 50,000 tracked tree entries; 200 manifests and 200 configured action definitions; 200 total scanned workflow/action files; 1 MiB per selected source, 8 MiB scanner input and 16 MiB total selected input; a 64 KiB config; and 500 exceptions. Configured paths use ASCII letters, digits, dots, underscores, hyphens and `/`, with no traversal, `.git`, links, or ambiguous case duplicates. A repository beyond these limits needs a reviewed extension, not a silent partial scan.
 
 The source tests exercise exact exceptions, dirty-tree isolation, malformed inputs, symlinks, byte bounds and lock integrity. A separate run against the verified real parser checks quoted/flow YAML, ignore comments, reusable calls, Docker actions and malformed YAML. These tests establish local behaviour; verify the first actual consumer run before treating adoption as complete.
+
+## Source and maintenance
+
+This guide describes the unreleased implementation at `cac06e938139f53192e9e2fa85805b62ebfe2856`. Review the [shared workflow](https://github.com/unset-sh/tooling/blob/cac06e938139f53192e9e2fa85805b62ebfe2856/workflows/shared/ci/repository-policy.yml), [committed-source reader](https://github.com/unset-sh/tooling/blob/cac06e938139f53192e9e2fa85805b62ebfe2856/scripts/repository-policy.mjs), [data validators](https://github.com/unset-sh/tooling/blob/cac06e938139f53192e9e2fa85805b62ebfe2856/scripts/repository-policy-data.mjs), and [parser bridge tests](https://github.com/unset-sh/tooling/blob/cac06e938139f53192e9e2fa85805b62ebfe2856/scripts/repository-policy-scanner.test.mjs). Alex reviews this page with workflow changes and before releases, as specified in [the repository rules](https://github.com/unset-sh/tooling/blob/cac06e938139f53192e9e2fa85805b62ebfe2856/CLAUDE.md).
