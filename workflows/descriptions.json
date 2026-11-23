@@ -20,6 +20,36 @@
       ]
     },
     {
+      "repository": "tooling",
+      "path": ".github/workflows/automation-docs-self.yml",
+      "reviewedCommit": "b0a4aa66e09dfdb05d4b94d70eec3896f96565f9",
+      "reviewedSha256": "2ae97fb737faad6e46b9b524be7a88dbb82b8455ce7a2e1ab639457c2ce84b29",
+      "purpose": "Check and package tooling’s own maintained documentation using the shared workflows it provides.",
+      "steps": [
+        "Run the shared Node checks under the distinct validate-docs / Check context on pull requests, main pushes and manual runs.",
+        "After validation succeeds, export the committed tooling docs and licence with source revision and file hashes.",
+        "Upload the provenance-bearing section for downstream import; this workflow does not write the docs repository or deploy the site."
+      ],
+      "outputs": [
+        "A docs-<commit> artifact retained for 14 days; publication is a separate step."
+      ]
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/automation-docs-map-schedule.yml",
+      "reviewedCommit": "b0a4aa66e09dfdb05d4b94d70eec3896f96565f9",
+      "reviewedSha256": "523025404ca31c72f229fd7f9f70f6bd642204ef73ce31512a95e4e756bcade6",
+      "purpose": "Keep the docs site’s approved main build refreshing every registered map when staging is the default branch.",
+      "steps": [
+        "Accept only scheduled or manual calls from unset-sh/docs on staging, and run the central helper at the exact reusable-workflow commit.",
+        "Use the docs job token to request only site.yml on main through the fixed GitHub workflow-dispatch endpoint; no consumer code runs and no repository content is written.",
+        "Validate the returned run identity and print its URL so collection, build and deployment can be verified separately."
+      ],
+      "outputs": [
+        "A requested main site run. A successful dispatch is not proof that the map refresh or site deployment succeeded."
+      ]
+    },
+    {
       "repository": ".github",
       "path": ".github/workflows/docs-export.yml",
       "reviewedCommit": "fb4bfedf463f7cead362980c49843f774611cce3",

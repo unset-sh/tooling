@@ -48,12 +48,13 @@ tooling/
 └── .github/workflows/            Generated executable files
 ```
 
-`workflows/shared/docs/` contains documentation automation reusable by any adopting repository. A future `workflows/docs/` directory would contain automation specifically maintained here for the `unset-sh/docs` repository. `workflows/tooling/` contains tooling's callers; `workflows/github/` contains the organisation-map publisher maintained for `unset-sh/.github`. Other repositories retain their own workflows until a reviewed migration; empty placeholder folders would imply adoption that has not happened.
+`workflows/shared/docs/` contains documentation automation reusable by any adopting repository. `workflows/docs/` contains automation specifically maintained here for the `unset-sh/docs` repository, including its timer for approved main site builds. `workflows/tooling/` contains tooling's callers; `workflows/github/` contains the organisation-map publisher maintained for `unset-sh/.github`. Other repositories retain their own workflows until a reviewed migration; empty placeholder folders would imply adoption that has not happened.
 
 The [manifest](https://github.com/unset-sh/tooling/blob/42f07ecbfbe4e6106e7903fe2a5671db51232f7d/workflows/manifest.json) records these exact mappings:
 
 | Authored source | Generated entry point | Responsibility |
 | --- | --- | --- |
+| `workflows/docs/pages/schedule.yml` | `.github/workflows/automation-docs-map-schedule.yml` | Request the approved main site refresh from the staging timer |
 | `workflows/shared/ci/check.yml` | `.github/workflows/ci-check.yml` | Shared Node check |
 | `workflows/tooling/ci/self.yml` | `.github/workflows/ci-self.yml` | This repository's check caller |
 | `workflows/shared/ci/branch-policy.yml` | `.github/workflows/ci-branch-policy.yml` | Validate staging and stable-main PR origins |

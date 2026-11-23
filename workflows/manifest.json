@@ -2,6 +2,10 @@
   "schemaVersion": 1,
   "workflows": [
     {
+      "source": "workflows/docs/pages/schedule.yml",
+      "output": ".github/workflows/automation-docs-map-schedule.yml"
+    },
+    {
       "source": "workflows/shared/ci/repository-policy.yml",
       "output": ".github/workflows/ci-repository-policy.yml"
     },

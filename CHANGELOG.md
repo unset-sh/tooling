@@ -11,6 +11,11 @@ approved release raises `package.json` and renames the heading to that version.
   rules and pre-existing channel environments, validates artifacts against committed source, and reserves
   tags without overwriting them. The legacy approved release path remains unchanged. No caller or environment
   is activated; human promotion and settings audits remain separate responsibilities.
+- Restore the docs site's map refresh timer after moving the default branch to staging. A constrained
+  dispatcher requests only the existing main site workflow; it does not promote staging content.
+- Give tooling's documentation validation the distinct `validate-docs / Check` context, preserving
+  `check / Check` for required CI and keeping export dependent on successful validation.
+
 - **Repository policy:** `ci-repository-policy.yml` adds an opt-in `Repository policy` check for declared npm
   dependency pins, parsed workflow/action references, installed agent-kit lock integrity, and forbidden working-artifact
   paths. It reads an exact committed tree without running consumer code. Configuration and reasoned exact exceptions
