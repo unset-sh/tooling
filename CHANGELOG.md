@@ -18,6 +18,12 @@ approved release raises `package.json` and renames the heading to that version.
   local registry and install with the Bun that runs them. Channel releases read `bun.lock` and refuse
   `package-lock.json`, `npm-shrinkwrap.json` and `bun.lockb`. Live publication to GitHub Packages with Bun has not
   run yet.
+- **Installing `@unset-sh` packages:** with `install` on, `ci-check.yml`, `releases-package.yml` and
+  `releases-channel.yml` now give the install step alone `NPM_CONFIG_TOKEN`, the job's token with `packages: read`,
+  so a repository whose `bunfig.toml` names `$NPM_CONFIG_TOKEN` for the `@unset-sh` scope can install from GitHub
+  Packages. The check and build commands never see it. A `ci-check.yml` caller must now grant `packages: read`
+  as well as `contents: read`, or GitHub refuses the run; release callers already grant `packages: write`. The
+  package must also give the calling repository read access under its **Manage Actions access** setting.
 
 - **Main-only repositories (org-0010):** `ci-branch-policy.yml` adds a `flow` input. The default `staged` keeps
   today's rules; `main` accepts pull requests from any branch or fork into `main` and refuses every other base. An

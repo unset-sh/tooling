@@ -16,7 +16,7 @@ The implementation described here is **unreleased, at version 0.0.0**. Use this 
 
 You need write access to the consuming repository, a `.bun-version` naming its exact Bun version, and a check command that runs from its root. GitHub Actions settings must allow the shared workflow. Before replacing an existing workflow, record its required check names, extra build steps, reports, and dependency-installation requirements.
 
-The first shared check grants `contents: read` and accepts no stored secrets. Its optional install runs `bun install --frozen-lockfile --ignore-scripts`. A repository that needs authenticated package installation or dependency lifecycle scripts needs a reviewed workflow adaptation before switching.
+The shared check grants `contents: read` and `packages: read` and accepts no stored secrets. Its optional install runs `bun install --frozen-lockfile --ignore-scripts` with the job's read-only token in `NPM_CONFIG_TOKEN`, for that step only, so `@unset-sh` packages can be read from GitHub Packages when the repository's `bunfig.toml` names `$NPM_CONFIG_TOKEN` for that scope and the package grants the repository Actions access. The check command never sees the token. A repository that needs dependency lifecycle scripts needs a reviewed workflow adaptation before switching.
 
 ## Configure the check caller
 
@@ -38,6 +38,7 @@ jobs:
     uses: unset-sh/tooling/.github/workflows/ci-check.yml@APPROVED_COMMIT_SHA
     permissions:
       contents: read
+      packages: read # the install step reads @unset-sh packages
     with:
       install: true
 ```
