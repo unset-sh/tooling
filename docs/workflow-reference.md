@@ -18,6 +18,24 @@ Maintain these descriptions in `workflows/descriptions.json` and run `npm run wo
 
 ### .github/workflows/docs-export.yml
 
+Prepare the organisation’s maintained documentation for the central docs site after regenerating and checking the organisation map.
+
+**What it does**
+
+1. Through the shared CI workflow, regenerate MAP.md and the profile map block from repos.json, then run the organisation’s tests and check the generated result.
+2. After validation succeeds, export the committed docs/site pages and licence into the github section with source revision and file hashes.
+3. Upload the isolated export for a later publishing step; regenerated map views are not committed or included as documentation sources by this workflow.
+
+**Produces**
+
+- A docs-\<commit\> artifact retained for 14 days, containing the github documentation section and provenance; this workflow does not publish to the docs repository.
+
+[Reviewed source at fb4bfedf463f](https://github.com/unset-sh/.github/blob/fb4bfedf463f7cead362980c49843f774611cce3/.github/workflows/docs-export.yml).
+
+Source SHA-256: `9e7ca1b8b2ff183c2da3d0bc9eab4a39c90b036b94d5813c2b5bb1e0f2a75ad4`.
+
+#### Additional reviewed version 1
+
 Prepare the organisation’s maintained documentation for the central docs site after the organisation checks pass.
 
 **What it does**
@@ -34,7 +52,47 @@ Prepare the organisation’s maintained documentation for the central docs site 
 
 Source SHA-256: `4993b718777f317c6e6f1b7e58b284068447b667edf4a576fcce6293fd90385d`.
 
+### .github/workflows/map-publish.yml
+
+Keep the committed organisation map and profile map block current after their source changes, using the reviewed shared publisher.
+
+**What it does**
+
+1. Run for relevant main-branch changes, on the hourly schedule and on demand; serialize publication runs without cancelling an active run.
+2. Call the shared organisation-map publisher at a full reviewed commit, which regenerates and checks the registered outputs with read-only permissions.
+3. Use its separate publisher to validate the same-run snapshot and preserve authored profile text, then prepare a generated-only pull request and request its exact-head squash merge.
+4. Respect GitHub merge restrictions and stop on observed main movement; a successful current-main run recovers a view made stale by a concurrent base change.
+
+**Produces**
+
+- The shared publisher’s seven-day org-map-\<run-id\>-\<run-attempt\> artifact.
+- Updated MAP.md and the generated profile/README.md block when output changed and GitHub permits the merge, or a prepared PR when the merge is refused; unchanged output creates no PR.
+
+[Reviewed source at fb4bfedf463f](https://github.com/unset-sh/.github/blob/fb4bfedf463f7cead362980c49843f774611cce3/.github/workflows/map-publish.yml).
+
+Source SHA-256: `bacf711d7076bd48ac08aa497df14d3fa86f3e6a101aaacba16c0807d8620064`.
+
 ### .github/workflows/org-map.yml
+
+Validate the organisation map regenerated from its curated source and report differences between that source and public GitHub repositories.
+
+**What it does**
+
+1. On pull requests and main changes, regenerate the map and profile from repos.json, then run tests and check the generated result without committing it.
+2. On daily scheduled or manual runs, compare public repository names, descriptions, archive status and licences with the curated map; private entries are skipped.
+3. Create or update one org-map-drift issue when differences appear, and close it when the comparison matches.
+4. Leave ownership descriptions and source metadata to a reviewed source change; the drift job does not rewrite repos.json, while the separate publisher updates derived Markdown views.
+
+**Produces**
+
+- Validation results for the regenerated organisation map.
+- An automatically maintained drift issue when public repository metadata differs.
+
+[Reviewed source at fb4bfedf463f](https://github.com/unset-sh/.github/blob/fb4bfedf463f7cead362980c49843f774611cce3/.github/workflows/org-map.yml).
+
+Source SHA-256: `f9f81fc280358996016ae43859e05b5288336e6701085e57b58660904d4f6e1f`.
+
+#### Additional reviewed version 1
 
 Keep the curated organisation map consistent with its source and report differences between the map and public GitHub repositories.
 
@@ -410,6 +468,28 @@ Refresh every map registered by a calling repository and hand its build one comp
 [Reviewed source at be211937c3a9](https://github.com/unset-sh/tooling/blob/be211937c3a939cca33d0cac251156392cd61a7e/.github/workflows/automation-maps-refresh.yml).
 
 Source SHA-256: `f5af37ae29d1678d846d3751390b38a2486d6509d6fc1d94419a09ae8962ca86`.
+
+### .github/workflows/automation-org-map.yml
+
+Regenerate the organisation’s Markdown map and publish validated changes through a generated-only pull request.
+
+**What it does**
+
+1. Accept only unset-sh/.github main-branch push, scheduled or manual runs, and verify the reusable helper’s repository and full commit identity.
+2. With read-only permissions, check out the exact source revision, regenerate and check the map, then stage only the two registered Markdown outputs in this run’s artifact.
+3. In a separate job, check out only the pinned helper, download the same-run snapshot and give the write token only to the publisher.
+4. Verify the source revision, fixed output paths and authored profile text, then create or reuse only a matching generated branch and bot-authored pull request with the bot sign-off.
+5. Request a squash merge with the exact PR head, refusing observed main movement and respecting GitHub merge restrictions; a concurrent base change can leave a stale view until a successful current-main run.
+
+**Produces**
+
+- An org-map-\<run-id\>-\<run-attempt\> artifact retained for seven days.
+- When output changes and GitHub permits the merge, updated MAP.md and the generated profile/README.md block; unchanged output creates no branch or PR.
+- A prepared pull request when GitHub refuses the merge; source declarations and authored profile text remain unchanged.
+
+[Reviewed source at 3b81a8a0196a](https://github.com/unset-sh/tooling/blob/3b81a8a0196a2c1e49131584bdd4355867f2ed4e/.github/workflows/automation-org-map.yml).
+
+Source SHA-256: `6d99e6c599fce452189e7b370a6686b8a903efc248ca3ba14069533dcad549c5`.
 
 ### .github/workflows/ci-check.yml
 
