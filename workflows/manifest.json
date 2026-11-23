@@ -2,6 +2,14 @@
   "schemaVersion": 1,
   "workflows": [
     {
+      "source": "workflows/shared/ci/repository-policy.yml",
+      "output": ".github/workflows/ci-repository-policy.yml"
+    },
+    {
+      "source": "workflows/tooling/ci/repository-policy.yml",
+      "output": ".github/workflows/ci-repository-policy-self.yml"
+    },
+    {
       "source": "workflows/shared/ci/branch-policy.yml",
       "output": ".github/workflows/ci-branch-policy.yml"
     },

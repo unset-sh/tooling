@@ -10,7 +10,7 @@ menus:
     weight: 50
 params:
   doc_kind: overview
-  checked_source_revision: "4274bca9d17d5eda5d1be6eca3bd796863bd859e"
+  checked_source_revision: "cac06e938139f53192e9e2fa85805b62ebfe2856"
 ---
 
 `unset-sh/tooling` maintains the shared GitHub Actions implementations and supporting scripts used by unset.sh repositories. A consumer keeps a small workflow that selects its events, permissions, and inputs, then calls an approved central commit. Its tests and build commands remain in that consumer.
@@ -32,6 +32,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 ## Learn and use
 
 - [Prepare a repository to use shared workflows](use-workflows.md): preserve the repository's checks while adding a pinned caller.
+- [Adopt repository policy checks](repository-policy.md): check dependency references, action pins, installed-kit integrity, and declared working-artifact paths.
 - [Release workflow reference](release-reference.md): inspect inputs, approval requirements, publication boundaries, and verification.
 - [Export the public documentation](export-docs.md): package an exact source revision for a reviewed import.
 - [Refresh every published map](map-refresh.md): register map generators and connect their complete snapshot to the build.
@@ -43,6 +44,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 ## Understand and contribute
 
 - [How workflow sources become GitHub entry points](workflow-layout.md): follow authored category files through generation and consumer execution.
+- [Repository policy scope](repository-policy.md#what-the-check-proves): understand committed-source inspection, exact exceptions, and review responsibilities.
 - [Maintain the workflow catalogue](workflow-map.md): understand collection, source provenance, refresh failures, and the distinction between declared configuration and runtime results.
 - [Refresh every published map](map-refresh.md#follow-a-successful-run): follow the shared job's collection, validation, and artifact boundary.
 - [Release workflow reference](release-reference.md#permissions-and-publication-boundary): understand the separation between consumer builds and protected publication.
@@ -51,6 +53,6 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 
 ## Source and version
 
-The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/4274bca9d17d5eda5d1be6eca3bd796863bd859e); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
+The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/cac06e938139f53192e9e2fa85805b62ebfe2856); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
 
 - [Pull-request policy checks](pr-policy.md): validate purpose and authored declarations before review.
