@@ -18,13 +18,17 @@ function pullRequest(base = "staging", head = "feature", headRepository = reposi
 
 function run(t, event, eventName = "pull_request", flow = "staged") {
   assert.ok(existsSync(workflow), "the reusable branch-policy workflow must exist");
-  const scripts = runBlocks(readFileSync(workflow, "utf8"));
+  const [version, ...scripts] = runBlocks(readFileSync(workflow, "utf8"));
+  assert.equal(version, 'test "$(bun --version)" = 1.4.4', "the policy runs on the pinned Bun, not the runner's latest");
   assert.ok(scripts[0].includes("const { readFileSync }"), "exercise the complete ordinary PR policy check");
   const folder = mkdtempSync(join(tmpdir(), "branch-policy-"));
   t.after(() => rmSync(folder, { recursive: true, force: true }));
   const eventPath = join(folder, "event.json");
   writeFileSync(eventPath, typeof event === "string" ? event : JSON.stringify(event));
-  return spawnSync(process.execPath, ["--input-type=commonjs", "--eval", scripts[0]], {
+  // GitHub writes the step to a file and runs `bun {0}` on it, as this does.
+  const script = join(folder, "policy");
+  writeFileSync(script, scripts[0]);
+  return spawnSync(process.execPath, [script], {
     cwd: folder, encoding: "utf8", env: {
       GITHUB_EVENT_PATH: eventPath, GITHUB_EVENT_NAME: eventName, GITHUB_REPOSITORY: repository,
       ...(flow === null ? {} : { FLOW: flow }),
@@ -109,7 +113,7 @@ test("branch metadata is data, not executable shell text", (t) => {
 });
 
 test("the anonymous dispatch loader refuses foreign identity before Git or any checkout", (t) => {
-  const script = runBlocks(readFileSync(workflow, "utf8"))[1];
+  const script = runBlocks(readFileSync(workflow, "utf8"))[2];
   const root = mkdtempSync(join(tmpdir(), "policy-loader-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const defaults = { PATH: process.env.PATH, GITHUB_REPOSITORY: "unset-sh/docs", GITHUB_REF: "refs/heads/automation/docs-tooling",

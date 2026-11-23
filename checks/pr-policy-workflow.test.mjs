@@ -18,7 +18,7 @@ test('PR policy is a read-only reusable check with no pull-request checkout', ()
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /\[ "\$EVENT_NAME" != pull_request \]/);
   assert.match(workflow, /\[ "\$WORKFLOW_REPOSITORY" != unset-sh\/tooling \]/);
-  assert.match(workflow, /node tooling\/scripts\/pr-policy\.mjs/);
+  assert.match(workflow, /bun tooling\/scripts\/pr-policy\.mjs/);
   assert.doesNotMatch(workflow, /npm (ci|install|exec)|inputs\.check|inputs\.command/);
 });
 

@@ -53,21 +53,31 @@ jobs:
           path: source/.build/tooling
           persist-credentials: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version-file: source/.build/tooling/.nvmrc
-          package-manager-cache: false
+          bun-version-file: source/.build/tooling/.bun-version
+          no-cache: true # never restore a runner from a cache another run wrote
+          token: "" # an exact version needs no API call, so the action gets no token
+      - name: Bun is the exact version source/.build/tooling/.bun-version names
+        env:
+          BUN_VERSION_FILE: source/.build/tooling/.bun-version
+        # setup-bun falls back to the latest release when the file is missing or unreadable; this refuses that.
+        run: test "$(bun --version)" = "$(cat "$BUN_VERSION_FILE")"
 
       - name: Install the map generators' dependencies
         if: inputs.install
         working-directory: source
-        run: npm ci --ignore-scripts
+        # --frozen-lockfile installs from package.json alone when there is no lockfile at all (Bun 1.4.4
+        # docs/pm/cli/install.mdx), where npm's clean install refused, so a missing bun.lock stops the job here.
+        run: |
+          test -f bun.lock || { echo "::error::Dependencies are to be installed, but there is no bun.lock."; exit 1; }
+          bun install --frozen-lockfile --ignore-scripts
 
       - name: Refresh and validate every registered map
         env:
           MAP_REGISTRY: ${{ inputs.registry }}
           DOCS_GITHUB_TOKEN: ${{ github.token }}
-        run: node source/.build/tooling/scripts/refresh-maps.mjs --root "$GITHUB_WORKSPACE/source" --registry "$MAP_REGISTRY" --out "$RUNNER_TEMP/maps-output"
+        run: bun source/.build/tooling/scripts/refresh-maps.mjs --root "$GITHUB_WORKSPACE/source" --registry "$MAP_REGISTRY" --out "$RUNNER_TEMP/maps-output"
 
       - name: Upload the complete map snapshot
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

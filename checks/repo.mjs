@@ -79,3 +79,33 @@ export function inputsOf(text) {
   }
   return names;
 }
+
+/** The action every workflow installs Bun with, pinned. */
+export const SETUP_BUN = "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0";
+
+/**
+ * The two steps that install the Bun a version file names and then refuse any other: setup-bun falls back to
+ * the latest release when it cannot read the file (src/index.ts at the pinned commit). No cache is restored
+ * and the action is given no token: an exact version needs no API call (src/download-url.ts).
+ */
+export function pinnedBun(versionFile, indent = 6) {
+  const step = " ".repeat(indent);
+  const field = " ".repeat(indent + 2);
+  const value = " ".repeat(indent + 4);
+  return [
+    `${step}- uses: ${SETUP_BUN}`,
+    `${field}with:`,
+    `${value}bun-version-file: ${versionFile}`,
+    `${value}no-cache: true # never restore a runner from a cache another run wrote`,
+    `${value}token: "" # an exact version needs no API call, so the action gets no token`,
+    `${step}- name: Bun is the exact version ${versionFile} names`,
+    `${field}env:`,
+    `${value}BUN_VERSION_FILE: ${versionFile}`,
+    `${field}# setup-bun falls back to the latest release when the file is missing or unreadable; this refuses that.`,
+    `${field}run: test "$(bun --version)" = "$(cat "$BUN_VERSION_FILE")"`,
+    "",
+  ].join("\n");
+}
+
+/** The shell text of the version check `pinnedBun` adds, as `runBlocks` returns it. */
+export const BUN_VERSION_CHECK = 'test "$(bun --version)" = "$(cat "$BUN_VERSION_FILE")"';

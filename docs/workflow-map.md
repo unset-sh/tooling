@@ -57,7 +57,7 @@ When adding or changing a workflow:
 1. Read the executable YAML and the helpers it calls at a full reviewed commit. Describe its purpose, main responsibilities, and resulting artifacts or effects in plain language. Do not copy secret values, environment settings, or shell bodies.
 2. Compute the SHA-256 of the original executable file bytes at that commit, including any byte-order mark and line endings. For generated workflows, hash the committed `.github/workflows/` file, including its provenance header.
 3. Add or update the matching record in `workflows/descriptions.json`. Use the repository's short name and flat executable path, and keep historical records when consumers still select those versions.
-4. Run `npm run workflows:describe`, then `npm run check`. Commit the registry and regenerated `docs/workflow-reference.md` together. The freshness check refuses a stale reference.
+4. Run `bun run workflows:describe`, then `bun run check`. Commit the registry and regenerated `docs/workflow-reference.md` together. The freshness check refuses a stale reference.
 5. Merge the reviewed registry change to tooling's default branch. The next successful collection adopts it automatically without changing the collector's executable pin, and reports any remaining review or missing states. Export the regenerated human reference through the normal documentation publishing process.
 
 The [`workflow-descriptions.mjs` helper](https://github.com/unset-sh/tooling/blob/4c46364843ff30b8cb3ff2c78d6d99a9407ad3bc/scripts/workflow-descriptions.mjs) validates the registry and generates the reference. The registry accepts at most 1,000 records and 1 MiB. Purpose, responsibility, and result text must be trimmed, nonempty single lines of at most 2,000 characters; each record has 1–20 responsibilities and 1–10 results. Duplicate repository/path/SHA-256 records, extra fields, malformed identities, and linked files are refused. The generator escapes prose as literal Markdown text and only replaces its own generated reference.
@@ -75,10 +75,10 @@ For example, changing the documentation site's workflow to select a new collecto
 | `parseYaml` | Required synchronous parser returning plain objects, arrays and scalar values; malformed input must throw |
 | `collectorCommit` | Required full 40-character commit identifying the reviewed collector checkout |
 | `githubToken` | Optional read-only GitHub token; omitted for unauthenticated requests |
-| `fetchImpl` | Optional fetch-compatible function; defaults to Node's `fetch` |
+| `fetchImpl` | Optional fetch-compatible function; defaults to the runtime's `fetch` |
 | `now` | Optional clock returning a `Date`; defaults to the current time |
 
-Tooling uses Node 26 and has no package dependencies. The documentation site supplies its existing pinned YAML parser, rejects ambiguous or malformed documents, and bounds alias expansion. Installing another parser in tooling would create a second parsing policy to maintain.
+Tooling runs on Bun 1.4.4 and has no package dependencies. The documentation site supplies its existing pinned YAML parser, rejects ambiguous or malformed documents, and bounds alias expansion. Installing another parser in tooling would create a second parsing policy to maintain.
 
 Requests use only `api.github.com`, with REST API version `2026-03-10`. The collector requests public repositories, resolves each default branch once, then reads immutable commit, tree and blob objects. Blob bytes must match their Git identity and declared size. The source SHA-256 preserves a UTF-8 byte-order mark and original line endings. API-provided URLs are never followed, redirects are refused, and errors omit response bodies and parser details. The [API version policy](https://docs.github.com/en/rest/about-the-rest-api/api-versions), [Git tree API](https://docs.github.com/en/rest/git/trees#get-a-tree), and [Git blob API](https://docs.github.com/en/rest/git/blobs#get-a-blob) define this boundary.
 
@@ -96,7 +96,7 @@ When a refresh fails, inspect the failing documentation workflow step, compare t
 
 ## Change and verify the collector
 
-Change the implementation in `scripts/workflow-catalogue.mjs` and its behavioural tests together. Run `npm run check` with the pinned Node version. Tests cover exact pinned and local calls, annotated tags, pagination, malformed configuration, bounded data, Git identity checks, and credential routing. The injected-parser tests use JSON documents, a valid YAML subset; the documentation repository separately exercises actual YAML syntax with its pinned parser.
+Change the implementation in `scripts/workflow-catalogue.mjs` and its behavioural tests together. Run `bun run check` with the pinned Bun version. Tests cover exact pinned and local calls, annotated tags, pagination, malformed configuration, bounded data, Git identity checks, and credential routing. The injected-parser tests use JSON documents, a valid YAML subset; the documentation repository separately exercises actual YAML syntax with its pinned parser.
 
 Select a reviewed full tooling commit in the documentation site's helper checkout, then validate a live refresh and the normal and publication builds. Consumer workflow pins do not change when the collector changes. The collector remains part of the unreleased tooling implementation at version `0.0.0`.
 

@@ -55,7 +55,7 @@ The [manifest](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc745
 | Authored source | Generated entry point | Responsibility |
 | --- | --- | --- |
 | `workflows/docs/pages/schedule.yml` | `.github/workflows/automation-docs-map-schedule.yml` | Request the approved main site refresh from the docs main timer |
-| `workflows/shared/ci/check.yml` | `.github/workflows/ci-check.yml` | Shared Node check |
+| `workflows/shared/ci/check.yml` | `.github/workflows/ci-check.yml` | Shared check |
 | `workflows/tooling/ci/self.yml` | `.github/workflows/ci-self.yml` | This repository's check caller |
 | `workflows/shared/ci/branch-policy.yml` | `.github/workflows/ci-branch-policy.yml` | Validate PR origins for staged or main-only repositories |
 | `workflows/tooling/ci/branch-policy.yml` | `.github/workflows/ci-branch-policy-self.yml` | This repository's branch-policy caller |
@@ -75,7 +75,7 @@ The executable names remain stable for existing callers, including the `automati
 
 For the organisation-wide executable inventory and actual caller relationships, use the [workflow map](https://docs.unset.sh/workflows/). Its [collector reference](workflow-map.md) explains exact pinned targets, the refresh boundary, and what cannot be inferred from YAML alone.
 
-The [workflow reference](workflow-reference.md) supplies the maintained explanation of what each reviewed workflow does and produces. Its source is `workflows/descriptions.json`; `npm run workflows:describe` regenerates the human page, and the live map flags descriptions when workflow bytes change. To add a map to automatic collection, follow [Refresh every published map](map-refresh.md).
+The [workflow reference](workflow-reference.md) supplies the maintained explanation of what each reviewed workflow does and produces. Its source is `workflows/descriptions.json`; `bun run workflows:describe` regenerates the human page, and the live map flags descriptions when workflow bytes change. To add a map to automatic collection, follow [Refresh every published map](map-refresh.md).
 
 ## From source to a run
 
@@ -83,7 +83,7 @@ The arrows below mean “produces” for generation and “calls” for runtime:
 
 ```text
 Authored source: workflows/shared/ci/check.yml
-    | npm run workflows produces
+    | bun run workflows produces
     v
 Committed entry point: .github/workflows/ci-check.yml
     ^ a pinned caller calls
@@ -98,11 +98,11 @@ The central repository owns job orchestration, helper scripts, and workflow test
 
 ## Example: change the shared check
 
-Suppose the shared check needs a different artifact-retention setting. Edit `workflows/shared/ci/check.yml` in a checkout of `unset-sh/tooling`. With Node 26.12.0, run these commands from the repository root:
+Suppose the shared check needs a different artifact-retention setting. Edit `workflows/shared/ci/check.yml` in a checkout of `unset-sh/tooling`. With Bun 1.4.4, run these commands from the repository root:
 
 ```sh
-npm run workflows
-npm run check
+bun run workflows
+bun run check
 ```
 
 Commit the source, any manifest change, and generated entry point together. Generation adds a source-and-destination comment and preserves the YAML body; it does not interpret or rewrite workflow expressions. A consumer still uses its existing pinned revision until a reviewed caller update selects the new one.
@@ -111,11 +111,11 @@ If someone edits the generated file directly, the freshness check reports the mi
 
 ## Keep dependency pins current
 
-The [Renovate configuration](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/.github/renovate.json) includes authored category YAML in `github-actions.managerFilePatterns` alongside the manager's default generated-workflow matching. This lets update proposals reach the source pins as well as their executable copies. Before accepting an update, regenerate from the category sources and run `npm run check`; a bot edit does not replace the generation-freshness gate.
+The [Renovate configuration](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/.github/renovate.json) includes authored category YAML in `github-actions.managerFilePatterns` alongside the manager's default generated-workflow matching. This lets update proposals reach the source pins as well as their executable copies. Before accepting an update, regenerate from the category sources and run `bun run check`; a bot edit does not replace the generation-freshness gate.
 
 ## Why keep generated copies
 
-The shared and repository namespaces make ownership visible as the catalogue grows. GitHub requires executable YAML in a flat directory, so this choice also creates committed copies. The [generator tests](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/scripts/workflows.test.mjs) and `npm run check` catch missing, stale, and orphaned generated output. Review still needs to assess each workflow's behaviour and permissions.
+The shared and repository namespaces make ownership visible as the catalogue grows. GitHub requires executable YAML in a flat directory, so this choice also creates committed copies. The [generator tests](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc74530589db49bed2700/scripts/workflows.test.mjs) and `bun run check` catch missing, stale, and orphaned generated output. Review still needs to assess each workflow's behaviour and permissions.
 
 ## Source and related guidance
 

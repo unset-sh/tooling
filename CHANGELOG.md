@@ -5,6 +5,20 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Bun replaces Node (Alex, 2026-11-23):** every workflow installs Bun 1.4.4 (1.4.5, released 2026-11-19, is still inside the 7-day wait) with `oven-sh/setup-bun` v2.2.0 at a
+  full commit, with no cache and no token, and then refuses any other version. A caller now needs a `.bun-version`
+  naming an exact Bun version in place of `.nvmrc`, and a committed `bun.lock` in place of `package-lock.json` when
+  `install` is on; a missing `bun.lock` fails the job. `install` runs `bun install --frozen-lockfile
+  --ignore-scripts`, and the default `command`/`check` is `bun run check`. Input, output, job and check names are
+  unchanged. Callers pinned to older commits are unaffected until they move their pin.
+- **Releases pack and publish with Bun:** `releases-package.yml` and `releases-channel.yml` pack with `bun pm pack`,
+  attest that exact file, and publish it with `bun publish` from an empty folder that is also its HOME, with only
+  `PATH`, `HOME` and `NPM_CONFIG_TOKEN` in its environment and an explicit registry. The packed-package reader now
+  accepts only the header form `bun pm pack` writes and keeps every earlier refusal; its tests pack, publish to a
+  local registry and install with the Bun that runs them. Channel releases read `bun.lock` and refuse
+  `package-lock.json`, `npm-shrinkwrap.json` and `bun.lockb`. Live publication to GitHub Packages with Bun has not
+  run yet.
+
 - **Main-only repositories (org-0010):** `ci-branch-policy.yml` adds a `flow` input. The default `staged` keeps
   today's rules; `main` accepts pull requests from any branch or fork into `main` and refuses every other base. An
   unknown value fails the check. The documentation import (`automation-docs-import.yml`), the docs site timer

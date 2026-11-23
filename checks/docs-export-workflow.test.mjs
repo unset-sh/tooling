@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
-import { jobsOf, readText, runBlocks, topLevel } from "./repo.mjs";
+import { BUN_VERSION_CHECK, jobsOf, pinnedBun, readText, runBlocks, topLevel } from "./repo.mjs";
 
 const workflow = readText(".github/workflows/automation-docs-export.yml");
 const job = jobsOf(workflow).export;
@@ -11,7 +11,7 @@ test("documentation export has one read-only job and accepts no consumer command
   assert.equal(topLevel(workflow, "on"), "on:\n  workflow_call:\n");
   assert.match(job, /^ {4}permissions:\n {6}contents: read\n {4}steps:/m);
   assert.doesNotMatch(workflow, /: write|inputs\.|secrets\.|secrets: inherit|working-directory:|\bnpm\b|\bgh\b/);
-  assert.equal(runBlocks(job).length, 2, "only the identity guard and central exporter run shell code");
+  assert.equal(runBlocks(job).length, 3, "only the identity guard, the Bun version check and central exporter run shell code");
 });
 
 test("export checks central helper identity before either checkout, and fails closed", () => {
@@ -37,9 +37,10 @@ test("export checks central helper identity before either checkout, and fails cl
 test("export reads the consumer commit while running its own pinned helper and Node", () => {
   assert.match(job, /repository: \$\{\{ github\.repository \}\}\n {10}ref: \$\{\{ github\.sha \}\}\n {10}path: source\n {10}persist-credentials: false/);
   assert.match(job, /repository: \$\{\{ job\.workflow_repository \}\}\n {10}ref: \$\{\{ job\.workflow_sha \}\}\n {10}path: tooling\n {10}persist-credentials: false/);
-  assert.match(job, /node-version-file: tooling\/\.nvmrc\n {10}package-manager-cache: false/);
+  assert.ok(job.includes(pinnedBun("tooling/.bun-version")), "Bun comes from the helper checkout's exact version");
+  assert.equal(runBlocks(job)[1], BUN_VERSION_CHECK);
   assert.match(job, /SOURCE_REPOSITORY: \$\{\{ github\.repository \}\}\n {10}SOURCE_REVISION: \$\{\{ github\.sha \}\}/);
-  assert.equal(runBlocks(job)[1], 'node tooling/scripts/export-docs.mjs --root "$GITHUB_WORKSPACE/source" --repository "$SOURCE_REPOSITORY" --revision "$SOURCE_REVISION" --out "$RUNNER_TEMP/docs-export"');
+  assert.equal(runBlocks(job)[2], 'bun tooling/scripts/export-docs.mjs --root "$GITHUB_WORKSPACE/source" --repository "$SOURCE_REPOSITORY" --revision "$SOURCE_REVISION" --out "$RUNNER_TEMP/docs-export"');
 });
 
 test("export uploads the entire provenance-bearing section without credentials or deployment", () => {
