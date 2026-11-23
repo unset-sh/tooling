@@ -491,6 +491,42 @@ Regenerate the organisation’s Markdown map and publish validated changes throu
 
 Source SHA-256: `6d99e6c599fce452189e7b370a6686b8a903efc248ca3ba14069533dcad549c5`.
 
+### .github/workflows/ci-branch-policy-self.yml
+
+Apply the shared PR branch policy to tooling itself.
+
+**What it does**
+
+1. Run on all pull requests, including retargeting and ready-for-review events, without path or base filters.
+2. Call the branch-policy implementation from the same commit with no token permissions.
+
+**Produces**
+
+- The nested policy / Validate branch policy result; no merges, settings changes or releases.
+
+[Reviewed source at 8adf511bed6a](https://github.com/unset-sh/tooling/blob/8adf511bed6a0f1627237d4e062056fe0c6e04fd/.github/workflows/ci-branch-policy-self.yml).
+
+Source SHA-256: `b5ef9684b9ef797b2a6a91890793a14c0715e58362883cea4212d603a0433fe6`.
+
+### .github/workflows/ci-branch-policy.yml
+
+Validate that feature work enters staging and only same-repository staging promotes to main.
+
+**What it does**
+
+1. Read the original pull-request event as JSON with no checkout, token permissions, repository code or API calls.
+2. Reject missing or inconsistent metadata, non-PR events and bases other than staging or main.
+3. Allow feature and fork PRs into staging; require a staging head from the same repository for main.
+4. Report the branch-policy result without identifying a human, approving a PR or publishing anything.
+
+**Produces**
+
+- The Validate branch policy job conclusion, for callers to require alongside their product checks.
+
+[Reviewed source at 8adf511bed6a](https://github.com/unset-sh/tooling/blob/8adf511bed6a0f1627237d4e062056fe0c6e04fd/.github/workflows/ci-branch-policy.yml).
+
+Source SHA-256: `da74e0945258546204a5d88e780529643aafc3b55e46e77d0a4d2697ee923e8b`.
+
 ### .github/workflows/ci-check.yml
 
 Provide a reusable Node-based check job that each calling repository configures with its own validation command.
@@ -531,7 +567,62 @@ Provide a reusable Node-based check job that each calling repository configures 
 
 Source SHA-256: `b2fb5be2127833a3317b7a4102db2e1aa5be4ad829e731b980ee386ce29f90a9`.
 
+### .github/workflows/ci-pr-policy-self.yml
+
+Apply the shared pull-request metadata check to tooling changes when their code, description or labels change.
+
+**What it does**
+
+1. Run on opened, synchronized, reopened, edited, labeled, unlabeled and ready-for-review pull requests, without path filters.
+2. Call tooling’s local reusable PR policy workflow with read-only contents and pull-request permissions, cancelling superseded runs for the same PR.
+3. Use the repository’s purpose labels and PR template to make missing declarations actionable.
+
+**Produces**
+
+- The policy / PR policy check on tooling pull requests. Ruleset enforcement and adoption in other repositories are separate rollout steps.
+
+[Reviewed source at c65eee545658](https://github.com/unset-sh/tooling/blob/c65eee545658a893d7f82b041757ccf2f58d4935/.github/workflows/ci-pr-policy-self.yml).
+
+Source SHA-256: `8216cc1b806ec417eb5346f8814734d7e2ee22c767d136a3dc647ca873cf76ab`.
+
+### .github/workflows/ci-pr-policy.yml
+
+Validate current pull-request labels and readiness, validation and documentation declarations without executing pull-request code.
+
+**What it does**
+
+1. Require a real pull-request event, bind its repository, number and head to current metadata fetched from the fixed GitHub API endpoint, and refuse changed or unavailable identities.
+2. Require exactly one supported purpose label, one readiness choice, prerequisite and tested-combination fields, and authored validation and documentation sections.
+3. Ignore comments and code examples, reject duplicate sections and placeholders, and run only the central helper at the exact reusable-workflow commit with read-only permissions.
+
+**Produces**
+
+- A PR policy check result. This validates declarations, not their truth or sufficiency; it does not merge, release or grant a policy exception.
+
+[Reviewed source at c65eee545658](https://github.com/unset-sh/tooling/blob/c65eee545658a893d7f82b041757ccf2f58d4935/.github/workflows/ci-pr-policy.yml).
+
+Source SHA-256: `045e38c5b7cc3f215daed8fa3c01ff11d01f56fad745a14b21daeeb1188acca6`.
+
 ### .github/workflows/ci-self.yml
+
+Verify tooling’s implementation and the executable workflows generated from its organised workflow sources.
+
+**What it does**
+
+1. Run for pull requests and pushes to staging or main.
+2. Run the local reusable check workflow, which checks generated workflow files and runs tooling’s test suites.
+3. Download the pinned actionlint release and verify its SHA-256.
+4. Lint the executable workflow files, suppressing only the two documented job-context fields that the pinned linter does not recognise.
+
+**Produces**
+
+- Check and workflow-lint results; this workflow does not release or publish tooling.
+
+[Reviewed source at 8adf511bed6a](https://github.com/unset-sh/tooling/blob/8adf511bed6a0f1627237d4e062056fe0c6e04fd/.github/workflows/ci-self.yml).
+
+Source SHA-256: `cc13916e879cda827cbb19dc03ebd0a4af58e8543d5ca6d7a479abb81096dd65`.
+
+#### Additional reviewed version 1
 
 Verify tooling’s implementation and the executable workflows generated from its organised workflow sources.
 

@@ -69,6 +69,37 @@ An upgrade is a reviewed change to the pinned commit. Reverting that caller chan
 
 Prepare the owner-managed environment and repository settings in the [release reference](release-reference.md#prerequisites), then adapt the [release caller template](https://github.com/unset-sh/.github/blob/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates/release.yml). A successful check migration alone does not establish that publication or attestation verification works.
 
+## Validate staging and main pull requests
+
+The reusable `ci-branch-policy.yml` accepts no inputs and needs no token permissions. It reads the original
+`pull_request` event without checking out or executing consumer code. PRs targeting `staging` may come from
+feature branches or forks; PRs targeting stable `main` must come from `staging` in the same repository.
+Missing event metadata, another base branch or a non-PR event fails the check.
+
+Install a small caller with a reviewed full tooling commit:
+
+```yaml
+name: branch-policy
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+permissions: {}
+jobs:
+  policy:
+    uses: unset-sh/tooling/.github/workflows/ci-branch-policy.yml@APPROVED_COMMIT_SHA
+    permissions: {}
+```
+
+Do not add path or base-branch filters: all PRs need the check, including retargeted PRs. The reusable job
+name is `Validate branch policy`; with caller job `policy`, expect `policy / Validate branch policy` and
+confirm the actual run before requiring that status. Keep application checks required alongside it.
+
+This check does not identify a human, approve or merge a PR, change branch settings, or publish anything.
+The rule that only a human promotes staging to main still applies, including when agents share that account.
+Repository rules must separately prevent direct updates and require this check. A `pull_request` workflow
+can itself be modified by a PR; review workflow and caller changes as policy changes rather than treating
+this status as a tamper-proof server-side rule. The staging release and deployment transition remains separate.
+
 ## Planned automatic adoption
 
 Automatic propagation of tooling updates is **not implemented**. The intended sequence is an owner-approved tooling release, a consumer pull request updating the full commit pin, required consumer checks, eligible automatic merging, and the consumer's delivery workflow. Release publication retains its owner approval.
