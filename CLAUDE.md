@@ -36,6 +36,12 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
   2026-11-22; that authorizes the repository/signer path migration, not weakening an approval or verification gate.
 - The release `publish` job runs no consuming-repository code and treats all build output as untrusted. Only that
   job writes and uses the protected `release` environment. Check and documentation-export jobs are read-only.
+- The separate staged-channel release follows Alex's approved staging/main delivery decision: humans merge
+  the exact staging promotion, then checks/build and publication run without another manual approval. Its
+  pre-existing `release-staging`/`release-stable` environments must restrict the matching branch and forbid
+  administrator bypass. Preserve the legacy release contract; consumer activation and settings remain explicit.
+  The token cannot prove hidden ruleset bypass actors or whether a same-account merger was human; document
+  those boundaries and retain the separate settings audit and human-only promotion rule.
 - No stored secrets in shared workflows. Use job-scoped permissions, disable persisted checkout credentials, and
   pass expression values through `env`, never interpolate them into shell scripts. Central helper checkouts must
   fail closed unless their repository and full commit identity match the running workflow.

@@ -10,7 +10,7 @@ menus:
     weight: 50
 params:
   doc_kind: overview
-  checked_source_revision: "cac06e938139f53192e9e2fa85805b62ebfe2856"
+  checked_source_revision: "50b5ae0db21922603e3dc74530589db49bed2700"
 ---
 
 `unset-sh/tooling` maintains the shared GitHub Actions implementations and supporting scripts used by unset.sh repositories. A consumer keeps a small workflow that selects its events, permissions, and inputs, then calls an approved central commit. Its tests and build commands remain in that consumer.
@@ -23,7 +23,7 @@ The implementation described here is **unreleased, at version 0.0.0**. No consum
 | --- | --- |
 | `unset-sh/tooling` | Shared checks, protected releases, map-refresh, documentation-export and workflow-catalogue helpers, and their tests |
 | `unset-sh/.github` | Organisation profile, community defaults, repository map, and native workflow-picker templates |
-| Each consumer | Events, permissions, pinned callers, project checks, build commands, and release approval |
+| Each consumer | Events, permissions, pinned callers, project checks, build commands, and release or promotion approval |
 | `unset-sh/agent-kit` | Shared agent instructions and agent working notes and artifacts |
 | `unset-sh/docs` | Documentation rendering and publication |
 
@@ -34,6 +34,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 - [Prepare a repository to use shared workflows](use-workflows.md): preserve the repository's checks while adding a pinned caller.
 - [Adopt repository policy checks](repository-policy.md): check dependency references, action pins, installed-kit integrity, and declared working-artifact paths.
 - [Release workflow reference](release-reference.md): inspect inputs, approval requirements, publication boundaries, and verification.
+- [Release through staging and main](release-channels.md): prepare separate prerelease and stable channels with a human promotion boundary.
 - [Export the public documentation](export-docs.md): package an exact source revision for a reviewed import.
 - [Refresh every published map](map-refresh.md): register map generators and connect their complete snapshot to the build.
 - [Publish the organisation's Markdown views](organisation-map-publication.md): keep the GitHub map and profile current after source changes.
@@ -53,6 +54,6 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 
 ## Source and version
 
-The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/cac06e938139f53192e9e2fa85805b62ebfe2856); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
+The [source repository](https://github.com/unset-sh/tooling) contains the maintained implementation. These pages describe the [checked source revision](https://github.com/unset-sh/tooling/tree/50b5ae0db21922603e3dc74530589db49bed2700); individual pages link to the relevant helpers and tests. The organisation's [native caller templates](https://github.com/unset-sh/.github/tree/db0d794cf1761644ebc379fb2a36e50571f199a7/workflow-templates) are maintained separately in `.github`.
 
 - [Pull-request policy checks](pr-policy.md): validate purpose and authored declarations before review.
