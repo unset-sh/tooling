@@ -4,10 +4,10 @@
 // https://docs.github.com/en/rest/git/trees#create-a-tree
 // https://docs.github.com/en/rest/git/commits#create-a-commit
 // https://docs.github.com/en/rest/git/refs#create-a-reference
-// https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request
+// https://docs.github.com/en/rest/pulls/pulls#create-a-pull-request
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { closeSync, constants, fstatSync, lstatSync, openSync, readSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, constants, fstatSync, lstatSync, openSync, readSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, parse, relative, resolve, sep } from "node:path";
 import { startedAsScript } from "./cli.mjs";
 
@@ -29,11 +29,15 @@ const blobHash = (text) => createHash("sha1").update(`blob ${Buffer.byteLength(t
 // It validates a real generated PR; it never fabricates a pull_request event.
 export async function validateGeneratedMapDispatch({ context, number, expectedHead, expectedBase, api }) {
   if (context?.repository !== repositoryName || context.event !== "workflow_dispatch" ||
-      !isSha(expectedHead) || !isSha(expectedBase) || expectedHead === expectedBase || context.sha !== expectedHead ||
+      context.sha !== expectedHead || context.ref !== `refs/heads/automation/map-${expectedBase}`) refuse("Invalid generated map dispatch identity");
+  return validateGeneratedMapPullRequest({ number, expectedHead, expectedBase, api });
+}
+
+export async function validateGeneratedMapPullRequest({ number, expectedHead, expectedBase, api }) {
+  if (!isSha(expectedHead) || !isSha(expectedBase) || expectedHead === expectedBase ||
       typeof number !== "string" || !/^[1-9][0-9]*$/.test(number) || number.length > 16 ||
       String(Number(number)) !== number || !Number.isSafeInteger(Number(number))) refuse("Invalid generated map dispatch identity");
   const branch = `automation/map-${expectedBase}`;
-  if (context.ref !== `refs/heads/${branch}`) refuse("Invalid generated map dispatch branch identity");
   const get = async path => {
     try { return await api(repositoryName, "GET", path); }
     catch { refuse("Cannot read generated map dispatch proof"); }
@@ -263,11 +267,11 @@ export async function publishGeneratedMap({ snapshot, githubToken, fetchImpl = f
     if (response.status >= 400) { await response.body?.cancel().catch(() => {}); return { status: response.status }; }
     return { status: response.status, data: await responseJson(response) };
   };
-  const checkMain = async () => {
-    const { data } = await api("GET", "/git/ref/heads/main");
-    if (data?.ref !== "refs/heads/main" || data.object?.type !== "commit" || data.object.sha !== snapshot.commit) refuse("Source main branch moved; regenerate the map");
+  const checkStaging = async () => {
+    const { data } = await api("GET", "/git/ref/heads/staging");
+    if (data?.ref !== "refs/heads/staging" || data.object?.type !== "commit" || data.object.sha !== snapshot.commit) refuse("Source staging branch moved; regenerate the map");
   };
-  await checkMain();
+  await checkStaging();
   const { data: base } = await api("GET", `/git/commits/${snapshot.commit}`);
   if (base?.sha !== snapshot.commit || !isSha(base.tree?.sha)) refuse("Invalid immutable base commit");
   const { data: tree } = await api("GET", `/git/trees/${base.tree.sha}?recursive=1`);
@@ -291,7 +295,7 @@ export async function publishGeneratedMap({ snapshot, githubToken, fetchImpl = f
   const existing = await api("GET", `/git/ref/heads/${branch}`, undefined, [200, 404]);
   if (existing.status === 200 && (existing.data?.ref !== `refs/heads/${branch}` ||
       existing.data.object?.type !== "commit" || !isSha(existing.data.object.sha))) refuse("Invalid existing publication branch");
-  await checkMain();
+  await checkStaging();
   const updated = [];
   for (const path of changed) {
     const { data } = await api("POST", "/git/blobs", { content: snapshot.files[path], encoding: "utf-8" }, [201]);
@@ -323,23 +327,21 @@ export async function publishGeneratedMap({ snapshot, githubToken, fetchImpl = f
   const { data: prs } = await api("GET", `/pulls?state=all&head=unset-sh%3Aautomation%2Fmap-${snapshot.commit}&per_page=100`);
   if (!Array.isArray(prs) || prs.length > 1) refuse("Invalid or ambiguous existing publication pull requests");
   const pr = prs.length === 1 ? prs[0] : (await api("POST", "/pulls", {
-    title, head: branch, base: "main", body: "Refresh the generated organisation map from validated repos.json. Only MAP.md and the generated profile map block may change.",
+    title, head: branch, base: "staging", body: `## What changes\n\nRefresh the generated organisation map from validated repos.json. Only MAP.md and the generated profile map block change.\n\n## Readiness\n\n- [x] Independent — can merge after checks and independent review\n- [ ] Dependent — requires prerequisites\n\nPrerequisites and order: None.\nTested combination: Source staging revision ${snapshot.commit}; generated PR head ${commit.sha}.\n\n## Validation\n\nThe source map generator and repository checks passed before publication. Separate exact-head dispatch checks must pass before this staging PR is merged.\n\n## Documentation\n\nMAP.md and the generated profile block are the documentation outputs. Main promotion remains a separate human action.`,
   }, [201])).data;
   if (!Number.isSafeInteger(pr?.number) || pr.number <= 0 || pr.state !== "open" || pr.head?.sha !== commit.sha ||
-      pr.head.ref !== branch || pr.head.repo?.full_name !== repositoryName || pr.base?.ref !== "main" ||
+      pr.head.ref !== branch || pr.head.repo?.full_name !== repositoryName || pr.base?.ref !== "staging" ||
       pr.base.sha !== snapshot.commit || pr.base.repo?.full_name !== repositoryName) refuse("GitHub returned an unexpected existing or new publication pull request");
-  // GitHub attributes a squash to the PR creator. A manually opened retry PR
-  // must not turn this bot's generated update into a human-authored commit.
-  // https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/merging-a-pull-request
+  // Retry only this automation's bot-owned PR. Never adopt a manually opened
+  // or foreign PR as a generated update, even when it names the same branch.
   if (pr.user?.login !== "github-actions[bot]" || pr.user.id !== 41898282 || pr.user.type !== "Bot") {
     refuse("Publication pull request must have the expected bot author");
   }
   const url = `https://github.com/unset-sh/.github/pull/${pr.number}`;
-  await checkMain();
-  // The merge endpoint enforces the expected PR head and repository protections.
-  // No direct main ref update, required status, approval, or bypass is ever written.
-  const merged = await api("PUT", `/pulls/${pr.number}/merge`, { sha: commit.sha, merge_method: "squash", commit_title: title, commit_message: signoff }, [200, 403, 405, 409, 422]);
-  return { status: merged.data?.merged === true ? "merged" : "pending", url };
+  await checkStaging();
+  // The generated PR enters normal staging review. Dispatch is a separate job;
+  // publication never merges, promotes production, or updates a protected ref.
+  return { status: "pending", number: pr.number, head: commit.sha, base: snapshot.commit, url };
 }
 
 async function main() {
@@ -358,13 +360,15 @@ async function main() {
   else {
     const snapshot = validateSnapshot(parseJson(fileBytes(resolve(options["--snapshot"]), maximumSnapshot)));
     if (process.env.GITHUB_REPOSITORY !== repositoryName || process.env.GITHUB_SHA !== snapshot.commit ||
-        process.env.GITHUB_REF !== "refs/heads/main" || !["push", "schedule", "workflow_dispatch"].includes(process.env.GITHUB_EVENT_NAME)) {
+        process.env.GITHUB_REF !== "refs/heads/staging" || !["push", "schedule", "workflow_dispatch"].includes(process.env.GITHUB_EVENT_NAME)) {
       refuse("Generated map workflow context does not match the snapshot");
     }
     result = await publishGeneratedMap({ snapshot, githubToken });
   }
   console.log(`${result.status}${result.url ? ` ${result.url}` : ""}`);
-  if (result.status === "pending") process.exitCode = 1;
+  if (mode === "publish" && result.number && process.env.GITHUB_OUTPUT) {
+    appendFileSync(process.env.GITHUB_OUTPUT, `number=${result.number}\nhead=${result.head}\nbase=${result.base}\n`);
+  }
 }
 
 if (startedAsScript(import.meta.url)) main().catch((error) => {
