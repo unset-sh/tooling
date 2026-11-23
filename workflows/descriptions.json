@@ -314,6 +314,37 @@
     },
     {
       "repository": "tooling",
+      "path": ".github/workflows/automation-docs-import.yml",
+      "purpose": "Prepare checked staging documentation imports from the two allowlisted stable source repositories without automating production promotion.",
+      "steps": [
+        "Resolve an exact main source revision with a successful same-repository export run, then re-export its committed documentation and licence with read-only permissions.",
+        "Validate a same-run bounded snapshot against immutable source Git objects and complete provenance before an isolated writer replaces only the owned section on its generated staging PR.",
+        "Use a separate Actions-writing job to verify the actual generated PR, dispatch the existing documentation and branch-policy checks on its exact head, and bind the returned run identities."
+      ],
+      "outputs": [
+        "A seven-day docs-import-<source>-<run-id>-<run-attempt> artifact and an opened, updated or pending section-only staging PR when content changes; valid unchanged content creates no PR.",
+        "Verified requested run URLs for the two existing required checks; the workflow never merges a PR or promotes production."
+      ],
+      "reviewedCommit": "082e488ec41047ae79e5da2ba4327538d0e758c6",
+      "reviewedSha256": "ea1aaa8901c6367c4c395f8173bcd4ed5f080f601b8518a00c549689f32c8962"
+    },
+    {
+      "repository": "tooling",
+      "path": ".github/workflows/ci-branch-policy.yml",
+      "purpose": "Validate normal pull-request branch relationships and narrowly verified generated-PR dispatches without granting the policy job token permissions.",
+      "steps": [
+        "For ordinary PR events, read GitHub event metadata without checkout and require staging or main as the base; only same-repository staging may target main.",
+        "For generated dispatches, refuse foreign repository, branch, head or helper identities before anonymously fetching the central validator at the running workflow commit.",
+        "Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting the same required check."
+      ],
+      "outputs": [
+        "The stable Validate branch policy job result, failing on malformed events, unsupported generated identities, source proof failures or ref movement."
+      ],
+      "reviewedCommit": "082e488ec41047ae79e5da2ba4327538d0e758c6",
+      "reviewedSha256": "2365d1362d70ca9e830166d2cecdc7c8f6846d8f10186edc84d6459bb9cafd66"
+    },
+    {
+      "repository": "tooling",
       "path": ".github/workflows/releases-channel.yml",
       "reviewedCommit": "42f07ecbfbe4e6106e7903fe2a5671db51232f7d",
       "reviewedSha256": "8b2b1785233c21dab5cbfcd0288e9a43cb51a75365733b6b3aab9cf143c80611",

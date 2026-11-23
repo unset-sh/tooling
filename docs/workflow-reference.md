@@ -827,6 +827,25 @@ Provide a shared way to package committed public documentation with verifiable s
 
 Source SHA-256: `2d1461df9ac798d9ff5c37e45339df30c3f80e14ff6da0a7a1a0f27c912e9c8f`.
 
+### .github/workflows/automation-docs-import.yml
+
+Prepare checked staging documentation imports from the two allowlisted stable source repositories without automating production promotion.
+
+**What it does**
+
+1. Resolve an exact main source revision with a successful same-repository export run, then re-export its committed documentation and licence with read-only permissions.
+2. Validate a same-run bounded snapshot against immutable source Git objects and complete provenance before an isolated writer replaces only the owned section on its generated staging PR.
+3. Use a separate Actions-writing job to verify the actual generated PR, dispatch the existing documentation and branch-policy checks on its exact head, and bind the returned run identities.
+
+**Produces**
+
+- A seven-day docs-import-\<source\>-\<run-id\>-\<run-attempt\> artifact and an opened, updated or pending section-only staging PR when content changes; valid unchanged content creates no PR.
+- Verified requested run URLs for the two existing required checks; the workflow never merges a PR or promotes production.
+
+[Reviewed source at 082e488ec410](https://github.com/unset-sh/tooling/blob/082e488ec41047ae79e5da2ba4327538d0e758c6/.github/workflows/automation-docs-import.yml).
+
+Source SHA-256: `ea1aaa8901c6367c4c395f8173bcd4ed5f080f601b8518a00c549689f32c8962`.
+
 ### .github/workflows/automation-docs-map-schedule.yml
 
 Keep the docs site’s approved main build refreshing every registered map when staging is the default branch.
@@ -959,6 +978,24 @@ Apply the shared PR branch policy to tooling itself.
 Source SHA-256: `b5ef9684b9ef797b2a6a91890793a14c0715e58362883cea4212d603a0433fe6`.
 
 ### .github/workflows/ci-branch-policy.yml
+
+Validate normal pull-request branch relationships and narrowly verified generated-PR dispatches without granting the policy job token permissions.
+
+**What it does**
+
+1. For ordinary PR events, read GitHub event metadata without checkout and require staging or main as the base; only same-repository staging may target main.
+2. For generated dispatches, refuse foreign repository, branch, head or helper identities before anonymously fetching the central validator at the running workflow commit.
+3. Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting the same required check.
+
+**Produces**
+
+- The stable Validate branch policy job result, failing on malformed events, unsupported generated identities, source proof failures or ref movement.
+
+[Reviewed source at 082e488ec410](https://github.com/unset-sh/tooling/blob/082e488ec41047ae79e5da2ba4327538d0e758c6/.github/workflows/ci-branch-policy.yml).
+
+Source SHA-256: `2365d1362d70ca9e830166d2cecdc7c8f6846d8f10186edc84d6459bb9cafd66`.
+
+#### Additional reviewed version 1
 
 Validate that feature work enters staging and only same-repository staging promotes to main.
 
