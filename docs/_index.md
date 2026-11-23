@@ -32,6 +32,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 ## Learn and use
 
 - [Prepare a repository to use shared workflows](use-workflows.md): preserve the repository's checks while adding a pinned caller.
+- [Adopt repository policy checks](repository-policy.md): check dependency references, action pins, installed-kit integrity, and declared working-artifact paths.
 - [Release workflow reference](release-reference.md): inspect inputs, approval requirements, publication boundaries, and verification.
 - [Export the public documentation](export-docs.md): package an exact source revision for a reviewed import.
 - [Refresh every published map](map-refresh.md): register map generators and connect their complete snapshot to the build.
@@ -43,6 +44,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 ## Understand and contribute
 
 - [How workflow sources become GitHub entry points](workflow-layout.md): follow authored category files through generation and consumer execution.
+- [Repository policy scope](repository-policy.md#what-the-check-proves): understand committed-source inspection, exact exceptions, and review responsibilities.
 - [Maintain the workflow catalogue](workflow-map.md): understand collection, source provenance, refresh failures, and the distinction between declared configuration and runtime results.
 - [Refresh every published map](map-refresh.md#follow-a-successful-run): follow the shared job's collection, validation, and artifact boundary.
 - [Release workflow reference](release-reference.md#permissions-and-publication-boundary): understand the separation between consumer builds and protected publication.
