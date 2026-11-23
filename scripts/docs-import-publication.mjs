@@ -155,7 +155,7 @@ export async function publishDocsImport({ snapshot, api }) {
   if (pr) validateImportPr(pr, branch, existing?.object.sha, base);
   else if (prs.some(item => item.state !== "closed" || !item.merged_at || item.user?.login !== "github-actions[bot]")) refuseImport("A previous import was closed without merging; review it before retrying");
   let head = existing?.object.sha;
-  let changed = !(previous && canonicalTree(previous.root.filter(entry => entry.path !== source.section)) === canonicalTree(baseRoot.filter(entry => entry.path !== source.section)) && sameFiles(previous.entries, snapshot));
+  let changed = !(previous && previous.base === base && canonicalTree(previous.root.filter(entry => entry.path !== source.section)) === canonicalTree(baseRoot.filter(entry => entry.path !== source.section)) && sameFiles(previous.entries, snapshot));
   if (changed) {
     const files = [];
     for (const [path, bytes] of decodeImportFiles(snapshot)) {

@@ -103,10 +103,24 @@ test("raw documentation reads use only exact docs commits without credentials or
   assert.equal(requests[0].options.headers, undefined);
   for (const [repo, path] of [["outside/docs", `/raw/${"a".repeat(40)}/tooling/index.md`],
     ["unset-sh/docs", "/raw/main/tooling/index.md"], ["unset-sh/docs", `/raw/${"a".repeat(40)}/other/index.md`],
-    ["unset-sh/docs", `/raw/${"a".repeat(40)}/tooling/../secret`], ["unset-sh/docs", `/raw/${"a".repeat(40)}/tooling/%2e%2e/secret`]]) {
+    ["unset-sh/docs", `/raw/${"a".repeat(40)}/tooling/../secret`], ["unset-sh/docs", `/raw/${"a".repeat(40)}/tooling/%2e%2e/secret`], ["unset-sh/docs", `/raw/${"a".repeat(40)}/tooling/index.md\n`]]) {
     await assert.rejects(api(repo, "RAW", path));
   }
   assert.equal(requests.length, 1);
   const huge = createDocsApi({ fetchImpl: async () => new Response(Buffer.alloc(1024 * 1024 + 1)) });
   await assert.rejects(huge("unset-sh/docs", "RAW", `/raw/${"a".repeat(40)}/github/index.md`), /bounded/);
+});
+
+
+test("only immutable metadata is cached and anonymous REST traffic is bounded", async () => {
+  let calls = 0;
+  const api = createDocsApi({ fetchImpl: async () => new Response(JSON.stringify({ value: ++calls })) });
+  const path = `/git/commits/${"a".repeat(40)}`;
+  const first = await api("unset-sh/tooling", "GET", path); first.value = -1;
+  assert.deepEqual(await api("unset-sh/tooling", "GET", path), { value: 1 });
+  assert.deepEqual(await api("unset-sh/tooling", "GET", "/git/ref/heads/main"), { value: 2 });
+  assert.deepEqual(await api("unset-sh/tooling", "GET", "/git/ref/heads/main"), { value: 3 });
+  for (let index = 3; index < 48; index++) await api("unset-sh/tooling", "GET", "/git/ref/heads/main");
+  await assert.rejects(api("unset-sh/tooling", "GET", "/git/ref/heads/main"), /request budget/);
+  assert.equal(calls, 48);
 });

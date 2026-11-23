@@ -28,7 +28,7 @@ export function validateImportPaths(files) {
   let previous = "";
   for (const file of files) {
     const path = file.path;
-    if (typeof path !== "string" || path.length > 1024 || path <= previous) refuseImport("Documentation paths must be unique and sorted");
+    if (typeof path !== "string" || /[\u0000-\u0020\u007f]/.test(path) || path.length > 1024 || path <= previous) refuseImport("Documentation paths must be unique and sorted");
     previous = path;
     const parts = path.split("/");
     if (parts.length > 12) refuseImport("Documentation path nesting exceeds its limit");

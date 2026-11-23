@@ -149,4 +149,15 @@ test("updating a checked import after staging advances keeps its real three-dot 
   assert.deepEqual(await validateDocsImportDispatch(dispatch), { number: 1, head: second.head, base: secondBase, branch: second.branch, repository: "unset-sh/docs" });
   await assert.rejects(validateDocsImportDispatch({ ...dispatch, api: (name, method, path, ...rest) => path.includes("/files?")
     ? [{ filename: "README.md", status: "modified" }] : api(name, method, path, ...rest) }), /another section|framework/);
+  // Staging can advance only inside this section while the source bytes stay unchanged.
+  // The previous branch still needs a new recorded base and reconciliation parent.
+  docs.put("tooling/_index.md", "Independent section change\n");
+  const thirdBase = docs.commit("Advance the owned section on staging");
+  const third = await publishDocsImport({ snapshot: snapshot(), api });
+  assert.equal(third.status, "updated");
+  assert.deepEqual(gitCommit(docs, third.head).parents.map(parent => parent.sha), [second.head, thirdBase]);
+  assert.equal(docs.git(["merge-base", thirdBase, third.head]), thirdBase);
+  assert.ok(docs.git(["diff", "--name-only", `${thirdBase}...${third.head}`]).split("\n").every(path => path.startsWith("tooling/")));
+  await validateDocsImportDispatch({ ...dispatch, context: { ...dispatch.context, sha: third.head }, expectedHead: third.head, expectedBase: thirdBase });
+
 });

@@ -27,7 +27,7 @@ async function boundedJson(response) {
 
 async function readRawDocs(fetchImpl, repository, path) {
   const match = /^\/raw\/([a-f0-9]{40})\/(tooling|github)\/(.+)$/.exec(path);
-  if (repository !== "unset-sh/docs" || !match) refuseImport("Invalid raw documentation identity");
+  if (repository !== "unset-sh/docs" || !match || match[0] !== path) refuseImport("Invalid raw documentation identity");
   validateImportPaths([{ path: match[3] }]);
   const address = `https://raw.githubusercontent.com/unset-sh/docs/${match[1]}/${match[2]}/${match[3].split("/").map(encodeURIComponent).join("/")}`;
   let response;

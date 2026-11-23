@@ -72,6 +72,7 @@ test("untrusted payloads cannot select another destination, revision, path or co
     item => { item.files[0].path = "a\\b.md"; },
     item => { item.files[0].path = "CON.txt"; },
     item => { item.files[0].path = "trailing."; },
+    item => { item.files[0].path = "LICENSE\n"; },
     item => { item.files[0].content += "\n"; },
     item => { item.files[0].content = Buffer.from("different licence").toString("base64"); },
     item => { item.files[0].sha256 = "f".repeat(64); },
