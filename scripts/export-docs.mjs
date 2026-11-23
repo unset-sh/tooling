@@ -17,7 +17,7 @@ const reservedSections = new Set([
   "assets", "static", "layouts", "content", "data", "i18n", "archetypes", "scripts", "tests",
   "node_modules", ".build", "public", "resources", "github", "unset",
 ]);
-const usage = "Usage: node scripts/export-docs.mjs --revision <40sha> --out <fresh-dir> [--root <repo>] [--repository unset-sh/<name>]";
+const usage = "Usage: bun scripts/export-docs.mjs --revision <40sha> --out <fresh-dir> [--root <repo>] [--repository unset-sh/<name>]";
 
 function sectionFor(repository) {
   const match = typeof repository === "string" && /^unset-sh\/(\.github|[a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(repository);

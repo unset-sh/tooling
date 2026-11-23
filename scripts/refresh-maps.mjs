@@ -4,7 +4,7 @@ import { closeSync, constants, fstatSync, lstatSync, mkdirSync, mkdtempSync, ope
 import { dirname, isAbsolute, join, parse, relative, resolve, sep } from "node:path";
 import { startedAsScript } from "./cli.mjs";
 
-const usage = "Usage: node scripts/refresh-maps.mjs --root <repository> --out <fresh-directory> [--registry .github/maps.json]";
+const usage = "Usage: bun scripts/refresh-maps.mjs --root <repository> --out <fresh-directory> [--registry .github/maps.json]";
 const limits = { registry: 64 * 1024, generator: 1024 * 1024, output: 8 * 1024 * 1024, total: 32 * 1024 * 1024 };
 const fullMatch = (pattern, value) => typeof value === "string" && pattern.exec(value)?.[0] === value;
 
