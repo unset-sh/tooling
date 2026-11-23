@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { baseCommit, importFixture, sourceCommit } from "../checks/docs-import-fixture.mjs";
+import { appFixtureModules, appFixtureIdentity } from "../checks/automation-app-fixture.mjs";
 import { receiverContext, runDocsImport } from "./docs-import.mjs";
 
 const environment = { GITHUB_REPOSITORY: "unset-sh/docs", GITHUB_REF: "refs/heads/main",
@@ -67,4 +68,57 @@ test("the executable rejects a foreign receiver without logging its token or arb
     env: { PATH: process.env.PATH, ...environment, GITHUB_REPOSITORY: "outside/docs", DOCS_GITHUB_TOKEN: "PRIVATE_TOKEN" }, encoding: "utf8", timeout: 3000 });
   assert.equal(run.status, 1); assert.match(run.stderr, /Documentation import refused/);
   assert.doesNotMatch(run.stdout + run.stderr, /PRIVATE_TOKEN|PRIVATE_SOURCE/);
+});
+
+test("publisher credentials cannot fall back to a job token or reach source preparation", async () => {
+  const { takeImportCredentials } = await import("./docs-import.mjs");
+  const values = { DOCS_APP_TOKEN: "app-fixture", AUTOMATION_APP_SLUG: "fixture-automation", AUTOMATION_APP_INSTALLATION_ID: "789" };
+  const environment = { ...values, OTHER: "preserved" };
+  assert.deepEqual(takeImportCredentials(environment, "publish"), { githubToken: "app-fixture", publicationCredentials: {
+    githubToken: "app-fixture", appSlug: "fixture-automation", installationId: "789" } });
+  assert.deepEqual(environment, { OTHER: "preserved" });
+  for (const command of ["resolve", "stage", "dispatch"]) {
+    const unsafe = { ...values };
+    assert.throws(() => takeImportCredentials(unsafe, command), /publisher/);
+    assert.deepEqual(unsafe, {});
+  }
+  for (const unsafe of [{ DOCS_GITHUB_TOKEN: "job-fixture" }, { ...values, DOCS_GITHUB_TOKEN: "job-fixture" }]) {
+    assert.throws(() => takeImportCredentials(unsafe, "publish"), /publisher/);
+    assert.deepEqual(unsafe, {});
+  }
+  const reader = { DOCS_GITHUB_TOKEN: "job-fixture" };
+  assert.deepEqual(takeImportCredentials(reader, "stage"), { githubToken: "job-fixture" });
+  assert.deepEqual(reader, {});
+});
+
+
+test("the real publisher CLI uses the same isolated App token for scope proof and docs writes", async t => {
+  const { root } = await appFixtureModules(callback => t.after(callback));
+  const fixture = importFixture(), snapshot = join(root, "snapshot.json"), output = join(root, "output");
+  writeFileSync(snapshot, JSON.stringify(fixture.snapshot));
+  const preload = join(root, "remote.mjs");
+  writeFileSync(preload, `import assert from "node:assert/strict";
+import { remote } from ${JSON.stringify(new URL("../checks/docs-import-publication-fixture.mjs", import.meta.url).href)};
+import { importFixture } from ${JSON.stringify(new URL("../checks/docs-import-fixture.mjs", import.meta.url).href)};
+const github = remote(importFixture());
+globalThis.fetch = async (address, options) => {
+  for (const key of ["DOCS_APP_TOKEN", "DOCS_GITHUB_TOKEN", "AUTOMATION_APP_SLUG", "AUTOMATION_APP_INSTALLATION_ID"]) assert.equal(process.env[key], undefined);
+  assert.equal(options.redirect, "error");
+  if (address === "https://api.github.com/installation/repositories?per_page=100") {
+    assert.equal(options.headers.Authorization, "Bearer app-fixture");
+    return Response.json({total_count:1,repositories:[{id:321,full_name:"unset-sh/docs",owner:{login:"unset-sh",type:"Organization"}}]});
+  }
+  const url = new URL(address), match = /^\\/repos\\/(unset-sh\\/[^/]+)(\\/.*)$/.exec(url.pathname);
+  assert.ok(match); assert.equal(url.origin, "https://api.github.com");
+  assert.equal(options.headers.Authorization, match[1] === "unset-sh/docs" ? "Bearer app-fixture" : undefined);
+  const value = await github.api(match[1], options.method, match[2] + url.search, options.body ? JSON.parse(options.body) : undefined);
+  return Response.json(value, {status:value === null ? 404 : options.method === "POST" ? 201 : 200});
+};
+`);
+  const result = spawnSync(process.execPath, ["--import", preload, join(root, "docs-import.mjs"), "publish", "--source", "tooling", "--snapshot", snapshot], {
+    env: { PATH: process.env.PATH, ...environment, DOCS_APP_TOKEN: "app-fixture", AUTOMATION_APP_SLUG: appFixtureIdentity.slug,
+      AUTOMATION_APP_INSTALLATION_ID: String(appFixtureIdentity.installationId), GITHUB_OUTPUT: output }, encoding: "utf8", timeout: 5000 });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).branch, "automation/docs-app-tooling");
+  assert.doesNotMatch(result.stdout + result.stderr, /app-fixture/);
 });

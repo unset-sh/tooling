@@ -1,3 +1,4 @@
+import { checkAppSecretBoundary } from "./app-secret-policy.mjs";
 // What the workflow files promise, checked on their text. Each test names the mistake it would catch.
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -65,10 +66,10 @@ test("no checkout keeps its token", () => {
   }
 });
 
-test("no workflow reads a stored secret or runs with a fork's code and a writing token", () => {
+test("only isolated App publishers may read the approved key; no fork code receives writing rights", () => {
   for (const path of workflowFiles()) {
     const text = readText(path);
-    assert.doesNotMatch(text, /\bsecrets\./, `${path} reads a secret`);
+    checkAppSecretBoundary(path, text);
     assert.doesNotMatch(text, /secrets: inherit/, `${path} passes every secret on`);
     assert.doesNotMatch(text, /pull_request_target|workflow_run/, `${path} uses a trigger that runs with more rights`);
   }

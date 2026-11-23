@@ -11,7 +11,7 @@ export function receiverContext(environment) {
   return environment.GITHUB_SHA;
 }
 
-export async function runDocsImport({ args, environment = process.env, api, output = () => {} }) {
+export async function runDocsImport({ args, environment = process.env, api, publicationCredentials, output = () => {} }) {
   const base = receiverContext(environment);
   const [command, ...rest] = args, values = {};
   const allowed = { resolve: ["source"], stage: ["source", "revision", "run-id", "root", "out"], publish: ["source", "snapshot"],
@@ -39,7 +39,7 @@ export async function runDocsImport({ args, environment = process.env, api, outp
     const snapshot = readDocsImport(values.snapshot);
     if (snapshot.source.key !== values.source) refuseImport("Snapshot belongs to another source");
     if (snapshot.target.baseCommit !== base) refuseImport("Snapshot belongs to another docs revision");
-    const result = await publishDocsImport({ snapshot, api });
+    const result = await publishDocsImport({ snapshot, api, ...publicationCredentials });
     if (result.status !== "unchanged") output({ changed: "true", "pull-request": result.number, "expected-head": result.head, "expected-base": base, branch: result.branch });
     else output({ changed: "false" });
     return result;
@@ -48,11 +48,22 @@ export async function runDocsImport({ args, environment = process.env, api, outp
   return dispatchDocsImportChecks({ number: values["pull-request"], expectedHead: values["expected-head"], expectedBase: base, branch: values.branch, api });
 }
 
+export function takeImportCredentials(environment, command) {
+  const jobToken = environment.DOCS_GITHUB_TOKEN, appToken = environment.DOCS_APP_TOKEN;
+  const appSlug = environment.AUTOMATION_APP_SLUG, installationId = environment.AUTOMATION_APP_INSTALLATION_ID;
+  for (const key of ["DOCS_GITHUB_TOKEN", "DOCS_APP_TOKEN", "AUTOMATION_APP_SLUG", "AUTOMATION_APP_INSTALLATION_ID"]) delete environment[key];
+  if (command === "publish") {
+    if (!appToken || jobToken || !appSlug || !installationId) refuseImport("The publisher requires only its scoped App token");
+    return { githubToken: appToken, publicationCredentials: { githubToken: appToken, appSlug, installationId } };
+  }
+  if (appToken || appSlug || installationId) refuseImport("App credentials belong only in the publisher");
+  return { githubToken: jobToken };
+}
+
 async function main() {
-  const token = process.env.DOCS_GITHUB_TOKEN;
-  delete process.env.DOCS_GITHUB_TOKEN;
-  // The exporter invokes isolated Git; the job token never reaches a subprocess.
-  const result = await runDocsImport({ args: process.argv.slice(2), api: createDocsApi({ githubToken: token }), output: values => {
+  const credentials = takeImportCredentials(process.env, process.argv[2]);
+  // The exporter invokes isolated Git; neither token remains in subprocess env.
+  const result = await runDocsImport({ args: process.argv.slice(2), api: createDocsApi({ githubToken: credentials.githubToken }), publicationCredentials: credentials.publicationCredentials, output: values => {
     if (!process.env.GITHUB_OUTPUT) refuseImport("Missing Actions output channel");
     for (const [key, value] of Object.entries(values)) {
       if (!/^[a-z-]+$/.test(key) || !/^[A-Za-z0-9_./-]+$/.test(String(value))) refuseImport("Invalid import output");

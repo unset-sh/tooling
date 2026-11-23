@@ -5,6 +5,14 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **App-owned documentation imports:** publish through the scoped App on new fixed `automation/docs-app-*` branches, retain read-only source preparation and remove automatic check dispatch. Ordinary PR checks, owner setup and the separate main-only cutover are prerequisites; no old PR is adopted or merged.
+
+- **App-owned organisation map PRs:** the isolated publisher accepts one explicit App private-key secret and
+  uses a short-lived token scoped to `.github` contents and PR writes. The built-in token is read-only. App-created
+  PRs start ordinary checks; the automatic dispatcher and its Actions-write grant are removed. Exact source/output
+  checks, App ownership and normal independent merge review remain mandatory. Adoption requires reviewed App setup,
+  the separate main-only branch cutover and updated caller pins; no generated PR is merged automatically.
+
 - **Main-only repositories (org-0010):** `ci-branch-policy.yml` adds a `flow` input. The default `staged` keeps
   today's rules; `main` accepts pull requests from any branch or fork into `main` and refuses every other base. An
   unknown value fails the check. The documentation import (`automation-docs-import.yml`), the docs site timer

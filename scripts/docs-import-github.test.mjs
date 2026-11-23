@@ -124,3 +124,15 @@ test("only immutable metadata is cached and anonymous REST traffic is bounded", 
   await assert.rejects(api("unset-sh/tooling", "GET", "/git/ref/heads/main"), /request budget/);
   assert.equal(calls, 48);
 });
+
+test("only the new fixed App import refs can be updated", async () => {
+  const requests = [];
+  const api = createDocsApi({ githubToken: "app-fixture", fetchImpl: async (url, options) => {
+    requests.push({ url, options }); return Response.json({ ok: true });
+  } });
+  for (const source of ["tooling", "github"]) await api("unset-sh/docs", "PATCH", `/git/refs/heads/automation/docs-app-${source}`, { sha: "a".repeat(40), force: false });
+  for (const branch of ["automation/docs-tooling", "automation/docs-github", "automation/docs-app-other", "main", "staging"]) {
+    await assert.rejects(api("unset-sh/docs", "PATCH", `/git/refs/heads/${branch}`, { sha: "a".repeat(40), force: false }), /Unsupported/);
+  }
+  assert.equal(requests.length, 2);
+});

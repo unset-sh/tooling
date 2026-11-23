@@ -1,20 +1,29 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { test } from "node:test";
-import { publishGeneratedMap, stageGeneratedMap, validateSnapshot } from "./generated-map-publication.mjs";
-
-const cli = fileURLToPath(new URL("./generated-map-publication.mjs", import.meta.url));
+import { pathToFileURL } from "node:url";
+import { after, test } from "node:test";
+// Exercise the real publisher and identity verifier with public fixture identity
+// only in an isolated copy. Production remains dormant until owner setup lands.
+const appRoot = mkdtempSync(join(realpathSync(tmpdir()), "map-app-test-"));
+after(() => rmSync(appRoot, { recursive: true, force: true }));
+for (const name of ["generated-map-publication.mjs", "automation-app.mjs", "cli.mjs"]) {
+  copyFileSync(new URL(`./${name}`, import.meta.url), join(appRoot, name));
+}
+writeFileSync(join(appRoot, "automation-app.json"), JSON.stringify({ clientId: "Iv23fixture1234567890", appId: 123, slug: "fixture-automation", botId: 456, installationId: 789 }));
+const { publishGeneratedMap, stageGeneratedMap, validateSnapshot } = await import(pathToFileURL(join(appRoot, "generated-map-publication.mjs")));
+const { automationApp } = await import(pathToFileURL(join(appRoot, "automation-app.mjs")));
+const cli = join(appRoot, "generated-map-publication.mjs");
 const repository = "unset-sh/.github";
 const base = "a".repeat(40);
 const baseTree = "b".repeat(40);
 const newTree = "c".repeat(40);
 const head = "d".repeat(40);
-const signoff = "Signed-off-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>";
+const signoff = automationApp.signoff;
+const appIdentity = { appSlug: automationApp.slug, installationId: String(automationApp.installationId) };
 const marker = "<!-- org-map:start (generated from repos.json; edit that, then run npm run map) -->";
 const oldReadme = `# Authored introduction\n${marker}\nOld map\n<!-- org-map:end -->\nAuthored footer\n`;
 const newReadme = oldReadme.replace("Old map", "New map");
@@ -25,8 +34,12 @@ const entry = (path, sha) => ({ path, sha, mode: "100644", type: "blob" });
 function server(options = {}) {
   const calls = [];
   let baseReads = 0;
-  const pr = () => ({ number: 17, state: "open", user: { login: "github-actions[bot]", id: 41898282, type: "Bot" }, head: { sha: head, ref: `automation/map-${base}`, repo: { full_name: repository } }, base: { ref: "main", sha: base, repo: { full_name: repository } }, ...options.prOverride });
+  const pr = () => ({ number: 17, state: "open", user: automationApp.bot, head: { sha: head, ref: `automation/map-${base}`, repo: { full_name: repository } }, base: { ref: "main", sha: base, repo: { full_name: repository } }, ...options.prOverride });
   const fetchImpl = async (url, init) => {
+    if (url === "https://api.github.com/installation/repositories?per_page=100") {
+      calls.push({ method: init.method, path: "/installation/repositories?per_page=100" });
+      return new Response(JSON.stringify(options.installation ?? { total_count: 1, repositories: [{ id: 123, full_name: repository, owner: { login: "unset-sh", type: "Organization" } }] }));
+    }
     assert.ok(url.startsWith("https://api.github.com/repos/unset-sh/.github/"));
     assert.equal(init.redirect, "error");
     assert.ok(init.signal instanceof AbortSignal);
@@ -66,13 +79,13 @@ function server(options = {}) {
 
 test("unchanged generated files cause no writes", async () => {
   const api = server({ unchanged: true });
-  assert.deepEqual(await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), { status: "unchanged" });
+  assert.deepEqual(await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), { status: "unchanged" });
   assert.deepEqual(api.writes(), []);
 });
 
 test("publishes only changed output blobs as a main PR with the immutable parent and no merge", async () => {
   const api = server();
-  const result = await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl });
+  const result = await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl });
   assert.deepEqual(result, { status: "pending", number: 17, head, base, url: "https://github.com/unset-sh/.github/pull/17" });
   assert.deepEqual(api.writes().map(({ method, path }) => [method, path]), [
     ["POST", "/git/blobs"], ["POST", "/git/blobs"], ["POST", "/git/trees"],
@@ -94,7 +107,7 @@ test("publishes only changed output blobs as a main PR with the immutable parent
 test("a README-only change leaves the unchanged MAP blob out of the new tree entries", async () => {
   const api = server();
   const s = snapshot(); s.files["MAP.md"] = "Old map\n";
-  await publishGeneratedMap({ snapshot: s, githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl });
+  await publishGeneratedMap({ snapshot: s, githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl });
   assert.equal(api.writes().filter(({ path }) => path === "/git/blobs").length, 1);
   assert.deepEqual(api.calls.find(({ path }) => path === "/git/trees").body.tree, [entry("profile/README.md", hash(newReadme))]);
 });
@@ -103,7 +116,7 @@ for (const content of [newReadme.replace("Authored", "Changed"), newReadme.repla
   test("rejects authored README or malformed marker edits before writing", async () => {
     const api = server();
     const value = snapshot(); value.files["profile/README.md"] = content;
-    await assert.rejects(publishGeneratedMap({ snapshot: value, githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /README|marker/);
+    await assert.rejects(publishGeneratedMap({ snapshot: value, githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), /README|marker/);
     assert.deepEqual(api.writes(), []);
   });
 }
@@ -124,7 +137,7 @@ for (const [label, mutate] of [
     const s = snapshot(); mutate(s);
     assert.throws(() => validateSnapshot(s));
     const api = server();
-    await assert.rejects(publishGeneratedMap({ snapshot: s, githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }));
+    await assert.rejects(publishGeneratedMap({ snapshot: s, githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }));
     assert.deepEqual(api.calls, []);
   });
 }
@@ -132,7 +145,7 @@ for (const [label, mutate] of [
 for (const moveAt of [1, 2, 3]) {
   test(`refuses main moving at check ${moveAt}`, async () => {
     const api = server({ moveAt });
-    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /main.*moved/);
+    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), /main.*moved/);
     assert.equal(api.calls.some(({ path }) => path.endsWith("/merge")), false);
     if (moveAt <= 2) assert.deepEqual(api.writes(), []);
   });
@@ -141,7 +154,7 @@ for (const moveAt of [1, 2, 3]) {
 for (const existingPr of [false, true]) {
   test(`retries a verified existing publication branch ${existingPr ? "and PR" : "without a PR"} without moving its ref`, async () => {
     const api = server({ existing: true, existingPr });
-    assert.deepEqual(await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), { status: "pending", number: 17, head, base, url: "https://github.com/unset-sh/.github/pull/17" });
+    assert.deepEqual(await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), { status: "pending", number: 17, head, base, url: "https://github.com/unset-sh/.github/pull/17" });
     assert.deepEqual(api.writes().filter(({ path }) => path === "/git/refs" || path === "/git/commits"), []);
     assert.equal(api.writes().filter(({ path }) => path === "/pulls").length, existingPr ? 0 : 1);
     assert.ok(api.calls.some(({ path }) => path === `/git/commits/${head}`));
@@ -151,41 +164,41 @@ for (const existingPr of [false, true]) {
 for (const bad of [{ wrongTree: true }, { wrongParent: true }, { existingPr: true, duplicatePr: true }]) {
   test("refuses unverified existing trees, parents and ambiguous pull requests", async () => {
     const api = server({ existing: true, ...bad });
-    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /existing|ambiguous/);
+    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), /existing|ambiguous/);
     assert.ok(api.writes().every(({ path }) => ["/git/blobs", "/git/trees"].includes(path)));
   });
 }
 
 test("refuses an existing publication commit without the bot sign-off", async () => {
   const api = server({ existing: true, existingPr: true, unsigned: true });
-  await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /sign-off/);
+  await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), /sign-off/);
   assert.ok(api.writes().every(({ path }) => ["/git/blobs", "/git/trees"].includes(path)));
 });
 
 test("refuses a human-created retry PR rather than adopting it as generated output", async () => {
   const api = server({ existing: true, existingPr: true, prOverride: { user: { login: "maintainer", id: 123, type: "User" } } });
-  await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /bot author/);
+  await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), /bot author/);
   assert.ok(api.writes().every(({ path }) => ["/git/blobs", "/git/trees"].includes(path)));
 });
 
 for (const prOverride of [{ state: "closed" }, { head: { sha: "e".repeat(40) } }, { head: { sha: head, ref: `automation/map-${base}`, repo: { full_name: "other/repo" } } }, { base: { ref: "other", sha: base, repo: { full_name: repository } } }]) {
   test("refuses a closed, moved, foreign or retargeted existing PR without merge", async () => {
     const api = server({ existing: true, existingPr: true, prOverride });
-    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /pull request/);
+    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), /pull request/);
     assert.ok(api.writes().every(({ path }) => ["/git/blobs", "/git/trees"].includes(path)));
   });
 }
 
 test("publication never attempts to merge or update the main ref", async () => {
   const api = server({ refusal: 405 });
-  assert.deepEqual(await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }),
+  assert.deepEqual(await publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }),
     { status: "pending", number: 17, head, base, url: "https://github.com/unset-sh/.github/pull/17" });
   assert.equal(api.calls.some(({ method }) => ["PUT", "PATCH", "DELETE"].includes(method)), false);
 });
 
 test("HTTP and network failures never expose a token or response body", async () => {
   for (const fetchImpl of [server({ failure: 500 }).fetchImpl, async () => { throw new Error("TOKEN-SECRET private-body"); }]) {
-    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl }), (error) => {
+    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl }), (error) => {
       assert.doesNotMatch(error.message, /TOKEN-SECRET|private-body/);
       return true;
     });
@@ -246,14 +259,14 @@ test("publish CLI reports a prepared PR successfully and emits only bounded iden
   const f = fixture(t);
   writeFileSync(f.out, JSON.stringify(snapshot()));
   const preload = join(f.directory, "fake-api.mjs");
-  const declarations = { repository, base, baseTree, newTree, head, signoff, oldReadme, newReadme };
+  const declarations = { repository, base, baseTree, newTree, head, signoff, oldReadme, newReadme, automationApp };
   writeFileSync(preload, `import assert from 'node:assert/strict';\nimport { createHash } from 'node:crypto';\n` +
     Object.entries(declarations).map(([key, value]) => `const ${key} = ${JSON.stringify(value)};`).join("\n") +
     `\nconst hash = ${hash.toString()};\nconst entry = ${entry.toString()};\n${server.toString()}\n` +
     `const api = server({ refusal: 405 }); globalThis.fetch = (...args) => { assert.equal(process.env.GH_TOKEN, undefined); return api.fetchImpl(...args); };`);
   const output = join(f.directory, "outputs"); writeFileSync(output, "");
   const result = spawnSync(process.execPath, ["--import", preload, cli, "publish", "--snapshot", f.out], {
-    env: { ...process.env, GITHUB_REPOSITORY: repository, GITHUB_SHA: base, GITHUB_REF: "refs/heads/main", GITHUB_EVENT_NAME: "push", GH_TOKEN: "TOKEN-SECRET", GITHUB_OUTPUT: output }, encoding: "utf8",
+    env: { ...process.env, GITHUB_REPOSITORY: repository, GITHUB_SHA: base, GITHUB_REF: "refs/heads/main", GITHUB_EVENT_NAME: "push", GH_TOKEN: "TOKEN-SECRET", AUTOMATION_APP_SLUG: appIdentity.appSlug, AUTOMATION_APP_INSTALLATION_ID: appIdentity.installationId, GITHUB_OUTPUT: output }, encoding: "utf8",
   });
   assert.equal(result.status, 0);
   assert.equal(readFileSync(output, "utf8"), `number=17\nhead=${head}\nbase=${base}\n`);
@@ -294,5 +307,43 @@ for (const [key, value] of [["GITHUB_REPOSITORY", "other/repo"], ["GITHUB_SHA", 
     assert.equal(result.status, 1);
     assert.match(result.stderr, /context/);
     assert.doesNotMatch(result.stdout + result.stderr, /TOKEN-SECRET/);
+  });
+}
+
+for (const override of [{ appSlug: "foreign-app" }, { installationId: "0" }, { appSlug: undefined }, { installationId: undefined }]) {
+  test("wrong or missing App output identity fails before publication writes", async () => {
+    const api = server();
+    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, ...override, fetchImpl: api.fetchImpl }));
+    assert.deepEqual(api.writes(), []);
+  });
+}
+
+test("legacy job-token PRs are not adopted as App-owned map PRs", async () => {
+  const api = server({ existing: true, existingPr: true, prOverride: { user: { login: "github-actions[bot]", id: 41898282, type: "Bot" } } });
+  await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), /bot author/);
+  assert.ok(api.writes().every(({ path }) => ["/git/blobs", "/git/trees"].includes(path)));
+});
+
+for (const installation of [
+  { total_count: 2, repositories: [{ id: 123, full_name: repository, owner: { login: "unset-sh", type: "Organization" } }] },
+  { total_count: 1, repositories: [{ id: 123, full_name: "unset-sh/docs", owner: { login: "unset-sh", type: "Organization" } }] },
+]) {
+  test("a token for extra or different repositories never reaches map publication", async () => {
+    const api = server({ installation });
+    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), /selected repository/);
+    assert.deepEqual(api.calls.map(call => call.path), ["/installation/repositories?per_page=100"]);
+    assert.deepEqual(api.writes(), []);
+  });
+}
+
+for (const user of [
+  { ...automationApp.bot, id: automationApp.bot.id + 1 },
+  { ...automationApp.bot, login: "lookalike[bot]" },
+  { ...automationApp.bot, type: "User" },
+]) {
+  test("App PR ownership requires the exact configured bot login, numeric ID and type", async () => {
+    const api = server({ existing: true, existingPr: true, prOverride: { user } });
+    await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", ...appIdentity, fetchImpl: api.fetchImpl }), /bot author/);
+    assert.ok(api.writes().every(({ path }) => ["/git/blobs", "/git/trees"].includes(path)));
   });
 }

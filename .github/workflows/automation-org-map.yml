@@ -3,6 +3,9 @@ name: org-map-publication
 
 on:
   workflow_call:
+    secrets:
+      automation-app-private-key:
+        required: true
 
 permissions: {}
 
@@ -61,16 +64,11 @@ jobs:
           retention-days: 7
 
   publish:
-    outputs:
-      number: ${{ steps.publication.outputs.number }}
-      head: ${{ steps.publication.outputs.head }}
-      base: ${{ steps.publication.outputs.base }}
     needs: generate
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     steps:
       - name: Validate source and helper identities
         env:
@@ -100,51 +98,23 @@ jobs:
         with:
           name: org-map-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/org-map
+      - name: Read the approved public App identity
+        id: app
+        run: node tooling/scripts/automation-app.mjs
+      - name: Create a token for only this repository's generated PRs
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ steps.app.outputs.client-id }}
+          private-key: ${{ secrets.automation-app-private-key }}
+          owner: unset-sh
+          repositories: .github
+          permission-contents: write
+          permission-pull-requests: write
       - name: Prepare a validated generated-only main PR
         id: publication
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          AUTOMATION_APP_SLUG: ${{ steps.token.outputs.app-slug }}
+          AUTOMATION_APP_INSTALLATION_ID: ${{ steps.token.outputs.installation-id }}
         run: node tooling/scripts/generated-map-publication.mjs publish --snapshot "$RUNNER_TEMP/org-map/map.json"
-
-
-  dispatch:
-    needs: publish
-    if: needs.publish.outputs.number != ''
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
-      actions: write
-    steps:
-      - name: Validate source and helper identities
-        env:
-          REPOSITORY: ${{ github.repository }}
-          REF: ${{ github.ref }}
-          EVENT: ${{ github.event_name }}
-          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
-          WORKFLOW_SHA: ${{ job.workflow_sha }}
-        run: |
-          if [ "$REPOSITORY" != unset-sh/.github ] || [ "$REF" != refs/heads/main ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Expected the organisation map on main and pinned tooling."
-            exit 1
-          fi
-          case "$EVENT" in push|schedule|workflow_dispatch) ;; *) exit 1 ;; esac
-      - name: Check out only the trusted dispatch helper
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: ${{ job.workflow_repository }}
-          ref: ${{ job.workflow_sha }}
-          path: tooling
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: tooling/.nvmrc
-          package-manager-cache: false
-      - name: Revalidate the generated PR and request its existing checks
-        env:
-          GH_TOKEN: ${{ github.token }}
-          MAP_PR_NUMBER: ${{ needs.publish.outputs.number }}
-          MAP_PR_HEAD: ${{ needs.publish.outputs.head }}
-          MAP_PR_BASE: ${{ needs.publish.outputs.base }}
-        run: node tooling/scripts/generated-map-checks.mjs

@@ -3,9 +3,12 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import { stageDocsImport } from "./docs-import-data.mjs";
-import { publishDocsImport } from "./docs-import-publication.mjs";
+import { appFixtureModules, appFixtureCredentials } from "../checks/automation-app-fixture.mjs";
+const modules = await appFixtureModules(after);
+const { automationApp } = modules["automation-app"];
+const publishDocsImport = options => modules["docs-import-publication"].publishDocsImport({ ...appFixtureCredentials, ...options });
 import { validateDocsImportDispatch } from "./docs-import-dispatch.mjs";
 
 const environment = { PATH: process.env.PATH, LANG: "C", GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null",
@@ -114,7 +117,7 @@ test("updating a checked import after docs main advances keeps its real three-do
       return { ref, object: { type: "commit", sha: body.sha } };
     }
     if (method === "POST" && path === "/pulls") {
-      pr = { number: 1, state: "open", user: { login: "github-actions[bot]", id: 41898282, type: "Bot" },
+      pr = { number: 1, state: "open", user: automationApp.bot,
         head: { ref: body.head, repo: { full_name: name } }, base: { ref: body.base, repo: { full_name: name } } };
       return currentPr();
     }
@@ -146,9 +149,7 @@ test("updating a checked import after docs main advances keeps its real three-do
   assert.equal((await publishDocsImport({ snapshot: nextSnapshot, api })).status, "pending");
   const dispatch = { context: { repository: "unset-sh/docs", event: "workflow_dispatch", ref: `refs/heads/${second.branch}`, sha: second.head },
     number: "1", expectedHead: second.head, expectedBase: secondBase, api };
-  assert.deepEqual(await validateDocsImportDispatch(dispatch), { number: 1, head: second.head, base: secondBase, branch: second.branch, repository: "unset-sh/docs" });
-  await assert.rejects(validateDocsImportDispatch({ ...dispatch, api: (name, method, path, ...rest) => path.includes("/files?")
-    ? [{ filename: "README.md", status: "modified" }] : api(name, method, path, ...rest) }), /another section|framework/);
+  await assert.rejects(validateDocsImportDispatch(dispatch), /identity/);
   // Docs main can advance only inside this section while the source bytes stay unchanged.
   // The previous branch still needs a new recorded base and reconciliation parent.
   docs.put("tooling/_index.md", "Independent section change\n");
@@ -158,6 +159,6 @@ test("updating a checked import after docs main advances keeps its real three-do
   assert.deepEqual(gitCommit(docs, third.head).parents.map(parent => parent.sha), [second.head, thirdBase]);
   assert.equal(docs.git(["merge-base", thirdBase, third.head]), thirdBase);
   assert.ok(docs.git(["diff", "--name-only", `${thirdBase}...${third.head}`]).split("\n").every(path => path.startsWith("tooling/")));
-  await validateDocsImportDispatch({ ...dispatch, context: { ...dispatch.context, sha: third.head }, expectedHead: third.head, expectedBase: thirdBase });
+  assert.match(gitCommit(docs, third.head).message, /Signed-off-by: fixture-automation\[bot\]/);
 
 });

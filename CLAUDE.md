@@ -42,7 +42,13 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
   administrator bypass. Preserve the legacy release contract; consumer activation and settings remain explicit.
   The token cannot prove hidden ruleset bypass actors or whether a same-account merger was human; document
   those boundaries and retain the separate settings audit and human-only promotion rule.
-- No stored secrets in shared workflows. Use job-scoped permissions, disable persisted checkout credentials, and
+- No stored secrets in shared workflows except the owner-approved `automation-app-private-key` input in the
+  isolated docs-import and organisation-map publishers. The owner creates and stores that App private key by hand;
+  agents never create, read or place it. Only the pinned token action receives the key, mints for the single fixed
+  target repository with Contents/Pull requests write, and attempts revocation after the job; otherwise the token
+  expires within one hour. The built-in job token stays
+  read-only; source preparation and consumer code never receive the App token. Use job-scoped permissions,
+  disable persisted checkout credentials, and
   pass expression values through `env`, never interpolate them into shell scripts. Central helper checkouts must
   fail closed unless their repository and full commit identity match the running workflow.
 - Raising Node also raises npm. Re-read npm's publish/archive handling before changing the pinned version; hostile
@@ -51,10 +57,11 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
   calls use full reviewed commit pins. Automatic adoption and automatic merging need their own implementation.
 - The organisation-map publisher may update only `unset-sh/.github:MAP.md` and the marked profile block, through a
   validated generated-only PR into main (`.github` has no staging branch). Keep consumer generation read-only,
-  isolate publication and dispatch tokens, preserve authored text, and bind artifacts and checks to exact base/head
-  revisions. The publisher never merges or updates protected refs. Dispatch revalidates the real PR and starts only
-  the three fixed existing checks; it must not approve withheld runs, forge statuses, or bypass review. Merging into
-  main remains human-owned.
+  isolate the scoped App token in the publisher, preserve authored text, and bind artifacts to exact base/head
+  revisions. App-created PRs trigger ordinary checks; do not dispatch replacements or grant Actions-write access.
+  The publisher never merges, updates protected refs, approves withheld runs, forges statuses or bypasses review.
+  Merging into main remains human-owned. Activate only after the separately approved main-only cutover and owner
+  App setup are complete.
 - The repository-policy job reads committed policy inputs without executing consumer helpers. Keep action-pin
   scanning parser-backed, offline and bounded, verify the fixed scanner archive before extraction, and fail on parser
   errors. Exceptions match exact paths/references with reasons; never add broad bypasses or print raw scanner output.
