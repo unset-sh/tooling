@@ -9,6 +9,8 @@ const sources = Object.freeze({
   tooling: Object.freeze({ repository: "unset-sh/tooling", directory: "docs", section: "tooling", workflow: ".github/workflows/automation-docs-self.yml" }),
   github: Object.freeze({ repository: "unset-sh/.github", directory: "docs/site", section: "github", workflow: ".github/workflows/docs-export.yml" }),
 });
+// unset-sh/docs has no staging branch: imports target and record its main branch (org-0010).
+export const docsBase = "main";
 export const importLimits = Object.freeze({ files: 256, fileBytes: 1024 * 1024, totalBytes: 8 * 1024 * 1024, snapshotBytes: 12 * 1024 * 1024 });
 export class DocsImportError extends Error {}
 export const refuseImport = message => { throw new DocsImportError(message); };
@@ -54,7 +56,7 @@ export function validateDocsImport(snapshot) {
     || !exactKeys(snapshot.source, ["key", "revision", "runId"]) || !isCommit(snapshot.source.revision)
     || !Number.isSafeInteger(snapshot.source.runId) || snapshot.source.runId <= 0
     || !exactKeys(snapshot.target, ["repository", "base", "baseCommit", "workflowCommit"])
-    || snapshot.target.repository !== "unset-sh/docs" || snapshot.target.base !== "staging"
+    || snapshot.target.repository !== "unset-sh/docs" || snapshot.target.base !== docsBase
     || !isCommit(snapshot.target.baseCommit) || snapshot.target.workflowCommit !== snapshot.target.baseCommit) refuseImport("Invalid documentation import identity");
   const source = importSource(snapshot.source.key);
   if (!Array.isArray(snapshot.files) || snapshot.files.length < 3 || snapshot.files.length > importLimits.files) refuseImport("Invalid documentation file count");
@@ -145,7 +147,7 @@ export function stageDocsImport({ root, source: key, revision, runId, baseCommit
     visit(join(exported, source.section));
     files.sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
     const snapshot = validateDocsImport({ schemaVersion: 1, source: { key, revision, runId },
-      target: { repository: "unset-sh/docs", base: "staging", baseCommit, workflowCommit }, files });
+      target: { repository: "unset-sh/docs", base: docsBase, baseCommit, workflowCommit }, files });
     safeParent(out);
     writeFileSync(out, `${JSON.stringify(snapshot)}\n`, { flag: "wx", mode: 0o600 });
     return { source: key, files: files.length };

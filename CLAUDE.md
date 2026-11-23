@@ -49,11 +49,12 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
   archive comparisons in `checks/release-package.test.mjs` must pass against its bundled npm.
 - Record caller-visible changes in `CHANGELOG.md`. Keep version `0.0.0` until the first approved release. Consumer
   calls use full reviewed commit pins. Automatic adoption and automatic merging need their own implementation.
-- The organisation-map publisher may update only `unset-sh/.github:MAP.md` and the marked profile block, through
-  a validated generated-only staging PR. Keep consumer generation read-only, isolate publication and dispatch
-  tokens, preserve authored text, and bind artifacts and checks to exact base/head revisions. The publisher never
-  merges or updates protected refs. Dispatch revalidates the real PR and starts only the three fixed existing checks;
-  it must not approve withheld runs, forge statuses, or bypass review. Main promotion remains human-owned.
+- The organisation-map publisher may update only `unset-sh/.github:MAP.md` and the marked profile block, through a
+  validated generated-only PR into main (`.github` has no staging branch). Keep consumer generation read-only,
+  isolate publication and dispatch tokens, preserve authored text, and bind artifacts and checks to exact base/head
+  revisions. The publisher never merges or updates protected refs. Dispatch revalidates the real PR and starts only
+  the three fixed existing checks; it must not approve withheld runs, forge statuses, or bypass review. Merging into
+  main remains human-owned.
 - The repository-policy job reads committed policy inputs without executing consumer helpers. Keep action-pin
   scanning parser-backed, offline and bounded, verify the fixed scanner archive before extraction, and fail on parser
   errors. Exceptions match exact paths/references with reasons; never add broad bypasses or print raw scanner output.

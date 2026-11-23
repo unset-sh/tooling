@@ -1,13 +1,13 @@
 import { appendFileSync } from "node:fs";
 import { startedAsScript } from "./cli.mjs";
-import { importSource, isCommit, readDocsImport, refuseImport, stageDocsImport } from "./docs-import-data.mjs";
+import { docsBase, importSource, isCommit, readDocsImport, refuseImport, stageDocsImport } from "./docs-import-data.mjs";
 import { createDocsApi, readImportRef, resolveImportSource, verifyImportSource } from "./docs-import-github.mjs";
 import { publishDocsImport } from "./docs-import-publication.mjs";
 import { dispatchDocsImportChecks } from "./docs-import-send.mjs";
 
 export function receiverContext(environment) {
-  if (environment.GITHUB_REPOSITORY !== "unset-sh/docs" || environment.GITHUB_REF !== "refs/heads/staging"
-    || !["schedule", "workflow_dispatch"].includes(environment.GITHUB_EVENT_NAME) || !isCommit(environment.GITHUB_SHA)) refuseImport("Documentation imports run only in docs on staging");
+  if (environment.GITHUB_REPOSITORY !== "unset-sh/docs" || environment.GITHUB_REF !== `refs/heads/${docsBase}`
+    || !["schedule", "workflow_dispatch"].includes(environment.GITHUB_EVENT_NAME) || !isCommit(environment.GITHUB_SHA)) refuseImport("Documentation imports run only in docs on main");
   return environment.GITHUB_SHA;
 }
 
@@ -22,7 +22,7 @@ export async function runDocsImport({ args, environment = process.env, api, outp
     if (!rest[index].startsWith("--") || !allowed.includes(key) || !rest[index + 1] || Object.hasOwn(values, key)) refuseImport("Invalid documentation import arguments");
     values[key] = rest[index + 1];
   }
-  if (await readImportRef(api, "unset-sh/docs", "staging") !== base) refuseImport("Docs staging moved before import");
+  if (await readImportRef(api, "unset-sh/docs", docsBase) !== base) refuseImport("Docs main moved before import");
   if (command === "resolve") {
     const source = importSource(values.source), selection = await resolveImportSource({ source: values.source, api });
     output({ repository: source.repository, revision: selection.revision, "run-id": selection.runId });
@@ -63,6 +63,6 @@ async function main() {
 }
 
 if (startedAsScript(import.meta.url)) main().catch(() => {
-  console.error("Documentation import refused; check source export, exact staging revision, generated PR ownership and API availability");
+  console.error("Documentation import refused; check source export, exact docs main revision, generated PR ownership and API availability");
   process.exitCode = 1;
 });

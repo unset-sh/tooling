@@ -15,7 +15,7 @@ export function importFixture() {
     files: files.map(({ path, bytes }) => ({ path, sha256: hash(bytes) })) };
   files.push({ path: "source.json", bytes: Buffer.from(`${JSON.stringify(provenance, null, 2)}\n`) });
   const snapshot = { schemaVersion: 1, source: { key: "tooling", revision: sourceCommit, runId: 123 },
-    target: { repository: "unset-sh/docs", base: "staging", baseCommit, workflowCommit },
+    target: { repository: "unset-sh/docs", base: "main", baseCommit, workflowCommit },
     files: files.map(({ path, bytes }) => ({ path, content: bytes.toString("base64"), sha256: hash(bytes) })) };
   const run = { id: 123, event: "push", head_branch: "main", head_sha: sourceCommit, status: "completed", conclusion: "success",
     path: ".github/workflows/automation-docs-self.yml", repository: { full_name: "unset-sh/tooling" }, head_repository: { full_name: "unset-sh/tooling" } };

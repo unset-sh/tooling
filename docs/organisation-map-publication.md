@@ -19,7 +19,7 @@ The consumer registers one map in `.github/maps.json`: id `organisation`, genera
 `["--write"]`, and outputs `["MAP.md", "profile/README.md"]`. This dedicated workflow validates that exact
 registration. The generic `automation-maps-refresh.yml` still rejects Markdown and stages JSON under `data/` only.
 
-Use a reviewed full commit pin for `.github/workflows/automation-org-map.yml`. The caller supplies staging-push,
+Use a reviewed full commit pin for `.github/workflows/automation-org-map.yml`. The caller supplies main-push,
 scheduled and manual events, serial concurrency, and maximum permissions of `contents: write`,
 `pull-requests: write`, and `actions: write`. Generation has only `contents: read`. The publisher receives content
 and PR writes; a third dispatch job receives only contents-read, PR-read and Actions-write. No writer runs consumer
@@ -39,8 +39,8 @@ reviewed caller changes land.
 2. Regenerate the map and run the consumer's checks without a write token.
 3. Verify that only the two registered generated files changed and stage bounded, regular UTF-8 files.
 4. Download this run and attempt's named artifact in a separate job containing only trusted tooling code.
-5. Validate the snapshot, current staging revision and authored README text outside its unique marker pair.
-6. If output changed, create or reuse `automation/map-<source-commit>` and an exact generated-only staging PR.
+5. Validate the snapshot, current main revision and authored README text outside its unique marker pair.
+6. If output changed, create or reuse `automation/map-<source-commit>` and an exact generated-only PR into `main`.
    Emit only its number, head and base to the separate dispatcher.
 7. Re-read the actual open bot-owned PR and its immutable source/head trees. Require its sole source parent,
    unchanged files outside the two outputs, bounded regular files and preserved authored profile text.
@@ -48,26 +48,27 @@ reviewed caller changes land.
    to its expected workflow and head. Generated map validation must also prove regeneration leaves the committed
    `MAP.md` and `profile/README.md` unchanged; the dispatch must never enter the writable drift-report path.
 
-Unchanged output creates no branch or PR. The result is an open staging PR and links to requested check runs.
+Unchanged output creates no branch or PR. The result is an open PR into `main` and links to requested check runs.
 Accepted dispatch does not prove checks succeeded. No step merges, force-pushes, writes a protected ref, changes
 protections, approves withheld workflow runs or sets a passing status for an unexecuted check. Normal independent
-review and required checks govern the staging merge; a human subsequently promotes staging to main.
+review and required checks apply, and a person merges the PR into main. `unset-sh/.github` has no staging
+branch (org-0010).
 
 ## Example: a repository ownership change
 
-After a reviewed `repos.json` change reaches staging, the caller checks that exact revision and produces new map
-views. The publisher prepares a branch whose only parent is that staging revision and whose only possible changes
+After a reviewed `repos.json` change reaches main, the caller checks that exact revision and produces new map
+views. The publisher prepares a branch whose only parent is that main revision and whose only possible changes
 are the generated outputs. The isolated dispatcher requests the three checks at the new branch's exact head. A
-reviewer follows those run links, verifies their conclusions and reviews the PR before its normal staging merge.
+reviewer follows those run links, verifies their conclusions and reviews the PR before a person merges it.
 
-The committed GitHub map and organisation profile do not change on main until the normal promotion. The website's
-live JSON maps use the separate [automatic map refresh](map-refresh.md#keep-the-timer-on-staging-and-the-published-site-on-main)
+The committed GitHub map and organisation profile do not change on main until a person merges that PR. The website's
+live JSON maps use the separate [automatic map refresh](map-refresh.md#keep-the-docs-timer-on-main)
 and can refresh from their configured public sources without merging this generated Markdown PR. These are distinct
 publication paths.
 
 ## Failures and limits
 
-Generation and validation failures retain the previous published views. Observed changes to staging stop publication
+Generation and validation failures retain the previous published views. Observed changes to main stop publication
 or dispatch; regenerate from the new base instead of overwriting a branch. A retry can reuse its existing branch
 and PR only when their parent, complete tree and head match the same validated snapshot. Closed or modified PRs are
 not silently reopened or adopted. Schedules are best effort and queued runs from older revisions may refuse.

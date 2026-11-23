@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { dispatchDocsMaps } from './docs-map-schedule.mjs';
 
-const context = { repository: 'unset-sh/docs', ref: 'refs/heads/staging', event: 'schedule' };
+const context = { repository: 'unset-sh/docs', ref: 'refs/heads/main', event: 'schedule' };
 const result = { workflow_run_id: 123, run_url: 'https://api.github.com/repos/unset-sh/docs/actions/runs/123', html_url: 'https://github.com/unset-sh/docs/actions/runs/123' };
 
 test('the timer can request only the approved main site workflow with a repository job token', async () => {
@@ -22,7 +22,7 @@ test('the timer can request only the approved main site workflow with a reposito
 
 test('wrong repository, branch, event or missing credentials fail before a request', async () => {
   const fetchImpl = () => { throw Error('must not request'); };
-  for (const change of [{ repository: 'unset-sh/tooling' }, { ref: 'refs/heads/main' }, { event: 'pull_request' }, { event: 'push' }]) {
+  for (const change of [{ repository: 'unset-sh/tooling' }, { ref: 'refs/heads/staging' }, { event: 'pull_request' }, { event: 'push' }]) {
     await assert.rejects(dispatchDocsMaps({ ...context, ...change }, { token: 'test-token', fetchImpl }), /context/);
   }
   for (const token of [undefined, '', 'abc\nheader']) await assert.rejects(dispatchDocsMaps(context, { token, fetchImpl }), /token/);

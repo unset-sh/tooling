@@ -1,14 +1,14 @@
 // Dispatch only reviewed generated-map PR checks. No consumer checkout or merge.
 // https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event
 import { startedAsScript } from "./cli.mjs";
-import { validateGeneratedMapPullRequest } from "./generated-map-publication.mjs";
+import { mapBase, validateGeneratedMapPullRequest } from "./generated-map-publication.mjs";
 
 const repository = "unset-sh/.github";
 const workflows = ["org-map.yml", "docs-export.yml", "branch-policy.yml"];
 const fail = message => { throw new Error(message); };
 
 export async function dispatchGeneratedMapChecks({ context, number, expectedHead, expectedBase, githubToken, fetchImpl = fetch }) {
-  if (context?.repository !== repository || context.ref !== "refs/heads/staging" || context.sha !== expectedBase ||
+  if (context?.repository !== repository || context.ref !== `refs/heads/${mapBase}` || context.sha !== expectedBase ||
       !["push", "schedule", "workflow_dispatch"].includes(context.event)) fail("Invalid generated map dispatcher context");
   if (typeof githubToken !== "string" || !githubToken || /[\r\n]/.test(githubToken)) fail("Invalid map dispatcher token");
   const api = async (repo, method, path, body) => {
@@ -46,7 +46,7 @@ export async function dispatchGeneratedMapChecks({ context, number, expectedHead
   const proof = await validateGeneratedMapPullRequest({ number, expectedHead, expectedBase, api });
   const runs = [];
   for (const workflow of workflows) {
-    for (const [name, sha] of [["staging", proof.base], [proof.branch, proof.head]]) {
+    for (const [name, sha] of [[mapBase, proof.base], [proof.branch, proof.head]]) {
       const ref = await api(repository, "GET", `/git/ref/heads/${name}`);
       if (ref?.ref !== `refs/heads/${name}` || ref.object?.type !== "commit" || ref.object.sha !== sha) fail("Generated map ref moved before check dispatch");
     }
@@ -74,7 +74,7 @@ if (startedAsScript(import.meta.url)) {
       ref: process.env.GITHUB_REF, sha: process.env.GITHUB_SHA, event: process.env.GITHUB_EVENT_NAME },
     number: process.env.MAP_PR_NUMBER, expectedHead: process.env.MAP_PR_HEAD, expectedBase: process.env.MAP_PR_BASE, githubToken });
     for (const run of result.runs) console.log(`Requested ${run.workflow}: ${run.url}`);
-    console.log("The staging PR remains open. Follow each run and complete normal review before merging; main promotion is separate.");
+    console.log("The generated PR remains open. Follow each run and complete normal review before a person merges it into main.");
   } catch {
     console.error("Generated map checks could not be confirmed. Inspect existing runs before retrying; a request may already have created a run.");
     process.exitCode = 1;

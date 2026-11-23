@@ -22,8 +22,8 @@ jobs:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
         run: |
-          if [ "$SOURCE_REPOSITORY" != unset-sh/docs ] || [ "$SOURCE_REF" != refs/heads/staging ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo '::error::Expected the docs staging timer and pinned tooling.'
+          if [ "$SOURCE_REPOSITORY" != unset-sh/docs ] || [ "$SOURCE_REF" != refs/heads/main ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::Expected the docs main timer and pinned tooling.'
             exit 1
           fi
           case "$EVENT" in schedule|workflow_dispatch) ;; *) exit 1 ;; esac

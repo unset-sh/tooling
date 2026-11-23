@@ -1,11 +1,11 @@
-// A timer on the default staging branch requests the existing approved main build.
+// A timer on docs main requests the existing approved main site build (docs has no staging branch, org-0010).
 // REST 2026-03-10 returns the created workflow run identity with HTTP 200.
 // https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event
 // https://docs.github.com/en/actions/concepts/security/github_token
 import { startedAsScript } from './cli.mjs';
 
 export async function dispatchDocsMaps(context, { token, fetchImpl = fetch } = {}) {
-  if (context?.repository !== 'unset-sh/docs' || context.ref !== 'refs/heads/staging' ||
+  if (context?.repository !== 'unset-sh/docs' || context.ref !== 'refs/heads/main' ||
       !['schedule', 'workflow_dispatch'].includes(context.event)) throw Error('Invalid docs map schedule context');
   if (typeof token !== 'string' || !token || /[\r\n]/.test(token)) throw Error('Missing or invalid docs job token');
   let response;

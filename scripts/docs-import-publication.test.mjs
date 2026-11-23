@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { baseCommit, blob, importFixture, sourceCommit, sourceTree, workflowCommit } from "../checks/docs-import-fixture.mjs";
+import { baseCommit, blob, importFixture, sourceCommit, sourceTree } from "../checks/docs-import-fixture.mjs";
 import { publishDocsImport } from "./docs-import-publication.mjs";
 
 function remote(fixture, overrides = {}) {
@@ -25,8 +25,7 @@ function remote(fixture, overrides = {}) {
       if (path === `/git/trees/${sourceTree}?recursive=1`) return fixture.tree;
     }
     assert.equal(repository, "unset-sh/docs");
-    if (path === "/git/ref/heads/staging") return { ref: "refs/heads/staging", object: { type: "commit", sha: baseCommit } };
-    if (path === "/git/ref/heads/main") return { ref: "refs/heads/main", object: { type: "commit", sha: workflowCommit } };
+    if (path === "/git/ref/heads/main") return { ref: "refs/heads/main", object: { type: "commit", sha: baseCommit } };
     if (path === `/git/commits/${baseCommit}`) return { sha: baseCommit, tree: { sha: baseTree } };
     if (path === `/git/trees/${baseTree}`) return { sha: baseTree, truncated: false, tree: root };
     if (path === `/git/trees/${"7".repeat(40)}?recursive=1`) return { sha: "7".repeat(40), truncated: false, tree: existingSection };
@@ -56,10 +55,10 @@ function remote(fixture, overrides = {}) {
       branch = { ref: body.ref, object: { type: "commit", sha: body.sha } }; return branch;
     }
     if (method === "POST" && path === "/pulls") {
-      assert.equal(body.base, "staging"); assert.equal(body.head, "automation/docs-tooling");
+      assert.equal(body.base, "main"); assert.equal(body.head, "automation/docs-tooling");
       createdPr = { number: 12, state: "open", user: { login: "github-actions[bot]", id: 41898282, type: "Bot" },
         head: { sha: newHead, ref: body.head, repo: { full_name: repository } },
-        base: { sha: baseCommit, ref: "staging", repo: { full_name: repository } } };
+        base: { sha: baseCommit, ref: "main", repo: { full_name: repository } } };
       return createdPr;
     }
     throw new Error(`Unexpected fixture request: ${method} ${path}`);
@@ -67,7 +66,7 @@ function remote(fixture, overrides = {}) {
   return { api, writes, get section() { return createdSection; } };
 }
 
-test("a verified import replaces only its section and opens a staging PR without merging", async () => {
+test("a verified import replaces only its section and opens a main PR without merging", async () => {
   const fixture = importFixture(), github = remote(fixture);
   const result = await publishDocsImport({ snapshot: fixture.snapshot, api: github.api });
   assert.deepEqual(result, { status: "opened", number: 12, branch: "automation/docs-tooling", head: "4".repeat(40), url: "https://github.com/unset-sh/docs/pull/12" });
@@ -80,7 +79,7 @@ test("a verified import replaces only its section and opens a staging PR without
 });
 
 test("source or destination movement and corrupted source proof refuse all publication mutations", async () => {
-  for (const [repository, branch] of [["unset-sh/tooling", "main"], ["unset-sh/docs", "staging"]]) {
+  for (const [repository, branch] of [["unset-sh/tooling", "main"], ["unset-sh/docs", "main"]]) {
     const fixture = importFixture();
     const github = remote(fixture, { [`${repository} GET /git/ref/heads/${branch}`]: () => ({ ref: `refs/heads/${branch}`, object: { type: "commit", sha: "f".repeat(40) } }) });
     await assert.rejects(publishDocsImport({ snapshot: fixture.snapshot, api: github.api }), /moved|revision/i);
@@ -121,10 +120,10 @@ test("an unchanged section retains valid provenance while missing or corrupt pro
   assert.equal((await publishDocsImport({ snapshot: fixture.snapshot, api: invalid.api })).status, "opened");
 });
 
-test("last-moment source, staging and import-branch races cannot move a visible ref or open a PR", async () => {
-  for (const [repository, name, changeAt] of [["unset-sh/tooling", "main", 2], ["unset-sh/docs", "staging", 2], ["unset-sh/docs", "automation/docs-tooling", 2]]) {
+test("last-moment source, docs main and import-branch races cannot move a visible ref or open a PR", async () => {
+  for (const [repository, name, changeAt] of [["unset-sh/tooling", "main", 2], ["unset-sh/docs", "main", 2], ["unset-sh/docs", "automation/docs-tooling", 2]]) {
     const fixture = importFixture(); let reads = 0;
-    const unchanged = repository === "unset-sh/tooling" ? sourceCommit : name === "staging" ? baseCommit : null;
+    const unchanged = repository === "unset-sh/tooling" ? sourceCommit : name === "main" ? baseCommit : null;
     const github = remote(fixture, { [`${repository} GET /git/ref/heads/${name}`]: () => {
       const sha = ++reads >= changeAt ? "f".repeat(40) : unchanged;
       return sha ? { ref: `refs/heads/${name}`, object: { type: "commit", sha } } : null;

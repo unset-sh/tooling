@@ -54,10 +54,10 @@ The [manifest](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc745
 
 | Authored source | Generated entry point | Responsibility |
 | --- | --- | --- |
-| `workflows/docs/pages/schedule.yml` | `.github/workflows/automation-docs-map-schedule.yml` | Request the approved main site refresh from the staging timer |
+| `workflows/docs/pages/schedule.yml` | `.github/workflows/automation-docs-map-schedule.yml` | Request the approved main site refresh from the docs main timer |
 | `workflows/shared/ci/check.yml` | `.github/workflows/ci-check.yml` | Shared Node check |
 | `workflows/tooling/ci/self.yml` | `.github/workflows/ci-self.yml` | This repository's check caller |
-| `workflows/shared/ci/branch-policy.yml` | `.github/workflows/ci-branch-policy.yml` | Validate staging and stable-main PR origins |
+| `workflows/shared/ci/branch-policy.yml` | `.github/workflows/ci-branch-policy.yml` | Validate PR origins for staged or main-only repositories |
 | `workflows/tooling/ci/branch-policy.yml` | `.github/workflows/ci-branch-policy-self.yml` | This repository's branch-policy caller |
 | `workflows/shared/ci/pr-policy.yml` | `.github/workflows/ci-pr-policy.yml` | Validate current PR purpose labels and readiness, validation and documentation declarations |
 | `workflows/tooling/ci/pr-policy.yml` | `.github/workflows/ci-pr-policy-self.yml` | This repository's PR-metadata caller |

@@ -1,4 +1,4 @@
-import { importSource, isCommit, refuseImport } from "./docs-import-data.mjs";
+import { docsBase, importSource, isCommit, refuseImport } from "./docs-import-data.mjs";
 import { readImportRef } from "./docs-import-github.mjs";
 import { validateImportPr, verifyDocsImportHead } from "./docs-import-publication.mjs";
 
@@ -38,6 +38,6 @@ export async function validateDocsImportTarget({ number, expectedHead, expectedB
   }
   await verifyDocsImportHead({ api, key: match[1], head: expectedHead, base: expectedBase });
   await readPr();
-  if (await readImportRef(api, repository, "staging") !== expectedBase || await readImportRef(api, repository, branch) !== expectedHead) refuseImport("Documentation dispatch base or head moved");
+  if (await readImportRef(api, repository, docsBase) !== expectedBase || await readImportRef(api, repository, branch) !== expectedHead) refuseImport("Documentation dispatch base or head moved");
   return { number: Number(number), head: expectedHead, base: expectedBase, branch, repository };
 }

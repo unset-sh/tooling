@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/staging ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
             echo "::error::Invalid documentation receiver, source or helper identity."
             exit 1
           fi
@@ -87,7 +87,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/staging ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
             echo "::error::Invalid documentation receiver, source or helper identity."
             exit 1
           fi
@@ -106,7 +106,7 @@ jobs:
         with:
           name: docs-import-${{ inputs.source }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/docs-import
-      - name: Validate the snapshot and prepare its staging pull request
+      - name: Validate the snapshot and prepare its main pull request
         id: publish
         env:
           IMPORT_SOURCE: ${{ inputs.source }}
@@ -130,7 +130,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/staging ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
             echo "::error::Invalid documentation receiver, source or helper identity."
             exit 1
           fi

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { dispatchGeneratedMapChecks } from "./generated-map-checks.mjs";
 import { repository, base, head, branch, server } from "../checks/map-dispatch-fixture.mjs";
 
-const context = { repository, ref: "refs/heads/staging", sha: base, event: "push" };
+const context = { repository, ref: "refs/heads/main", sha: base, event: "push" };
 function transport() {
   const s = server(); const calls = [], runs = new Map();
   const fetchImpl = async (url, init) => {
@@ -36,7 +36,7 @@ test("a separate dispatcher proves the generated PR and requests only the three 
 });
 
 test("wrong source context, forged PRs and moved branches cannot dispatch checks", async () => {
-  for (const change of [{ repository: "unset-sh/docs" }, { ref: "refs/heads/main" }, { sha: head }, { event: "pull_request" }]) {
+  for (const change of [{ repository: "unset-sh/docs" }, { ref: "refs/heads/staging" }, { sha: head }, { event: "pull_request" }]) {
     const s = transport(); await assert.rejects(dispatch(s, { context: { ...context, ...change } })); assert.deepEqual(s.calls, []);
   }
   const s = transport(); s.objects.get("/pulls/17").user.login = "human";

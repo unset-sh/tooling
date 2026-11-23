@@ -20,8 +20,8 @@ jobs:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
         run: |
-          if [ "$REPOSITORY" != unset-sh/.github ] || [ "$REF" != refs/heads/staging ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Expected the organisation map on staging and pinned tooling."
+          if [ "$REPOSITORY" != unset-sh/.github ] || [ "$REF" != refs/heads/main ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Expected the organisation map on main and pinned tooling."
             exit 1
           fi
           case "$EVENT" in push|schedule|workflow_dispatch) ;; *) exit 1 ;; esac
@@ -79,8 +79,8 @@ jobs:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
         run: |
-          if [ "$REPOSITORY" != unset-sh/.github ] || [ "$REF" != refs/heads/staging ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Expected the organisation map on staging and pinned tooling."
+          if [ "$REPOSITORY" != unset-sh/.github ] || [ "$REF" != refs/heads/main ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Expected the organisation map on main and pinned tooling."
             exit 1
           fi
           case "$EVENT" in push|schedule|workflow_dispatch) ;; *) exit 1 ;; esac
@@ -99,7 +99,7 @@ jobs:
         with:
           name: org-map-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/org-map
-      - name: Prepare a validated generated-only staging PR
+      - name: Prepare a validated generated-only main PR
         id: publication
         env:
           GH_TOKEN: ${{ github.token }}
@@ -124,8 +124,8 @@ jobs:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
         run: |
-          if [ "$REPOSITORY" != unset-sh/.github ] || [ "$REF" != refs/heads/staging ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Expected the organisation map on staging and pinned tooling."
+          if [ "$REPOSITORY" != unset-sh/.github ] || [ "$REF" != refs/heads/main ] || [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Expected the organisation map on main and pinned tooling."
             exit 1
           fi
           case "$EVENT" in push|schedule|workflow_dispatch) ;; *) exit 1 ;; esac
