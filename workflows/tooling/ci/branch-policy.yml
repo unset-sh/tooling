@@ -1,0 +1,12 @@
+name: branch-policy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+permissions: {}
+
+jobs:
+  policy:
+    uses: ./.github/workflows/ci-branch-policy.yml
+    permissions: {}
