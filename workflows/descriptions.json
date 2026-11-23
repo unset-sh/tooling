@@ -21,6 +21,52 @@
     },
     {
       "repository": "tooling",
+      "path": ".github/workflows/automation-org-map.yml",
+      "reviewedCommit": "c2517bded6ea28a6e9ab286c1382613e07fb0d4c",
+      "reviewedSha256": "45c4846bebc27251e2bdfc3d0fc6a1073608d2271e867130e70ed5dac9afcb42",
+      "purpose": "Prepare a generated-only organisation-map staging pull request and request its existing required checks without merging or promoting production.",
+      "steps": [
+        "Run only for unset-sh/.github staging pushes, schedules or manual calls; regenerate and check the exact source with read-only permissions.",
+        "Publish only MAP.md and the generated profile block through an isolated bot-owned staging PR, verifying exact source/head trees and preserving authored profile text.",
+        "Pass only the PR number, head and base to a separate Actions-write job that revalidates the real PR and dispatches the fixed organisation-map, documentation-check and branch-policy workflows at that exact head."
+      ],
+      "outputs": [
+        "An open generated staging PR when output changes, plus links to its three requested check runs. Successful dispatch does not prove those checks passed. No automatic merge or main promotion occurs."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/site-refresh.yml",
+      "reviewedCommit": "f769d9e88ead3b02afb5bd8dba174fb6562174e7",
+      "reviewedSha256": "441b4836f74a8d28172511075231e4dc91d8f3b3286c4f11039d8adb22fc52c4",
+      "purpose": "Refresh the published documentation maps hourly while staging remains the default branch and main remains the production source.",
+      "steps": [
+        "Run at minute 23 each hour or by manual dispatch on staging, with serial timer runs.",
+        "Call the reviewed tooling dispatcher with contents-read and Actions-write permissions to request only the existing main site workflow."
+      ],
+      "outputs": [
+        "A main site workflow run requested by the central dispatcher. The timer neither promotes staging content nor establishes that deployment succeeded."
+      ]
+    },
+    {
+      "repository": "docs",
+      "path": ".github/workflows/site.yml",
+      "reviewedCommit": "f769d9e88ead3b02afb5bd8dba174fb6562174e7",
+      "reviewedSha256": "c8310eb5caef3343cdd08ca3d31bd325bf22322b0d6b193c4e532aff2ee2255e",
+      "purpose": "Refresh supported upstream content and registered maps, build the organisation documentation site and publish it on GitHub Pages.",
+      "steps": [
+        "On main pushes or manual main runs, call the shared map workflow to refresh every registered map and return one validated snapshot; the separate default-branch timer requests hourly runs.",
+        "After the map refresh succeeds, resolve the latest compatible published brand release, install the pinned tooling without lifecycle scripts and download this run's validated map snapshot.",
+        "Run the source and publication guards, build the publication site with Hugo and check its rendered pages, navigation and workflow map.",
+        "Upload the public directory as a Pages artifact, then deploy it through the github-pages environment; only the deployment job receives Pages publication permissions."
+      ],
+      "outputs": [
+        "A validated map artifact for this run and a checked Pages artifact, followed by the published documentation site when deployment succeeds.",
+        "Brand, organisation-map and workflow-map updates used by this build; the workflow does not commit these updates back to the repository."
+      ]
+    },
+    {
+      "repository": "tooling",
       "path": ".github/workflows/automation-docs-self.yml",
       "reviewedCommit": "b0a4aa66e09dfdb05d4b94d70eec3896f96565f9",
       "reviewedSha256": "2ae97fb737faad6e46b9b524be7a88dbb82b8455ce7a2e1ab639457c2ce84b29",

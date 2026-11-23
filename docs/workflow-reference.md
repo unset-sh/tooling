@@ -232,7 +232,44 @@ Check documentation sources, publication safeguards and rendered pages before ch
 
 Source SHA-256: `4867727cb325e12ae20ec3ce21e5cd8a2f8bbb68fdfb3fb944e0375bdfdc9776`.
 
+### .github/workflows/site-refresh.yml
+
+Refresh the published documentation maps hourly while staging remains the default branch and main remains the production source.
+
+**What it does**
+
+1. Run at minute 23 each hour or by manual dispatch on staging, with serial timer runs.
+2. Call the reviewed tooling dispatcher with contents-read and Actions-write permissions to request only the existing main site workflow.
+
+**Produces**
+
+- A main site workflow run requested by the central dispatcher. The timer neither promotes staging content nor establishes that deployment succeeded.
+
+[Reviewed source at f769d9e88ead](https://github.com/unset-sh/docs/blob/f769d9e88ead3b02afb5bd8dba174fb6562174e7/.github/workflows/site-refresh.yml).
+
+Source SHA-256: `441b4836f74a8d28172511075231e4dc91d8f3b3286c4f11039d8adb22fc52c4`.
+
 ### .github/workflows/site.yml
+
+Refresh supported upstream content and registered maps, build the organisation documentation site and publish it on GitHub Pages.
+
+**What it does**
+
+1. On main pushes or manual main runs, call the shared map workflow to refresh every registered map and return one validated snapshot; the separate default-branch timer requests hourly runs.
+2. After the map refresh succeeds, resolve the latest compatible published brand release, install the pinned tooling without lifecycle scripts and download this run's validated map snapshot.
+3. Run the source and publication guards, build the publication site with Hugo and check its rendered pages, navigation and workflow map.
+4. Upload the public directory as a Pages artifact, then deploy it through the github-pages environment; only the deployment job receives Pages publication permissions.
+
+**Produces**
+
+- A validated map artifact for this run and a checked Pages artifact, followed by the published documentation site when deployment succeeds.
+- Brand, organisation-map and workflow-map updates used by this build; the workflow does not commit these updates back to the repository.
+
+[Reviewed source at f769d9e88ead](https://github.com/unset-sh/docs/blob/f769d9e88ead3b02afb5bd8dba174fb6562174e7/.github/workflows/site.yml).
+
+Source SHA-256: `c8310eb5caef3343cdd08ca3d31bd325bf22322b0d6b193c4e532aff2ee2255e`.
+
+#### Additional reviewed version 1
 
 Refresh supported upstream content and registered maps, build the organisation documentation site and publish it on GitHub Pages.
 
@@ -252,7 +289,7 @@ Refresh supported upstream content and registered maps, build the organisation d
 
 Source SHA-256: `5ca763e39e9c3201789eb62c827178a57458ad7475fafbd6fa11db20a8a2b781`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Refresh supported upstream content, build the organisation documentation site and publish it on GitHub Pages.
 
@@ -506,6 +543,24 @@ Refresh every map registered by a calling repository and hand its build one comp
 Source SHA-256: `f5af37ae29d1678d846d3751390b38a2486d6509d6fc1d94419a09ae8962ca86`.
 
 ### .github/workflows/automation-org-map.yml
+
+Prepare a generated-only organisation-map staging pull request and request its existing required checks without merging or promoting production.
+
+**What it does**
+
+1. Run only for unset-sh/.github staging pushes, schedules or manual calls; regenerate and check the exact source with read-only permissions.
+2. Publish only MAP.md and the generated profile block through an isolated bot-owned staging PR, verifying exact source/head trees and preserving authored profile text.
+3. Pass only the PR number, head and base to a separate Actions-write job that revalidates the real PR and dispatches the fixed organisation-map, documentation-check and branch-policy workflows at that exact head.
+
+**Produces**
+
+- An open generated staging PR when output changes, plus links to its three requested check runs. Successful dispatch does not prove those checks passed. No automatic merge or main promotion occurs.
+
+[Reviewed source at c2517bded6ea](https://github.com/unset-sh/tooling/blob/c2517bded6ea28a6e9ab286c1382613e07fb0d4c/.github/workflows/automation-org-map.yml).
+
+Source SHA-256: `45c4846bebc27251e2bdfc3d0fc6a1073608d2271e867130e70ed5dac9afcb42`.
+
+#### Additional reviewed version 1
 
 Regenerate the organisation’s Markdown map and publish validated changes through a generated-only pull request.
 
