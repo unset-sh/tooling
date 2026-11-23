@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { inputsOf, jobsOf, readText, runBlocks, topLevel, workflowFiles } from "./repo.mjs";
 
-const REUSABLE = [".github/workflows/ci-check.yml", ".github/workflows/releases-package.yml"];
+const REUSABLE = [".github/workflows/ci-check.yml", ".github/workflows/releases-package.yml", ".github/workflows/releases-channel.yml"];
 const release = readText(".github/workflows/releases-package.yml");
 const releaseJobs = jobsOf(release);
 
@@ -15,6 +15,7 @@ test("the generated workflows include the shared workflows and their callers", (
     ".github/workflows/automation-org-map.yml",
     ".github/workflows/ci-check.yml",
     ".github/workflows/ci-self.yml",
+    ".github/workflows/releases-channel.yml",
     ".github/workflows/releases-package.yml",
     ".github/workflows/releases-self.yml",
   ]);
