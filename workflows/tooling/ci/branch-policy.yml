@@ -10,3 +10,6 @@ jobs:
   policy:
     uses: ./.github/workflows/ci-branch-policy.yml
     permissions: {}
+    with:
+      # tooling has no staging branch (org-0010): every pull request targets main.
+      flow: main
