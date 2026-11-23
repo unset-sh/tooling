@@ -7,12 +7,12 @@ import { isDeepStrictEqual } from "node:util";
 import { channelVersion, stableVersion } from "./release-channel.mjs";
 import { manifestProblems } from "./release-manifest.mjs";
 import { packedManifest, packedName } from "./release-package.mjs";
+import { insist } from "./release-channel-error.mjs";
 
 const DEPENDENCIES = ["dependencies", "optionalDependencies", "devDependencies", "peerDependencies"];
 const object = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const stagingVersion = (value) => typeof value === "string" && value.length <= 128 &&
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-staging\.[1-9]\d{0,19}\.[1-9]\d{0,19}$/.exec(value)?.[0] === value;
-const insist = (condition, message) => { if (!condition) throw new Error(message); };
 
 function dependencies(manifest, context) {
   insist(manifest.bundleDependencies === undefined && manifest.bundledDependencies === undefined, "Bundled dependencies are not supported by channel releases");
@@ -37,7 +37,7 @@ function packageIdentity(manifest, context, expectedVersion) {
     if (normalized[field]) for (const name of Object.keys(normalized[field])) normalized[field][name] = normalized[field][name].split("-staging.")[0];
   }
   const problems = manifestProblems(normalized, { npmPackage: true });
-  insist(problems.length === 0, `Invalid publishable manifest: ${problems.join("; ")}`);
+  insist(problems.length === 0, "Invalid publishable manifest; check package identity and registry settings");
 }
 
 export function preparePackage({ manifest, lock, context, npmPackage = false, install = false }) {

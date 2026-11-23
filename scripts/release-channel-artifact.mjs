@@ -4,8 +4,8 @@ import { isDeepStrictEqual } from "node:util";
 import { channelVersion, fullCommit } from "./release-channel.mjs";
 import { listed } from "./release-files.mjs";
 import { regularJson, verifyChannelPackage } from "./release-channel-package.mjs";
+import { insist } from "./release-channel-error.mjs";
 
-const insist = (condition, message) => { if (!condition) throw new Error(message); };
 
 export function receiptFor(context, version) {
   return { schemaVersion: 1, repository: context.repository, commit: context.sha, channel: context.channel,
@@ -35,7 +35,7 @@ export function verifyArtifact(root, context, plan, { npmPackage = false, maxByt
 
 /** Atomic create refuses an existing tag; never PATCH, force, delete, or reuse one. */
 export async function reserveTag(context, version, token, fetchImpl = fetch) {
-  insist(/^unset-sh\/[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}$/.exec(context.repository)?.[0] === context.repository && fullCommit(context.sha) &&
+  insist(/^unset-sh\/(?:\.github|[A-Za-z0-9_][A-Za-z0-9_.-]{0,99})$/.exec(context.repository)?.[0] === context.repository && fullCommit(context.sha) &&
     channelVersion(version.split("-staging.")[0], context) === version && version !== "0.0.0" && typeof token === "string" && token.length > 0,
     "Invalid tag reservation identity");
   const ref = `refs/tags/v${version}`;

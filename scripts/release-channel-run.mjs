@@ -6,8 +6,8 @@ import { channelVersion, releaseContext } from "./release-channel.mjs";
 import { githubClient, inspectRelease } from "./release-channel-api.mjs";
 import { receiptFor, reserveTag, verifyArtifact } from "./release-channel-artifact.mjs";
 import { prepareCheckout, regularJson } from "./release-channel-package.mjs";
+import { channelFailure, insist } from "./release-channel-error.mjs";
 
-const insist = (condition, message) => { if (!condition) throw new Error(message); };
 function boolean(value) { insist(["true", "false"].includes(value), "Expected explicit boolean release option"); return value === "true"; }
 function output(env, values) {
   for (const [name, value] of Object.entries(values)) {
@@ -60,5 +60,5 @@ export async function runChannel(command, env = process.env) {
 
 if (startedAsScript(import.meta.url)) {
   try { await runChannel(process.argv[2]); }
-  catch (error) { console.error(`release channel: ${error.message}`); process.exitCode = 1; }
+  catch (error) { console.error(`release channel: ${channelFailure(error)}`); process.exitCode = 1; }
 }

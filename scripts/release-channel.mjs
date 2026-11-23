@@ -3,17 +3,17 @@
 // https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
 // https://docs.github.com/en/rest/deployments/environments#get-an-environment
 // https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch (read 2026-11-23)
+import { insist } from "./release-channel-error.mjs";
 
 const matches = (pattern, value) => typeof value === "string" && pattern.exec(value)?.[0] === value;
 export const stableVersion = (value) => matches(/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)/, value) && value.length <= 64 &&
   value.split(".").every((component) => Number.isSafeInteger(Number(component)));
 export const fullCommit = (value) => matches(/[0-9a-f]{40}/, value);
 const positive = (value) => matches(/[1-9][0-9]{0,19}/, value);
-const insist = (condition, message) => { if (!condition) throw new Error(message); };
 
 export function releaseContext({ event, eventName, repository, sha, ref, runId, runAttempt }) {
   insist(eventName === "push" && ["refs/heads/staging", "refs/heads/main"].includes(ref), "Release requires a push to staging or main");
-  insist(matches(/unset-sh\/[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}/, repository) && event?.repository?.full_name === repository &&
+  insist(matches(/unset-sh\/(?:\.github|[A-Za-z0-9_][A-Za-z0-9_.-]{0,99})/, repository) && event?.repository?.full_name === repository &&
     event.repository.private === false, "Release requires the same public organisation repository");
   insist(fullCommit(sha) && event.after === sha && event.ref === ref && fullCommit(event.before) && event.before !== "0".repeat(40) &&
     event.created === false && event.deleted === false && event.forced === false, "Release push identity is missing, forced or inconsistent");

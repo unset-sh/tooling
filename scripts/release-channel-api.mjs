@@ -6,8 +6,8 @@ import { createHash } from "node:crypto";
 import { channelVersion, fullCommit, requireEnvironment, requirePromotion, requireRules } from "./release-channel.mjs";
 import { preparePackage } from "./release-channel-package.mjs";
 import { notesFor } from "./release-notes.mjs";
+import { insist } from "./release-channel-error.mjs";
 
-const insist = (condition, message) => { if (!condition) throw new Error(message); };
 const MAX_SOURCE = 1024 * 1024;
 
 export function githubClient({ token, fetchImpl = fetch, maxRequests = 40, maxBytes = 2 * 1024 * 1024 } = {}) {

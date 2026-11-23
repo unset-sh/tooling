@@ -37,6 +37,8 @@ test("a release context refuses non-push, forked, private, forced, created, dele
   assert.deepEqual(context(), { repository, sha: sha("b"), before: sha("a"), branch: "staging", channel: "staging",
     environment: "release-staging", runId: "12345", runAttempt: "2" });
   const valid = { event: event(), eventName: "push", repository, sha: sha("b"), ref: "refs/heads/staging", runId: "12345", runAttempt: "2" };
+  assert.equal(releaseContext({ ...valid, repository: "unset-sh/.github",
+    event: { ...event(), repository: { full_name: "unset-sh/.github", private: false } } }).repository, "unset-sh/.github");
   for (const change of [{ eventName: "workflow_dispatch" }, { ref: "refs/tags/v1.0.0" }, { sha: sha("c") },
     { repository: "other/example" }, { runId: "01" }, { runAttempt: "0" }, { runId: "1\n" },
     ...["created", "deleted", "forced"].map((key) => ({ event: { ...event(), [key]: true } })),
