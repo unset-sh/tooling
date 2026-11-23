@@ -8,20 +8,26 @@ test("organisation map publication has a read-only generator and isolated publis
   const text = workflow();
   assert.equal(topLevel(text, "permissions"), "permissions: {}\n");
   const jobs = jobsOf(text);
-  assert.deepEqual(Object.keys(jobs), ["generate", "publish"]);
+  assert.deepEqual(Object.keys(jobs), ["generate", "publish", "dispatch"]);
   assert.match(jobs.generate, /contents: read/);
   assert.doesNotMatch(jobs.generate, /: write|secrets\./);
   assert.match(jobs.publish, /needs: generate/);
   assert.match(jobs.publish, /contents: write/);
   assert.match(jobs.publish, /pull-requests: write/);
   assert.doesNotMatch(jobs.publish, /npm |working-directory: source|path: source/);
+  assert.doesNotMatch(jobs.publish, /actions: write/);
+  assert.match(jobs.dispatch, /needs: publish/);
+  assert.match(jobs.dispatch, /if: needs\.publish\.outputs\.number != ''/);
+  assert.match(jobs.dispatch, /contents: read\n {6}pull-requests: read\n {6}actions: write/);
+  assert.doesNotMatch(jobs.dispatch, /contents: write|pull-requests: write|npm |path: source|download-artifact/);
+  for (const field of ["number", "head", "base"]) assert.match(jobs.publish, new RegExp(`${field}: \\$\\{\\{ steps\\.publication\\.outputs\\.${field} \\}\\}`));
 });
 
-test("both jobs refuse other repositories, refs and events before checking out code", () => {
+test("all three jobs refuse other repositories, refs and events before checking out code", () => {
   for (const job of Object.values(jobsOf(workflow()))) {
     const guard = job.indexOf('"$REPOSITORY" != unset-sh/.github');
     assert.ok(guard >= 0 && guard < job.indexOf("uses: actions/checkout@"));
-    assert.match(job, /"\$REF" != refs\/heads\/main/);
+    assert.match(job, /"\$REF" != refs\/heads\/staging/);
     assert.match(job, /push\|schedule\|workflow_dispatch/);
     assert.match(job, /"\$WORKFLOW_REPOSITORY" != unset-sh\/tooling/);
     assert.match(job, /WORKFLOW_SHA/);

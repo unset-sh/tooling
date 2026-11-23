@@ -5,6 +5,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Generated map staging PRs:** the organisation-map publisher now prepares a generated-only PR into staging
+  without merging. A separate Actions-write job revalidates its exact base, head, two-file tree and authored profile
+  boundary, then dispatches the three existing required workflows with those identities. Consumer dispatch adapters
+  and the shared branch-policy route must be adopted together; committed main views still require human promotion.
 - Restore the docs site's map refresh timer after moving the default branch to staging. A constrained
   dispatcher requests only the existing main site workflow; it does not promote staging content.
 - Give tooling's documentation validation the distinct `validate-docs / Check` context, preserving
