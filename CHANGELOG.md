@@ -5,6 +5,8 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- Add an opt-in read-only PR metadata check for purpose labels, readiness, validation and documentation declarations.
+
 - **Organisation map publication:** a repository-specific shared workflow regenerates and validates the two
   committed Markdown views with read-only permissions. Its isolated publisher accepts only those outputs,
   preserves authored profile text, and uses a generated-only PR with an exact-head squash merge. It never changes
