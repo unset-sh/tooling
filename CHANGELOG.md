@@ -5,6 +5,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Organisation map publication:** a repository-specific shared workflow regenerates and validates the two
+  committed Markdown views with read-only permissions. Its isolated publisher accepts only those outputs,
+  preserves authored profile text, and uses a generated-only PR with an exact-head squash merge. It never changes
+  source declarations or repository protections. Consumer adoption and Actions PR permissions remain explicit.
 - **Description data updates:** live collection reads the reviewed registry from the exact tooling default-branch
   commit already resolved for the snapshot and records its commit and SHA-256 separately from the executable pin.
   Metadata reviews can land without repeatedly changing caller workflow hashes. Missing or invalid remote metadata

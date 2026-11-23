@@ -43,6 +43,9 @@ This is `unset-sh/tooling`: the maintained developer tooling for the organisatio
   archive comparisons in `checks/release-package.test.mjs` must pass against its bundled npm.
 - Record caller-visible changes in `CHANGELOG.md`. Keep version `0.0.0` until the first approved release. Consumer
   calls use full reviewed commit pins. Automatic adoption and automatic merging need their own implementation.
+- The organisation-map publisher may update only `unset-sh/.github:MAP.md` and the marked profile block, through
+  a validated generated-only PR. Keep consumer generation read-only, isolate the write token, preserve authored
+  text, bind artifacts and merges to exact source/head revisions, and respect every GitHub merge refusal.
 - Never commit on `main`, a shared branch or a detached HEAD. Use your own `claude/<task>` or `cursor/<task>` branch.
   Land through a PR; do not merge your own implementation PR. Release setup and approval remain the owner's action;
   document what has not run rather than treating local tests as proof of live release behaviour.
