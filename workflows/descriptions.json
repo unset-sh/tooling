@@ -12,7 +12,7 @@
         "Call the reviewed tooling publisher with contents, pull-request and Actions write permissions at the caller boundary; the reusable implementation separates read-only generation, output-only publication and exact-head check dispatch."
       ],
       "outputs": [
-        "A generated-only staging PR and links to its three requested check runs when rendered views change. The workflow does not merge or promote main."
+        "A generated-only staging PR and links to three supplemental validation runs when views change. Ordinary PR checks require human approval with GITHUB_TOKEN; dispatched jobs do not satisfy PR ruleset checks. The workflow does not merge or promote main."
       ]
     },
     {
@@ -20,15 +20,15 @@
       "path": ".github/workflows/org-map.yml",
       "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
       "reviewedSha256": "bfbe97ab008b6e02472c44ddf3e5e427b7bf3056907d5b77bbf568e7975a0f41",
-      "purpose": "Validate the curated organisation map and report differences from public GitHub metadata, with a separate verified path for generated-map PR checks.",
+      "purpose": "Validate the curated organisation map and report differences from public GitHub metadata, with a separate verified path for supplemental generated-map validation.",
       "steps": [
         "On ordinary pull requests and pushes, regenerate the map from repos.json and run the repository checks with read-only contents permission.",
-        "For generated manual dispatches, first verify the actual bot-owned staging PR and exact head/base through the central branch-policy workflow; fail the required map check before checkout when proof fails.",
+        "For generated manual dispatches, first verify the actual bot-owned staging PR and exact head/base through the central branch-policy workflow; fail the map validation job before checkout when proof fails.",
         "For a verified generated dispatch, require regeneration to leave MAP.md and profile/README.md unchanged, proving the committed outputs are current.",
         "On the daily schedule or an ordinary manual run, compare public repository metadata and maintain the org-map-drift issue. Generated dispatches cannot enter this writable drift job."
       ],
       "outputs": [
-        "The Check the organisation map result and regenerated workspace views; the check itself does not commit those views.",
+        "The Check the organisation map result and regenerated workspace views; only eligible-event results can satisfy PR ruleset checks, while workflow_dispatch results are supplemental. The job does not commit the views.",
         "A drift issue created, updated or closed according to the public metadata comparison."
       ]
     },
@@ -37,14 +37,14 @@
       "path": ".github/workflows/docs-export.yml",
       "reviewedCommit": "aa0f429f9d6865ac57d5efc5446df4202bd2362c",
       "reviewedSha256": "36f79b9eddc9e2c6e8a78300f6c0c4945396d361c51944e0fee28277b272d651",
-      "purpose": "Check the organisation map and package maintained documentation, including fail-closed checks for generated-map PR dispatches.",
+      "purpose": "Check the organisation map and package maintained documentation, including fail-closed supplemental validation for generated-map dispatches.",
       "steps": [
         "Run on pull requests, staging or main pushes, and manual dispatches. Generated dispatch identities or generated branch refs first activate the central real-PR verifier.",
         "Keep the existing check / Check context: run the shared map-regeneration and repository-check command after valid proof or an ordinary event; select only a fixed failing command with dependency installation disabled when generated proof fails.",
         "After checks succeed, use the pinned exporter to package the committed docs/site pages and root licence with source revision and hashes."
       ],
       "outputs": [
-        "The check / Check result and a provenance-bearing docs-<commit> artifact retained for 14 days. This workflow neither writes the docs repository nor deploys the site."
+        "The check / Check result and a provenance-bearing docs-<commit> artifact retained for 14 days. Dispatch results are supplemental and cannot satisfy PR ruleset checks. This workflow neither writes the docs repository nor deploys the site."
       ]
     },
     {
@@ -59,7 +59,7 @@
         "Retain the shared ordinary PR rules: feature or fork contributions may target staging, while main promotion must originate from staging in the same repository."
       ],
       "outputs": [
-        "The policy / Validate branch policy check. It neither proves human intent nor approves, merges or promotes a pull request."
+        "The policy / Validate branch policy result. Ordinary PR runs can satisfy the required context; workflow_dispatch results are supplemental. This workflow neither proves human intent nor approves, merges or promotes a PR."
       ]
     },
     {
@@ -71,10 +71,10 @@
       "steps": [
         "Run hourly and on demand only on the default staging branch, serialize runs without cancelling active work, and process the fixed tooling and github source keys independently.",
         "Call the reviewed central documentation receiver at a full commit pin, with separate preparation, content-publication and Actions-dispatch permission scopes.",
-        "Leave the generated section-only pull requests and production promotion to the normal required checks and owner review."
+        "Leave ordinary PR run approval, required-check completion, merging and production promotion to the normal human review process."
       ],
       "outputs": [
-        "The central receiver’s bounded same-run import artifacts, generated staging PRs when content changes, and verified requested run URLs for the existing documentation and branch-policy checks."
+        "Bounded same-run import artifacts, generated staging PRs when content changes, and verified URLs for supplemental documentation and branch-policy runs. Ordinary PR checks require human approval with GITHUB_TOKEN; dispatched jobs do not satisfy PR ruleset checks."
       ]
     },
     {
@@ -82,14 +82,14 @@
       "path": ".github/workflows/ci.yml",
       "reviewedCommit": "9dc1178224bc2f09fc7ac0aabf59a6620d864dbc",
       "reviewedSha256": "75a1f53c1e4686c59eaf9df3f225819db23859d8651b4c76abbd57e397521ade",
-      "purpose": "Validate the documentation framework and source pages while preserving the same required check for normal changes and independently verified generated import PRs.",
+      "purpose": "Validate the documentation framework and source pages on ordinary changes, and provide supplemental validation for verified generated import dispatches.",
       "steps": [
         "Run for relevant PR updates and pushes to staging or main; accept generated-import dispatches only with the fixed PR, expected head and expected base inputs.",
         "For every dispatch, load a pinned central verifier and validate the actual bot PR, source provenance, current head/base and complete section-only proof before checking out consumer code.",
         "Install the locked tooling without lifecycle scripts, run tests and workflow/map guards, check ordinary PR documentation impact, lint workflows, and build both real content and preview fixtures."
       ],
       "outputs": [
-        "The required Validate documentation result, including checked ordinary and preview site output; malformed dispatch proof fails the job and prevents consumer execution."
+        "The Validate documentation result and checked ordinary and preview site output. Eligible PR/push results can satisfy the required context; workflow_dispatch results cannot. Malformed dispatch proof fails before consumer execution."
       ]
     },
     {
@@ -101,10 +101,10 @@
       "steps": [
         "Run on PR opening, synchronization, reopening, metadata edits and readiness changes without branch or path filters.",
         "Forward the three fixed generated-PR identity inputs on workflow dispatch to the pinned central branch-policy workflow.",
-        "Preserve the shared policy job’s existing required context and permission-free validation; generated dispatches must prove the actual bot PR, current head/base and owned changes."
+        "Preserve the shared policy job’s name and permission-free validation; generated dispatches must prove the actual bot PR, current head/base and owned changes but remain supplemental."
       ],
       "outputs": [
-        "The stable policy / Validate branch policy result for ordinary PR metadata or a verified generated import dispatch."
+        "The stable policy / Validate branch policy result. Ordinary PR runs can satisfy the required context; generated workflow_dispatch results cannot."
       ]
     },
     {
@@ -425,11 +425,11 @@
       "steps": [
         "Resolve an exact main source revision with a successful same-repository export run, then re-export its committed documentation and licence with read-only permissions.",
         "Validate a same-run bounded snapshot against immutable source Git objects and complete provenance before an isolated writer replaces only the owned section on its generated staging PR.",
-        "Use a separate Actions-writing job to verify the actual generated PR, dispatch the existing documentation and branch-policy checks on its exact head, and bind the returned run identities."
+        "Use a separate Actions-writing job to verify the actual generated PR, dispatch supplemental documentation and branch-policy validation on its exact head, and bind the returned run identities."
       ],
       "outputs": [
         "A seven-day docs-import-<source>-<run-id>-<run-attempt> artifact and an opened, updated or pending section-only staging PR when content changes; valid unchanged content creates no PR.",
-        "Verified requested run URLs for the two existing required checks; the workflow never merges a PR or promotes production."
+        "Verified requested run URLs for supplemental validation. Dispatched jobs do not satisfy PR ruleset checks; ordinary PR runs require human approval with GITHUB_TOKEN. The workflow never merges a PR or promotes production."
       ],
       "reviewedCommit": "082e488ec41047ae79e5da2ba4327538d0e758c6",
       "reviewedSha256": "ea1aaa8901c6367c4c395f8173bcd4ed5f080f601b8518a00c549689f32c8962"
@@ -441,10 +441,10 @@
       "steps": [
         "For ordinary PR events, read GitHub event metadata without checkout and require staging or main as the base; only same-repository staging may target main.",
         "For generated dispatches, refuse foreign repository, branch, head or helper identities before anonymously fetching the central validator at the running workflow commit.",
-        "Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting the same required check."
+        "Validate actual API PR metadata, current head/base and the complete generated-only change proof for docs imports or the organisation map before reporting the same job result; workflow_dispatch results remain supplemental."
       ],
       "outputs": [
-        "The stable Validate branch policy job result, failing on malformed events, unsupported generated identities, source proof failures or ref movement."
+        "The stable Validate branch policy job result, failing on malformed events, unsupported generated identities, proof failures or ref movement. Its PR-event results can satisfy required checks; its workflow_dispatch results cannot."
       ],
       "reviewedCommit": "082e488ec41047ae79e5da2ba4327538d0e758c6",
       "reviewedSha256": "2365d1362d70ca9e830166d2cecdc7c8f6846d8f10186edc84d6459bb9cafd66"
@@ -472,14 +472,14 @@
       "path": ".github/workflows/automation-org-map.yml",
       "reviewedCommit": "c2517bded6ea28a6e9ab286c1382613e07fb0d4c",
       "reviewedSha256": "45c4846bebc27251e2bdfc3d0fc6a1073608d2271e867130e70ed5dac9afcb42",
-      "purpose": "Prepare a generated-only organisation-map staging pull request and request its existing required checks without merging or promoting production.",
+      "purpose": "Prepare a generated-only organisation-map staging PR and request supplemental validation without merging or promoting production.",
       "steps": [
         "Run only for unset-sh/.github staging pushes, schedules or manual calls; regenerate and check the exact source with read-only permissions.",
         "Publish only MAP.md and the generated profile block through an isolated bot-owned staging PR, verifying exact source/head trees and preserving authored profile text.",
         "Pass only the PR number, head and base to a separate Actions-write job that revalidates the real PR and dispatches the fixed organisation-map, documentation-check and branch-policy workflows at that exact head."
       ],
       "outputs": [
-        "An open generated staging PR when output changes, plus links to its three requested check runs. Successful dispatch does not prove those checks passed. No automatic merge or main promotion occurs."
+        "An open generated staging PR when output changes, plus links to three supplemental runs. Dispatch does not satisfy PR ruleset checks; ordinary PR runs require human approval with GITHUB_TOKEN. No automatic merge or main promotion occurs."
       ]
     },
     {

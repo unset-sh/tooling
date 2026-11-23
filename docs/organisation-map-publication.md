@@ -13,6 +13,8 @@ Its source lives in `workflows/github/docs/map.yml`. Unlike the website's JSON-o
 publisher has a fixed repository and accepts only `MAP.md` and `profile/README.md`. It has no caller-supplied
 command, output path, repository or credential input.
 
+The publisher creates staging PRs and requests supplemental validation. Dispatched jobs do not satisfy GitHub PR ruleset checks. With the current `GITHUB_TOKEN` publisher, a person must approve the ordinary PR workflow runs before their required results can unblock the PR.
+
 ## Register and call it
 
 The consumer registers one map in `.github/maps.json`: id `organisation`, generator `scripts/map.mjs`, arguments
@@ -28,9 +30,8 @@ code. All three jobs reject other repositories, refs and events before checkout.
 Adopt this workflow together with the consumer's generated-PR dispatch adapters and the shared branch-policy
 dispatch route. The initial fixed adapters are `.github`'s `org-map.yml`, `docs-export.yml` and `branch-policy.yml`.
 Their `workflow_dispatch` inputs are `pull-request` (a positive numeric string), `expected-head` and `expected-base`
-(full commit SHAs). They run on the bot branch, bind the real PR to those inputs, and preserve the existing required
-checks: `Check the organisation map`, `check / Check`, and `policy / Validate branch policy`. A missing adapter fails
-dispatch; it is not permission to skip a required check. These capabilities do not activate until the consumer's
+(full commit SHAs). They run on the bot branch, bind the real PR to those inputs, and retain the existing job names: `Check the organisation map`, `check / Check`, and `policy / Validate branch policy`. The `workflow_dispatch` results are supplemental even when their names match required contexts. A missing adapter fails
+dispatch; the ordinary eligible-event checks are still required. These capabilities do not activate until the consumer's
 reviewed caller changes land.
 
 ## What it verifies
@@ -44,12 +45,12 @@ reviewed caller changes land.
    Emit only its number, head and base to the separate dispatcher.
 7. Re-read the actual open bot-owned PR and its immutable source/head trees. Require its sole source parent,
    unchanged files outside the two outputs, bounded regular files and preserved authored profile text.
-8. Dispatch the three fixed existing checks with the same PR/head/base inputs. Confirm each returned run belongs
+8. Dispatch the three fixed workflows for supplemental validation with the same PR/head/base inputs. Confirm each returned run belongs
    to its expected workflow and head. Generated map validation must also prove regeneration leaves the committed
    `MAP.md` and `profile/README.md` unchanged; the dispatch must never enter the writable drift-report path.
 
 Unchanged output creates no branch or PR. The result is an open staging PR and links to requested check runs.
-Accepted dispatch does not prove checks succeeded. No step merges, force-pushes, writes a protected ref, changes
+Accepted dispatch does not prove validation succeeded, and successful dispatched jobs do not satisfy PR ruleset checks. No step merges, force-pushes, writes a protected ref, changes
 protections, approves withheld workflow runs or sets a passing status for an unexecuted check. Normal independent
 review and required checks govern the staging merge; a human subsequently promotes staging to main.
 
@@ -57,8 +58,8 @@ review and required checks govern the staging merge; a human subsequently promot
 
 After a reviewed `repos.json` change reaches staging, the caller checks that exact revision and produces new map
 views. The publisher prepares a branch whose only parent is that staging revision and whose only possible changes
-are the generated outputs. The isolated dispatcher requests the three checks at the new branch's exact head. A
-reviewer follows those run links, verifies their conclusions and reviews the PR before its normal staging merge.
+are the generated outputs. The isolated dispatcher requests supplemental validation at the new branch's exact head. A
+reviewer can inspect those results, then approve the ordinary PR workflow runs. Confirm that the PR checks section shows the required results passing before the normal staging merge.
 
 The committed GitHub map and organisation profile do not change on main until the normal promotion. The website's
 live JSON maps use the separate [automatic map refresh](map-refresh.md#keep-the-timer-on-staging-and-the-published-site-on-main)
@@ -76,10 +77,9 @@ If dispatch fails partway through, inspect the existing check runs before retryi
 Run URLs are validated and reported, but the publisher does not wait for completion or merge automatically. A late
 base change makes dispatched verification fail; strict required checks and normal review still apply before merge.
 
-Actions must be permitted to create PRs. GitHub currently creates approval-required runs for some `GITHUB_TOKEN`
-PR events, while `workflow_dispatch` can start runs directly. The bounded dispatch path verifies the actual
-generated PR before consumer execution. It neither approves those withheld PR runs nor relies on them having
-started. See GitHub's [workflow-triggering rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+Actions must be permitted to create PRs. GitHub creates approval-required `pull_request` runs when `GITHUB_TOKEN` opens, synchronizes or reopens a PR. A user with write access can select **Approve workflows to run**. The bounded dispatch path verifies the actual generated PR before consumer execution, but it does not approve these ordinary PR runs or satisfy their ruleset requirements. GitHub explicitly excludes `workflow_dispatch` job results from PR ruleset checks, even when they pass at the correct head and use the required names. See the [token-trigger rules](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs) and [required-check event restrictions](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks#checks-from-some-workflow-jobs-are-not-evaluated).
+
+Unattended ordinary PR runs require a separately approved publisher authentication design using a scoped GitHub App installation token. That integration is not implemented here. Until then, preserve manual approval, required checks and normal review. Successful supplemental run URLs alone are not evidence that a PR can merge.
 
 The publisher does not rewrite `repos.json`, infer ownership or change authored explanations. Source metadata
 must still describe the intended relationships; the separate drift report identifies missing public facts.
@@ -91,7 +91,7 @@ is tied to an immutable Git object. The tests cover changed refs, forged PRs, ex
 unsafe blobs, returned-run identity mismatches, and the absence of merge or protected-ref mutations. Actual adapter
 adoption and first-run evidence must be checked separately from these local tests.
 
-References checked on 2026-11-22: GitHub REST [Git database](https://docs.github.com/en/rest/git) and
+Required-check and token-trigger references checked on 2026-11-23. API references: GitHub REST [Git database](https://docs.github.com/en/rest/git) and
 [workflow dispatch](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event).
 
 ## Source and maintenance
