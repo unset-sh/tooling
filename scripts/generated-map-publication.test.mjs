@@ -25,7 +25,7 @@ const entry = (path, sha) => ({ path, sha, mode: "100644", type: "blob" });
 function server(options = {}) {
   const calls = [];
   let mainReads = 0;
-  const pr = () => ({ number: 17, state: "open", head: { sha: head, ref: `automation/map-${base}`, repo: { full_name: repository } }, base: { ref: "main", sha: base, repo: { full_name: repository } }, ...options.prOverride });
+  const pr = () => ({ number: 17, state: "open", user: { login: "github-actions[bot]", id: 41898282, type: "Bot" }, head: { sha: head, ref: `automation/map-${base}`, repo: { full_name: repository } }, base: { ref: "main", sha: base, repo: { full_name: repository } }, ...options.prOverride });
   const fetchImpl = async (url, init) => {
     assert.ok(url.startsWith("https://api.github.com/repos/unset-sh/.github/"));
     assert.equal(init.redirect, "error");
@@ -159,6 +159,12 @@ for (const bad of [{ wrongTree: true }, { wrongParent: true }, { existingPr: tru
 test("refuses an existing publication commit without the bot sign-off", async () => {
   const api = server({ existing: true, existingPr: true, unsigned: true });
   await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /sign-off/);
+  assert.ok(api.writes().every(({ path }) => ["/git/blobs", "/git/trees"].includes(path)));
+});
+
+test("refuses a human-created retry PR rather than attributing its squash to that person", async () => {
+  const api = server({ existing: true, existingPr: true, prOverride: { user: { login: "maintainer", id: 123, type: "User" } } });
+  await assert.rejects(publishGeneratedMap({ snapshot: snapshot(), githubToken: "TOKEN-SECRET", fetchImpl: api.fetchImpl }), /bot author/);
   assert.ok(api.writes().every(({ path }) => ["/git/blobs", "/git/trees"].includes(path)));
 });
 

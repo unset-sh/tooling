@@ -245,6 +245,12 @@ export async function publishGeneratedMap({ snapshot, githubToken, fetchImpl = f
   if (!Number.isSafeInteger(pr?.number) || pr.number <= 0 || pr.state !== "open" || pr.head?.sha !== commit.sha ||
       pr.head.ref !== branch || pr.head.repo?.full_name !== repositoryName || pr.base?.ref !== "main" ||
       pr.base.sha !== snapshot.commit || pr.base.repo?.full_name !== repositoryName) refuse("GitHub returned an unexpected existing or new publication pull request");
+  // GitHub attributes a squash to the PR creator. A manually opened retry PR
+  // must not turn this bot's generated update into a human-authored commit.
+  // https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/merging-a-pull-request
+  if (pr.user?.login !== "github-actions[bot]" || pr.user.id !== 41898282 || pr.user.type !== "Bot") {
+    refuse("Publication pull request must have the expected bot author");
+  }
   const url = `https://github.com/unset-sh/.github/pull/${pr.number}`;
   await checkMain();
   // The merge endpoint enforces the expected PR head and repository protections.
