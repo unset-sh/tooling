@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { baseCommit, blob, importFixture, sourceCommit, sourceTree } from "../checks/docs-import-fixture.mjs";
-import { publishDocsImport } from "./docs-import-publication.mjs";
+import { publishDocsImport, validateImportPr } from "./docs-import-publication.mjs";
 
 function remote(fixture, overrides = {}) {
   const writes = [];
@@ -146,4 +146,14 @@ test("previous section byte budget is checked before any old blob is fetched", a
   };
   await assert.rejects(publishDocsImport({ snapshot: fixture.snapshot, api: bounded }), /total byte limit/);
   assert.equal(rawReads, 0);
+});
+
+test("an open import PR is accepted only at a base the caller names", () => {
+  const head = "a".repeat(40), current = "b".repeat(40), previous = "c".repeat(40), other = "d".repeat(40);
+  const pr = base => ({ number: 15, state: "open", user: { login: "github-actions[bot]", id: 41898282, type: "Bot" },
+    head: { sha: head, ref: "automation/docs-github", repo: { full_name: "unset-sh/docs" } },
+    base: { sha: base, ref: "main", repo: { full_name: "unset-sh/docs" } } });
+  assert.equal(validateImportPr(pr(previous), "automation/docs-github", head, [current, previous]).number, 15);
+  assert.throws(() => validateImportPr(pr(previous), "automation/docs-github", head, current), /identity or ownership/);
+  assert.throws(() => validateImportPr(pr(other), "automation/docs-github", head, [current, previous]), /identity or ownership/);
 });
