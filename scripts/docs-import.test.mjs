@@ -68,3 +68,10 @@ test("the executable rejects a foreign receiver without logging its token or arb
   assert.equal(run.status, 1); assert.match(run.stderr, /Documentation import refused/);
   assert.doesNotMatch(run.stdout + run.stderr, /PRIVATE_TOKEN|PRIVATE_SOURCE/);
 });
+
+test("the executable names the fixed refusal reason so a failed run can be diagnosed", () => {
+  const run = spawnSync(process.execPath, [new URL("./docs-import.mjs", import.meta.url).pathname, "resolve", "--source", "PRIVATE_SOURCE"], {
+    env: { PATH: process.env.PATH, ...environment, GITHUB_REPOSITORY: "outside/docs", DOCS_GITHUB_TOKEN: "PRIVATE_TOKEN" }, encoding: "utf8", timeout: 3000 });
+  assert.equal(run.status, 1); assert.match(run.stderr, /Reason: Documentation imports run only in docs on main/);
+  assert.doesNotMatch(run.stdout + run.stderr, /PRIVATE_TOKEN|PRIVATE_SOURCE/);
+});

@@ -1,4 +1,5 @@
 import { startedAsScript } from "./cli.mjs";
+import { DocsImportError } from "./docs-import-data.mjs";
 import { createDocsApi } from "./docs-import-github.mjs";
 import { validateDocsImportDispatch } from "./docs-import-dispatch.mjs";
 import { validateGeneratedMapDispatch } from "./generated-map-publication.mjs";
@@ -24,7 +25,9 @@ async function main() {
   console.log(`Verified generated pull request ${result.number} at ${result.head}`);
 }
 
-if (startedAsScript(import.meta.url)) main().catch(() => {
+// A DocsImportError message is fixed text (at most an HTTP status), so it is safe to log; anything else stays hidden.
+if (startedAsScript(import.meta.url)) main().catch(error => {
   console.error("Generated pull request dispatch validation failed; check the PR identity, current head/base and API availability");
+  if (error instanceof DocsImportError) console.error(`Reason: ${error.message}`);
   process.exitCode = 1;
 });
