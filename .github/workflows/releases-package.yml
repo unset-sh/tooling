@@ -264,11 +264,13 @@ jobs:
         working-directory: repository
         # --frozen-lockfile installs from package.json alone when there is no lockfile at all (Bun 1.4.4
         # docs/pm/cli/install.mdx), where npm's clean install refused, so a missing bun.lock stops the job here.
-        # The token reads packages only, and only this step sees it: a repository's bunfig.toml names it for the
-        # @unset-sh scope on GitHub Packages, which needs a token even to read. --ignore-scripts runs no
+        # The token reads packages only, and only this step sees it: a repository's bunfig.toml names
+        # $GITHUB_PACKAGES_TOKEN for the @unset-sh scope on GitHub Packages, which needs a token even to read.
+        # It is never NPM_CONFIG_TOKEN: Bun sends that one to the default registry too (Bun 1.4.4
+        # docs/pm/npmrc.mdx), which would hand this token to registry.npmjs.org. --ignore-scripts runs no
         # dependency code while it is present.
         env:
-          NPM_CONFIG_TOKEN: ${{ github.token }}
+          GITHUB_PACKAGES_TOKEN: ${{ github.token }}
         run: |
           test -f bun.lock || { echo "::error::Dependencies are to be installed, but there is no bun.lock."; exit 1; }
           bun install --frozen-lockfile --ignore-scripts
