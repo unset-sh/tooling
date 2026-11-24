@@ -15,6 +15,8 @@ name: staging image
 #         packages: write
 #         id-token: write
 #         attestations: write
+#       # with:
+#       #   read-packages: true # only for a Dockerfile that installs @unset-sh packages
 #
 # Alex decided on 2026-11-23: one shared workflow; it runs on a push to staging and never on a pull request;
 # images go to ghcr.io/unset-sh/staging/<repository>, the path saying the channel; consumers use the digest,
@@ -25,7 +27,7 @@ name: staging image
 #
 # What runs where (the split releases-package.yml uses):
 #   - `build` runs the calling repository's code: a Dockerfile's RUN steps are that repository's commands. It
-#     holds a read-only token, builds to an OCI image layout on disk and pushes nothing.
+#     holds a read-only token (contents, and packages for a caller that sets read-packages), builds to an OCI image layout on disk and pushes nothing.
 #   - `publish` is the only job that can write and runs no code of the calling repository: only this
 #     repository's script, pinned actions, Bun, crane and docker login. It checks what `build` handed over as
 #     untrusted data before pushing it.
@@ -57,6 +59,12 @@ on:
         description: The one platform to build, `linux/amd64` or `linux/arm64`, each on a runner of that architecture.
         type: string
         default: linux/amd64
+      read-packages:
+        description: >-
+          Hand the run's own token, which can read packages, to the build as the BuildKit secret
+          `github_packages_token`, for a Dockerfile that installs @unset-sh packages from GitHub Packages. Off by default.
+        type: boolean
+        default: false
       timeout-minutes:
         description: How long the build job may run.
         type: number
@@ -81,8 +89,12 @@ jobs:
     # One native runner per platform, so no emulator runs the build. An unknown platform fails the first step.
     runs-on: ${{ inputs.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: ${{ inputs.timeout-minutes }}
+    # packages: read is held by every build's token, because a job's permissions cannot depend on an input, but the
+    # token reaches the repository's code only when the caller sets read-packages (Alex, 2026-11-24: an opt-in read
+    # token, handed only to repositories that ask, never in the image). Nothing else here passes it on.
     permissions:
       contents: read
+      packages: read
     outputs:
       digest: ${{ steps.layout.outputs.digest }}
     steps:
@@ -176,11 +188,17 @@ jobs:
           # rewrite-timestamp=true sets the files' times in the layers to it too
           # (moby/buildkit docs/build-repro.md, read 2026-11-24).
           SOURCE_DATE_EPOCH: ${{ steps.labels.outputs.epoch }}
+          # Empty unless the caller set read-packages. BuildKit mounts a secret only in a RUN that asks for it, and
+          # never writes it into a layer, the build's cache or the image's settings
+          # (https://docs.docker.com/build/building/secrets/, read 2026-11-24).
+          PACKAGES_TOKEN: ${{ inputs.read-packages && github.token || '' }}
         # No provenance or SBOM from BuildKit, so the layout holds one image manifest and not an index; the
         # provenance that counts is the attestation `publish` signs. tar=false writes the layout as a folder, so
-        # `publish` reads plain files and unpacks no archive. Only the labels below are passed in; the
-        # repository passes no build argument or secret.
+        # `publish` reads plain files and unpacks no archive. Only the labels below and, when asked for, the
+        # package token are passed in; the repository passes no build argument or secret of its own.
         run: |
+          secret=()
+          if [ -n "$PACKAGES_TOKEN" ]; then secret=(--secret id=github_packages_token,env=PACKAGES_TOKEN); fi
           docker buildx version
           builder="staging-image-$GITHUB_RUN_ID"
           docker buildx create --name "$builder" --driver docker-container --driver-opt "image=$BUILDKIT_IMAGE" --bootstrap
@@ -193,6 +211,7 @@ jobs:
             --provenance=false \
             --sbom=false \
             --progress=plain \
+            "${secret[@]}" \
             --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
             --label "org.opencontainers.image.licenses=$LICENSE" \

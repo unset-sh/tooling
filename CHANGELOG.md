@@ -5,6 +5,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **The staging image build can read `@unset-sh` packages, when asked:** `image-staging.yml` takes
+  `read-packages` (default `false`). When set, the build hands the run's own token, which now holds
+  `packages: read` in the build job, to the Dockerfile as the BuildKit secret `github_packages_token`, never as
+  a build argument or in a layer. Without it, nothing changes for the caller.
 - **Installs get the package token as `GITHUB_PACKAGES_TOKEN`, not `NPM_CONFIG_TOKEN`:** Bun also sends
   `NPM_CONFIG_TOKEN` to the default registry, so the install steps of `ci-check.yml`, `releases-package.yml` and
   `releases-channel.yml` were sending the job's package-read token to registry.npmjs.org. A caller that installs
