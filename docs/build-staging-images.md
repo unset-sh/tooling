@@ -5,22 +5,23 @@ weight: 35
 type: docs
 params:
   doc_kind: guide
-  checked_source_revision: "ee764fb87aa2a09086a83c8f5a3a7baac7f7267e"
+  checked_source_revision: "449027b9b49d5e0f29ab1c9a17191d47b6c8bcdb"
 ---
 
 Use `.github/workflows/image-staging.yml` when a repository ships a container image that `unset-sh/deployment` runs on staging. Each push to the repository's `staging` branch, which is a merged pull request, builds the image, pushes it to `ghcr.io/unset-sh/staging/<repository>` and attests where it came from. Deployment then pins the image by digest and verifies the attestation before it runs it.
 
-The implementation is **unreleased, at version 0.0.0**, generated from [`workflows/shared/image/staging.yml`](https://github.com/unset-sh/tooling/blob/ee764fb87aa2a09086a83c8f5a3a7baac7f7267e/workflows/shared/image/staging.yml). Its checks run in this repository's tests, but **no image has been pushed or attested by it yet**: that first happens when a caller merges into staging. Production images are not part of this workflow; they will go to `ghcr.io/unset-sh/<repository>` through a separate release workflow with its own approval.
+The implementation is **unreleased, at version 0.0.0**, generated from [`workflows/shared/image/staging.yml`](https://github.com/unset-sh/tooling/blob/449027b9b49d5e0f29ab1c9a17191d47b6c8bcdb/workflows/shared/image/staging.yml). Its checks run in this repository's tests, but **no image has been pushed or attested by it yet**: that first happens when a caller merges into staging. Production images are not part of this workflow; they will go to `ghcr.io/unset-sh/<repository>` through a separate release workflow with its own approval.
 
 ## What Alex decided
 
-On 2026-11-23 Alex decided: one shared workflow in tooling, with a thin caller in each repository pinned to a full tooling commit; it runs on a push to `staging` and never on a pull request; images go to `ghcr.io/unset-sh/staging/<repository>`, so the path says the channel; consumers use the digest, so the workflow writes no tag at all, neither `latest` nor `staging-<sha>`; it attests build provenance; and the run's own `GITHUB_TOKEN` is its only credential, with `contents: read`, `packages: write`, `id-token: write` and `attestations: write`.
+On 2026-11-23 Alex decided: one shared workflow in tooling, with a thin caller in each repository pinned to a full tooling commit; it runs on a push to `staging` and never on a pull request; images go to `ghcr.io/unset-sh/staging/<repository>`, so the path says the channel; consumers use the digest, so the workflow gives the image no tag, neither `latest` nor `staging-<sha>`; it attests build provenance; and the run's own `GITHUB_TOKEN` is its only credential, with `contents: read`, `packages: write`, `id-token: write` and `attestations: write`.
 
 ## Before you start
 
 - **The repository is public.** On the Free, Pro and Team plans GitHub offers artifact attestations for public repositories only; a private or internal repository needs GitHub Enterprise Cloud ([GitHub's plan note](https://github.com/github/docs/blob/main/data/reusables/gated-features/attestations.md), read 2026-11-24). `unset-sh/backend` and `unset-sh/web` were public on 2026-11-24.
 - **The repository's name is lower-case letters, digits and dashes.** It becomes the image name; anything else stops the run.
 - **Every image the Dockerfile pulls is pinned by digest**: `FROM name:tag@sha256:<64 hex>` or `FROM name@sha256:<64 hex>`, and the same for `COPY --from=`, `RUN --mount=...,from=` and a `# syntax=` directive. Earlier stages and `scratch` need no digest. An image named through a build argument (`FROM ${BASE}`) is refused, because its value is not in the file. Downloads made by `RUN` or `ADD` are not checked.
+- **The Dockerfile is written plainly.** The check reads the file as BuildKit v0.35.0 does and refuses what it cannot read the same way: a `#!` first line, whitespace other than spaces and tabs, a flag (`--from=`, `--mount=` and the rest) holding a quote, backslash, backtick or non-ASCII character, and `<<` on a `RUN`, `COPY` or `ADD` line other than a plain heredoc (`<<NAME`, `<<-NAME`, `<<"NAME"`, `<<'NAME'`) on a line with no other quote, backslash, backtick or `$`. Put such commands inside the heredoc or a script. A stage is named by its `AS` name; only `COPY --from=` also takes its number.
 - **`package.json` has a `license` field** holding a plain SPDX expression, such as `AGPL-3.0-only` for a product repository. It becomes the `org.opencontainers.image.licenses` label.
 - **The build needs no credential.** The build job has no package token and passes no build argument or secret, so a Dockerfile cannot install `@unset-sh` packages from GitHub Packages yet. Adding that is a reviewed change to this workflow.
 - **The organisation's Actions policy allows this workflow.** If it lists allowed actions and reusable workflows, add `unset-sh/tooling/.github/workflows/image-staging.yml` at the reviewed commit.
@@ -73,8 +74,8 @@ The caller grants the four; each job takes only what its row shows. `build` runs
 
 ## What a run produces
 
-- An image with no tag in `ghcr.io/unset-sh/staging/<repository>`, built from the pushed commit with BuildKit pinned by digest in a new builder with no cache. Its times are the commit time (`SOURCE_DATE_EPOCH`, with file times rewritten), and it carries the labels `org.opencontainers.image.source`, `.revision` and `.licenses`. A second run of the same commit should produce the same digest when the Dockerfile's own steps are reproducible; that is not enforced.
-- A build provenance attestation for the image's digest, stored with GitHub and pushed beside the image.
+- An image with no tag of its own in `ghcr.io/unset-sh/staging/<repository>`, built from the pushed commit with BuildKit pinned by digest in a new builder with no cache. Its times are the commit time (`SOURCE_DATE_EPOCH`, with file times rewritten), and it carries the labels `org.opencontainers.image.source`, `.revision` and `.licenses`. A second run of the same commit should produce the same digest when the Dockerfile's own steps are reproducible; that is not enforced.
+- A build provenance attestation for the image's digest, stored with GitHub and pushed beside the image. GHCR has no referrers API, so `actions/attest` pushes it under the tag `sha256-<image hex>`, the fallback in the OCI distribution spec's [referrers tag schema](https://github.com/opencontainers/distribution-spec/blob/main/spec.md#referrers-tag-schema) (`@sigstore/oci` in `actions/attest` v4.2.2, read 2026-11-24). That tag names an index of the image's attestations, not the image, and it changes when another attestation for the same digest is pushed, for example when publish runs again. Nothing pins or checks that tag: the verify command below reads GitHub's attestation API. Whether to keep the registry copy at all is open with Alex.
 - The outputs `digest` (`sha256:<64 hex>`) and `image` (`ghcr.io/unset-sh/staging/<repository>@sha256:<64 hex>`), and a run summary listing the images the Dockerfile pulled and the verify command below.
 
 ## Set the package up after the first push
@@ -91,7 +92,7 @@ GitHub also says `GITHUB_TOKEN` cannot push to a package of the same name that w
 
 ## Verify the result
 
-On the run page, both jobs pass and the summary names `ghcr.io/unset-sh/staging/<repository>@sha256:<digest>`. The package page lists an untagged version with that digest. Then check the attestation as deployment will:
+On the run page, both jobs pass and the summary names `ghcr.io/unset-sh/staging/<repository>@sha256:<digest>`. The package page lists a version with that digest and no tag, and the attestation's version tagged `sha256-<digest>`. Then check the attestation as deployment will:
 
 ```sh
 gh attestation verify oci://ghcr.io/unset-sh/staging/backend@sha256:<digest> \
@@ -118,10 +119,12 @@ A pull by the same digest gets exactly the image that was verified: `docker pull
 - **"is not pinned by digest"** with a line number: pin that image, for example with the digest `crane digest <image:tag>` or `docker buildx imagetools inspect <image:tag>` prints, and keep the tag for readers.
 - **"has no plain SPDX expression in 'license'"**: add the licence to `package.json`.
 - **"The downloaded image is ..., but the build job reported ..."** or **"The registry holds ..."**: the bytes changed between build and push. Nothing was attested; rerun all jobs and tell Alex if it repeats.
+- **Re-running only `publish`**: use **Re-run all jobs**. **Re-run failed jobs** cannot work for `publish` alone, because the artifact's name carries the run attempt and the new attempt looks for a name the earlier build never uploaded.
+- **"may not contain a quote"**, **"plain form"**, **"#! line"**, **"whitespace"** or **"is not a Dockerfile instruction"**: rewrite the line as the note on a plainly written Dockerfile above says.
 - **Denied on push**: check the package's **Manage Actions access** and repository link above.
 
-A pushed image cannot be taken back by this workflow, and it deletes nothing. Because nothing is tagged, an image nobody pins is inert; deleting old versions is a package setting for Alex.
+A pushed image cannot be taken back by this workflow, and it deletes nothing. Because the image has no tag of its own, an image nobody pins is inert; deleting old versions is a package setting for Alex.
 
 ## Source and evidence
 
-Checked against [`workflows/shared/image/staging.yml`](https://github.com/unset-sh/tooling/blob/ee764fb87aa2a09086a83c8f5a3a7baac7f7267e/workflows/shared/image/staging.yml), [`scripts/image-staging.mjs`](https://github.com/unset-sh/tooling/blob/ee764fb87aa2a09086a83c8f5a3a7baac7f7267e/scripts/image-staging.mjs) and their tests in `scripts/image-staging.test.mjs` and `checks/image-staging-workflow.test.mjs`. Behaviour of the tools was read, all on 2026-11-24, in `actions/attest` v4.2.2 (`README.md`, `src/attest.ts`), go-containerregistry v0.22.1 (`cmd/crane/cmd/push.go`), BuildKit's [`docs/build-repro.md`](https://github.com/moby/buildkit/blob/master/docs/build-repro.md) and Docker's [OCI exporter page](https://github.com/docker/docs/blob/main/content/manuals/build/exporters/oci-docker.md). A local build with BuildKit v0.35.0 and a push by digest to a local registry with crane v0.22.1 confirmed the layout shape, the same digest on a second build, and that no tag was created. The push to GHCR, its package creation and the attestation have not run.
+Checked against [`workflows/shared/image/staging.yml`](https://github.com/unset-sh/tooling/blob/449027b9b49d5e0f29ab1c9a17191d47b6c8bcdb/workflows/shared/image/staging.yml), [`scripts/image-staging.mjs`](https://github.com/unset-sh/tooling/blob/449027b9b49d5e0f29ab1c9a17191d47b6c8bcdb/scripts/image-staging.mjs) and their tests in `scripts/image-staging.test.mjs` and `checks/image-staging-workflow.test.mjs`. Behaviour of the tools was read, all on 2026-11-24, in BuildKit v0.35.0 (`frontend/dockerfile/parser/parser.go`, `directives.go`, `split_command.go`, `instructions/commands_runmount.go`, `instructions/bflag.go`), `actions/attest` v4.2.2 (`README.md`, `src/attest.ts`, `dist/index.js`), go-containerregistry v0.22.1 (`cmd/crane/cmd/push.go`), BuildKit's [`docs/build-repro.md`](https://github.com/moby/buildkit/blob/master/docs/build-repro.md) and Docker's [OCI exporter page](https://github.com/docker/docs/blob/main/content/manuals/build/exporters/oci-docker.md). A local build with BuildKit v0.35.0 and a push by digest to a local registry with crane v0.22.1 confirmed the layout shape, the same digest on a second build, and that crane created no tag (the attestation's `sha256-` tag comes from `actions/attest`, which did not run locally). Each Dockerfile shape the check refuses was built with that BuildKit, which tried to pull the unpinned image. The push to GHCR, its package creation and the attestation have not run.
