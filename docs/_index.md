@@ -35,6 +35,7 @@ This repository owns the public pages under `docs/`. Its exporter packages those
 - [Adopt repository policy checks](repository-policy.md): check dependency references, action pins, installed-kit integrity, and declared working-artifact paths.
 - [Release workflow reference](release-reference.md): inspect inputs, approval requirements, publication boundaries, and verification.
 - [Release through staging and main](release-channels.md): prepare separate prerelease and stable channels with a human promotion boundary.
+- [Build staging images](build-staging-images.md): build a container image on each merge into staging, push it by digest, and verify its attestation.
 - [Export the public documentation](export-docs.md): package an exact source revision for a reviewed import.
 - [Import reviewed documentation](import-docs.md): prepare bounded, checked PRs into docs main from stable source revisions.
 - [Refresh every published map](map-refresh.md): register map generators and connect their complete snapshot to the build.

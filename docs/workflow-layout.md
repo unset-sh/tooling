@@ -33,6 +33,8 @@ tooling/
 │   │   ├── docs/
 │   │   │   ├── export.yml
 │   │   │   └── maps.yml
+│   │   ├── image/
+│   │   │   └── staging.yml
 │   │   └── releases/
 │   │       ├── package.yml
 │   │       └── channel.yml
@@ -66,6 +68,7 @@ The [manifest](https://github.com/unset-sh/tooling/blob/50b5ae0db21922603e3dc745
 | `workflows/shared/releases/channel.yml` | `.github/workflows/releases-channel.yml` | Separate immutable staging prereleases and stable publication from exact human promotions |
 | `workflows/shared/releases/package.yml` | `.github/workflows/releases-package.yml` | Protected package and release-asset publication |
 | `workflows/tooling/release/self.yml` | `.github/workflows/releases-self.yml` | This repository's release caller |
+| `workflows/shared/image/staging.yml` | `.github/workflows/image-staging.yml` | Build a container image on a push to staging, push it by digest to `ghcr.io/unset-sh/staging/<repository>` and attest it |
 | `workflows/shared/docs/export.yml` | `.github/workflows/automation-docs-export.yml` | Reusable export of a consumer's committed public documentation |
 | `workflows/shared/docs/maps.yml` | `.github/workflows/automation-maps-refresh.yml` | Refresh every registered map and upload one complete validated JSON snapshot |
 | `workflows/tooling/docs/self.yml` | `.github/workflows/automation-docs-self.yml` | This repository's check and documentation-export caller |

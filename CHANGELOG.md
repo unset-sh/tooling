@@ -5,6 +5,15 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Staging images (Alex, 2026-11-23):** new reusable `image-staging.yml`. Called from a repository's push to
+  `staging`, it builds the repository's `Dockerfile` with BuildKit pinned by digest, pushes the image by digest
+  and with no tag to `ghcr.io/unset-sh/staging/<repository>`, and attests its build provenance, with the run's
+  `GITHUB_TOKEN` only. Inputs: `context`, `dockerfile`, `platform` (`linux/amd64` or `linux/arm64`) and
+  `timeout-minutes`; outputs: `digest` and `image`. It refuses any other event or branch, a repository outside
+  `unset-sh` or not named in lower-case letters, digits and dashes, any image the Dockerfile pulls without a
+  digest, and an image whose pushed digest differs from the one built. A caller grants `contents: read`,
+  `packages: write`, `id-token: write` and `attestations: write`. Nothing has been pushed by it yet; the
+  package settings Alex sets after the first push are in `docs/build-staging-images.md`.
 - **A Postgres service for the check:** `ci-check.yml` takes an optional `postgres-image`, a Postgres image pinned
   by digest (`postgres:<tag>@sha256:<64 hex>`). When it is set, the job runs that image as a service on the
   runner's loopback with no password, refuses any image not in that form, and sets `PGHOST`, `PGPORT`, `PGUSER`

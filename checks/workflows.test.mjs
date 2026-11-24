@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { inputsOf, jobsOf, pinnedBun, readText, runBlocks, SETUP_BUN, topLevel, workflowFiles } from "./repo.mjs";
 
-const REUSABLE = [".github/workflows/ci-check.yml", ".github/workflows/releases-package.yml", ".github/workflows/releases-channel.yml"];
+const REUSABLE = [".github/workflows/ci-check.yml", ".github/workflows/releases-package.yml", ".github/workflows/releases-channel.yml", ".github/workflows/image-staging.yml"];
 const release = readText(".github/workflows/releases-package.yml");
 const releaseJobs = jobsOf(release);
 
@@ -271,7 +271,7 @@ test("this repository checks and releases itself through the workflows it ships"
 });
 
 test("the public guides name every input of the shipped workflows", () => {
-  const readme = readText("docs/use-workflows.md") + readText("docs/release-reference.md");
+  const readme = readText("docs/use-workflows.md") + readText("docs/release-reference.md") + readText("docs/build-staging-images.md");
   for (const path of REUSABLE) {
     const inputs = inputsOf(readText(path));
     assert.ok(inputs.length > 0, `${path} declares no inputs`);
