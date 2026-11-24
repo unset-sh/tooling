@@ -1333,6 +1333,28 @@ Provide a reusable Bun-based check job that each calling repository configures w
 **What it does**
 
 1. When the caller sets postgres-image, run that Postgres image as a service on the runner's loopback with trust authentication, refuse the job unless the image is postgres:\<tag\>@sha256:\<64 hex\>, and set PGHOST, PGPORT, PGUSER and PGDATABASE for the check; with it empty, start no service.
+2. When the caller sets openfga-image, refuse the job unless the image is openfga/openfga:v\<version\>@sha256:\<64 hex\>, start it with run, in memory, on the runner's loopback with a preshared key made for the run and masked, wait up to 60 seconds for it to be healthy, and set FGA\_URL and FGA\_KEY for the check; with it empty, start nothing.
+3. Check out the caller, install the exact Bun version its .bun-version names, and refuse any other version.
+4. Optionally install dependencies from the committed bun.lock with bun install --frozen-lockfile --ignore-scripts, failing when bun.lock is missing; only that step holds the job’s package-read token, as GITHUB\_PACKAGES\_TOKEN, a name only the repository’s bunfig.toml reads, for @unset-sh packages on GitHub Packages.
+5. Run the caller’s check command, defaulting to bun run check.
+6. If the caller specifies an output path, attempt to retain it even when the check fails.
+
+**Produces**
+
+- The check result for the calling repository.
+- An optional check-output artifact retained for 14 days when a path is configured and files are available.
+
+[Reviewed source at 592ecac046d9](https://github.com/unset-sh/tooling/blob/592ecac046d97ca41158c00316b01fbb83c2101a/.github/workflows/ci-check.yml).
+
+Source SHA-256: `a6e30593572f02aa8027b2a19b9c2ce40f81f0f776cd905ccda73f6808af6f1c`.
+
+#### Additional reviewed version 1
+
+Provide a reusable Bun-based check job that each calling repository configures with its own validation command.
+
+**What it does**
+
+1. When the caller sets postgres-image, run that Postgres image as a service on the runner's loopback with trust authentication, refuse the job unless the image is postgres:\<tag\>@sha256:\<64 hex\>, and set PGHOST, PGPORT, PGUSER and PGDATABASE for the check; with it empty, start no service.
 2. Check out the caller, install the exact Bun version its .bun-version names, and refuse any other version.
 3. Optionally install dependencies from the committed bun.lock with bun install --frozen-lockfile --ignore-scripts, failing when bun.lock is missing; only that step holds the job’s package-read token, as GITHUB\_PACKAGES\_TOKEN, a name only the repository’s bunfig.toml reads, for @unset-sh packages on GitHub Packages.
 4. Run the caller’s check command, defaulting to bun run check.
@@ -1347,7 +1369,7 @@ Provide a reusable Bun-based check job that each calling repository configures w
 
 Source SHA-256: `c7ffe51aed9b153504547256f91d25d132300859e2670f95397794fc3ed7bee2`.
 
-#### Additional reviewed version 1
+#### Additional reviewed version 2
 
 Provide a reusable Bun-based check job that each calling repository configures with its own validation command.
 
@@ -1368,7 +1390,7 @@ Provide a reusable Bun-based check job that each calling repository configures w
 
 Source SHA-256: `f4b7df4d6241b2852ecd32b68b61d83477c7fa1c82d1abf67f0be6b92343aeb0`.
 
-#### Additional reviewed version 2
+#### Additional reviewed version 3
 
 Provide a reusable Bun-based check job that each calling repository configures with its own validation command.
 
@@ -1388,7 +1410,7 @@ Provide a reusable Bun-based check job that each calling repository configures w
 
 Source SHA-256: `21ce241f0a9ca446e1589273470ec04e1de75740282580ed007cf07bf01eeb05`.
 
-#### Additional reviewed version 3
+#### Additional reviewed version 4
 
 Provide a reusable Bun-based check job that each calling repository configures with its own validation command.
 
@@ -1408,7 +1430,7 @@ Provide a reusable Bun-based check job that each calling repository configures w
 
 Source SHA-256: `06241779cfbc46a02f5c0b91cac33a2e218bf929ec5f26c75eb5f45d01fd09b1`.
 
-#### Additional reviewed version 4
+#### Additional reviewed version 5
 
 Provide a reusable Node-based check job that each calling repository configures with its own validation command.
 
@@ -1428,7 +1450,7 @@ Provide a reusable Node-based check job that each calling repository configures 
 
 Source SHA-256: `7bcb733d8dff4194c32c26d427ab73cd3ffffaee1379c2bf0240553f3cfcd924`.
 
-#### Additional reviewed version 5
+#### Additional reviewed version 6
 
 Provide a reusable Node-based check job that each calling repository configures with its own validation command.
 
