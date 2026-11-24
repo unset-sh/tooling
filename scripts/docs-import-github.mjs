@@ -1,5 +1,9 @@
-// GitHub REST API 2026-03-10: installation tokens are repository-scoped.
-// Public source metadata is read without credentials; only docs receives its job token.
+// GitHub REST API 2026-03-10: installation tokens are repository-scoped for writes.
+// Every request, source reads included, carries the docs job token when there is one, so it
+// counts against that token's quota rather than the runner's shared anonymous one (anonymous
+// reads were refused with HTTP 403 in docs-import run 45302302882). The token only ever goes to
+// api.github.com for the allowlisted repositories below, and only docs accepts writes. The
+// tooling maps refresh already reads public org repositories with this same job token.
 // https://docs.github.com/en/actions/concepts/security/github_token
 // https://docs.github.com/en/rest/actions/workflow-runs#list-workflow-runs-for-a-workflow
 // https://docs.github.com/en/rest/git/trees#get-a-tree
@@ -65,7 +69,7 @@ export function createDocsApi({ githubToken, fetchImpl = fetch } = {}) {
     if (method === "PATCH" && !/^\/(?:git\/refs\/heads\/automation\/docs-(?:tooling|github)|pulls\/[1-9][0-9]*)$/.test(path)) refuseImport("Unsupported documentation update");
     if (method !== "GET" && !githubToken) refuseImport("Documentation publication requires its job token");
     const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2026-03-10", "Content-Type": "application/json" };
-    if (repository === "unset-sh/docs" && githubToken) headers.Authorization = `Bearer ${githubToken}`;
+    if (githubToken) headers.Authorization = `Bearer ${githubToken}`;
     const cacheable = method === "GET" && (/^\/git\/(?:commits|trees)\/[a-f0-9]{40}(?:\?recursive=1)?$/.test(path)
       || (repository !== "unset-sh/docs" && /^\/actions\/runs\/[1-9][0-9]*$/.test(path)));
     const cacheKey = `${repository}${path}`;
