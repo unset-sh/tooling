@@ -1607,6 +1607,28 @@ Verify tooling’s implementation and the executable workflows generated from it
 
 Source SHA-256: `d77735374047b0225afa437b2d5c14e346ed8303bfa3e5be466d22a4dcc9a7d8`.
 
+### .github/workflows/image-staging.yml
+
+Build a repository's container image when a change merges into its staging branch, push it by digest to ghcr.io/unset-sh/staging/\<repository\>, and attest its build provenance, using only the run's own GITHUB\_TOKEN.
+
+**What it does**
+
+1. In both jobs, refuse any start but a push to refs/heads/staging of an unset-sh repository whose name is lower-case letters, digits and dashes, and stop unless the workflow's own repository and full commit are known before any checkout.
+2. In the read-only build job, check out the caller at the pushed commit and refuse a context or Dockerfile outside the repository, or any image the Dockerfile pulls (FROM, COPY --from, RUN --mount from=, the syntax directive) that is not pinned by digest, before any caller code runs. The Dockerfile is read as BuildKit v0.35.0 reads it; a \#! first line, odd whitespace, an unknown instruction, a flag with a quote, backslash, backtick or non-ASCII character, and a '\<\<' outside the plain heredoc forms are refused.
+3. Build for linux/amd64 or linux/arm64 on a runner of that architecture with BuildKit pinned by digest in a new builder: no cache, no BuildKit provenance or SBOM, SOURCE\_DATE\_EPOCH from the commit time with rewritten file timestamps, and source, revision and licence labels, the licence read from the caller's package.json. Write an OCI layout folder, push nothing, check it and upload it as a one-day artifact.
+4. In the publish job, which runs no caller code, check the downloaded layout again: exactly one image manifest for the platform, every blob hashing to its name, no blob the image does not name, and this run's source and revision labels; refuse a digest that differs from the build job's.
+5. Install crane v0.22.1 checked against a pinned SHA-256, sign in to ghcr.io with GITHUB\_TOKEN, push the image by digest with no tag of its own, read the stored manifest back and refuse a different digest, attest the digest with actions/attest and push-to-registry, without a storage record, then sign out.
+
+**Produces**
+
+- The digest output, sha256:\<64 hex\>, and the image output, ghcr.io/unset-sh/staging/\<repository\>@sha256:\<64 hex\>.
+- An image with no tag of its own in ghcr.io/unset-sh/staging/\<repository\>, and a build provenance attestation for its digest, stored with GitHub and pushed beside the image under the OCI referrers tag sha256-\<image hex\>, because GHCR has no referrers API.
+- A run summary listing the pinned images the Dockerfile pulls and the gh attestation verify command for the pushed image.
+
+[Reviewed source at 449027b9b49d](https://github.com/unset-sh/tooling/blob/449027b9b49d5e0f29ab1c9a17191d47b6c8bcdb/.github/workflows/image-staging.yml).
+
+Source SHA-256: `df432d1f59cdb0c4c6b9bdea1ba288fa0a8b5882a5361bc96b410531f2e22399`.
+
 ### .github/workflows/releases-channel.yml
 
 Publish separate staging prereleases and stable releases from an exact same-repository staging promotion, without changing the legacy owner-approved release path.

@@ -68,6 +68,10 @@
     {
       "source": "workflows/shared/docs/import.yml",
       "output": ".github/workflows/automation-docs-import.yml"
+    },
+    {
+      "source": "workflows/shared/image/staging.yml",
+      "output": ".github/workflows/image-staging.yml"
     }
   ]
 }
