@@ -5,6 +5,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Docs import refusals name their reason:** the importer and the generated-PR verifier printed one generic
+  line for every refusal, so a failed run could not say whether the PR, a hash or a GitHub request (and its HTTP
+  status) was at fault. They now add `Reason: <message>` for the importer's own refusals, whose messages are fixed
+  text with at most an HTTP status. Other errors stay hidden. Callers move their pins to take it.
 - **Docs imports survive a moved docs `main`:** an open import PR keeps GitHub's `base.sha` from when it was opened
   or last pushed, so after docs `main` advanced, the publisher refused the PR as foreign and the import stalled
   (docs PR 15). The publisher now also accepts the base recorded in the import branch's own verified head, then
