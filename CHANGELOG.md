@@ -5,6 +5,9 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **The docs import workflow accepts every registered source:** its three identity checks still allowed only
+  tooling and github, so a docs caller listing agent-kit failed before preparing anything. They now match the
+  same source list, and a test keeps them in step.
 - **Docs imports know every organisation repository:** the receiver's fixed source list now also maps brand,
   rendering, lexicons, agent-kit, web, backend, deployment, pds and modules, each from its own `main` through
   `.github/workflows/docs-export.yml` into a section named after the repository (`docs/` for lexicons and
