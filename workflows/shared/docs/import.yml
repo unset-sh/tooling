@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github|brand|rendering|lexicons|agent-kit|web|backend|deployment|pds|modules)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
             echo "::error::Invalid documentation receiver, source or helper identity."
             exit 1
           fi
@@ -93,7 +93,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github|brand|rendering|lexicons|agent-kit|web|backend|deployment|pds|modules)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
             echo "::error::Invalid documentation receiver, source or helper identity."
             exit 1
           fi
@@ -142,7 +142,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
+          if [ "$WORKFLOW_REPOSITORY" != unset-sh/tooling ] || ! [[ "$WORKFLOW_SHA" =~ ^[a-f0-9]{40}$ ]] || [ "$GITHUB_REPOSITORY" != unset-sh/docs ] || [ "$GITHUB_REF" != refs/heads/main ] || ! [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || ! [[ "$IMPORT_SOURCE" =~ ^(tooling|github|brand|rendering|lexicons|agent-kit|web|backend|deployment|pds|modules)$ ]] || ! [[ "$GITHUB_EVENT_NAME" =~ ^(schedule|workflow_dispatch)$ ]]; then
             echo "::error::Invalid documentation receiver, source or helper identity."
             exit 1
           fi

@@ -146,3 +146,9 @@ test("the branch-policy verifier accepts exactly the registered import branches"
   const policy = readFileSync(new URL("../workflows/shared/ci/branch-policy.yml", import.meta.url), "utf8");
   assert.ok(policy.includes(`^refs/heads/automation/docs-(${importSourcePattern})$ ]]`));
 });
+
+test("every identity check in the import workflow accepts exactly the registered sources", () => {
+  const workflow = readFileSync(new URL("../workflows/shared/docs/import.yml", import.meta.url), "utf8");
+  const patterns = [...workflow.matchAll(/"\$IMPORT_SOURCE" =~ \^\(([^)]*)\)\$/g)].map(match => match[1]);
+  assert.deepEqual(patterns, [importSourcePattern, importSourcePattern, importSourcePattern]);
+});
