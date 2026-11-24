@@ -1,6 +1,6 @@
 import { appendFileSync } from "node:fs";
 import { startedAsScript } from "./cli.mjs";
-import { docsBase, importSource, isCommit, readDocsImport, refuseImport, stageDocsImport } from "./docs-import-data.mjs";
+import { DocsImportError, docsBase, importSource, isCommit, readDocsImport, refuseImport, stageDocsImport } from "./docs-import-data.mjs";
 import { createDocsApi, readImportRef, resolveImportSource, verifyImportSource } from "./docs-import-github.mjs";
 import { publishDocsImport } from "./docs-import-publication.mjs";
 import { dispatchDocsImportChecks } from "./docs-import-send.mjs";
@@ -62,7 +62,9 @@ async function main() {
   console.log(JSON.stringify(result));
 }
 
-if (startedAsScript(import.meta.url)) main().catch(() => {
+// A DocsImportError message is fixed text (at most an HTTP status), so it is safe to log; anything else stays hidden.
+if (startedAsScript(import.meta.url)) main().catch(error => {
   console.error("Documentation import refused; check source export, exact docs main revision, generated PR ownership and API availability");
+  if (error instanceof DocsImportError) console.error(`Reason: ${error.message}`);
   process.exitCode = 1;
 });
