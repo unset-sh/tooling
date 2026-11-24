@@ -93,7 +93,7 @@ Packages must retain the `@unset-sh/` scope and use `https://npm.pkg.github.com`
 
 `plan` reads immutable Git objects at the event's exact SHA, validates the package and changelog, checks active rules and pre-existing environment settings, verifies stable promotion ancestry, and refuses any existing version tag or release. It runs no consumer code.
 
-`build` checks out that exact consumer commit, prepares root versions, optionally installs without lifecycle scripts, then runs the consumer's check and build commands. It packs without lifecycle scripts and uploads `channel-<run-id>-<run-attempt>` for seven days. This job has only read permissions; its install step alone gets a package-read token in `NPM_CONFIG_TOKEN` for `@unset-sh` dependencies.
+`build` checks out that exact consumer commit, prepares root versions, optionally installs without lifecycle scripts, then runs the consumer's check and build commands. It packs without lifecycle scripts and uploads `channel-<run-id>-<run-attempt>` for seven days. This job has only read permissions; its install step alone gets a package-read token in `GITHUB_PACKAGES_TOKEN` for `@unset-sh` dependencies.
 
 `publish` downloads the same-run artifact and runs only pinned central helpers, actions, Bun and GitHub CLI. It rechecks source and settings and validates the receipt's repository, source SHA, channel, version, run ID and attempt. Plain files and strict package archives are checked before attestation. Release notes are rebuilt from committed source; build-supplied notes are never published. After attestation, authority is checked again and a new exact tag is created atomically. An existing tag is never reused or moved.
 

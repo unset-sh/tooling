@@ -142,6 +142,25 @@ test("every workflow runs on the exact Bun it names, with no Node and no npm com
   }
 });
 
+test("only a publish step holds NPM_CONFIG_TOKEN, and an install reads packages through GITHUB_PACKAGES_TOKEN", () => {
+  // Bun sends NPM_CONFIG_TOKEN to the default registry as well (Bun 1.4.4 docs/pm/npmrc.mdx), so an install that
+  // held it would hand the job's token to registry.npmjs.org. A repository's bunfig.toml names
+  // $GITHUB_PACKAGES_TOKEN for the @unset-sh scope alone.
+  let installs = 0;
+  for (const path of workflowFiles()) {
+    const steps = [...readText(path).matchAll(/^( *)- (?:name|uses|run|if|id): [^\n]*\n(?:(?:\1 {2}.*)?\n)*/gm)].map(([step]) => step);
+    for (const step of steps.map((text) => text.replace(/^\s*#.*\n/gm, ""))) {
+      if (/NPM_CONFIG_TOKEN/.test(step)) assert.match(step, /\bbun publish\b/, `${path}: NPM_CONFIG_TOKEN outside a publish step`);
+      if (/\bbun install\b/.test(step) && /github\.token/.test(step)) {
+        installs += 1;
+        assert.match(step, /^ {10}GITHUB_PACKAGES_TOKEN: \$\{\{ github\.token \}\}$/m, `${path}: install step token name`);
+        assert.match(step, /--ignore-scripts/, `${path}: install step runs dependency scripts`);
+      }
+    }
+  }
+  assert.ok(installs >= 3, `found ${installs} install steps with a token`);
+});
+
 test("no step hides a failed command inside an echo", () => {
   // `echo "x=$(command)"` succeeds when the command fails, so a check written that way would pass on a refusal.
   for (const path of workflowFiles()) {
