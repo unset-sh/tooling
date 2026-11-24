@@ -6,8 +6,8 @@ import { dispatchDocsImportChecks } from "./docs-import-send.mjs";
 const head = "c".repeat(40), baseTree = "e".repeat(40), headTree = "f".repeat(40), sectionTree = "9".repeat(40);
 const branch = "automation/docs-tooling", repository = "unset-sh/docs";
 const target = { number: "12", expectedHead: head, expectedBase: baseCommit, branch };
-function fixture({ workflowChange = value => value, dispatchChange = value => value, runChange = value => value, moveAfterPost = false } = {}) {
-  const source = importFixture(); const requests = []; let posted = 0;
+function fixture({ workflowChange = value => value, dispatchChange = value => value, runChange = value => value, moveAfterPost = false, runLag = 0 } = {}) {
+  const source = importFixture(); const requests = []; let posted = 0; const lagging = new Map();
   const readme = { path: "README.md", mode: "100644", type: "blob", sha: "8".repeat(40) };
   const pr = () => ({ number: 12, state: "open", draft: false, changed_files: 3,
     user: { login: "github-actions[bot]", id: 41898282, type: "Bot" },
@@ -55,7 +55,12 @@ function fixture({ workflowChange = value => value, dispatchChange = value => va
         repository: { full_name: repository }, head_repository: { full_name: repository }, status: "queued", conclusion: null }));
       return dispatchChange({ workflow_run_id: id, run_url: url, html_url: html });
     }
-    if (method === "GET" && runs.has(path)) return runs.get(path);
+    if (method === "GET" && runs.has(path)) {
+      // GitHub can answer 404 for a run it has just reported creating.
+      const seen = lagging.get(path) ?? 0; lagging.set(path, seen + 1);
+      if (seen < runLag) { assert.deepEqual(statuses, [200, 404]); return null; }
+      return runs.get(path);
+    }
     throw new Error(`Unexpected fixture API request ${method} ${path}`);
   };
   return { api, requests };
@@ -106,4 +111,20 @@ test("movement after one request stops the second dispatch without claiming eith
   const f = fixture({ moveAfterPost: true });
   await assert.rejects(dispatchDocsImportChecks({ ...target, api: f.api }), /identity|changed/i);
   assert.equal(f.requests.filter(call => call.method === "POST").length, 1);
+});
+
+test("a requested run that GitHub cannot show yet is read again before it is trusted", async () => {
+  const waits = []; const f = fixture({ runLag: 2 });
+  const result = await dispatchDocsImportChecks({ ...target, api: f.api, wait: async ms => { waits.push(ms); } });
+  assert.deepEqual(result.map(run => run.id), [1001, 1002]);
+  assert.equal(f.requests.filter(call => call.path === "/actions/runs/1001").length, 3);
+  assert.deepEqual(waits, [2000, 2000, 2000, 2000]);
+});
+
+test("a requested run that never appears stops before the second dispatch", async () => {
+  const waits = []; const f = fixture({ runLag: 100 });
+  await assert.rejects(dispatchDocsImportChecks({ ...target, api: f.api, wait: async ms => { waits.push(ms); } }), /not visible/);
+  assert.equal(f.requests.filter(call => call.method === "POST").length, 1);
+  assert.equal(f.requests.filter(call => call.path === "/actions/runs/1001").length, 10);
+  assert.equal(waits.length, 9);
 });
