@@ -88,20 +88,22 @@ function directives(lines) {
 }
 
 /** The names of the heredocs a RUN, COPY or ADD line opens, in order, or an error for a form not read here. */
-function heredocs(line, number, words, escape) {
+function heredocs(line, number, words) {
   const keyword = words[0].toUpperCase() === "ONBUILD" ? words[1]?.toUpperCase() : words[0].toUpperCase();
   if (!HEREDOC_KEYWORDS.has(keyword) || !line.includes("<<")) return [];
   const names = [];
   let plain = true;
+  // BuildKit splits this line into words with \ as the escape whatever the escape directive says (parser.go
+  // `heredocsFromLine`), so a backslash is refused here even when the escape is a backtick.
   for (const word of words) {
     const match = HEREDOC.exec(word);
     if (match !== null) names.push({ name: match[4], strip: match[2] === "-" });
-    else if (word.includes("<<") || /["'$`]/.test(word) || word.includes(escape)) plain = false;
+    else if (word.includes("<<") || /["'$`\\]/.test(word)) plain = false;
   }
   if (!plain) {
     throw new Error(
       `line ${number}: '<<' on a ${keyword} line is read only in the plain form <<NAME, <<-NAME, <<"NAME" or <<'NAME', ` +
-        `with no other quote, ${escape}, backtick or $ on the line; move the rest of the command into the heredoc`,
+        "with no other quote, backslash, backtick or $ on the line; move the rest of the command into the heredoc",
     );
   }
   return names;
@@ -143,7 +145,7 @@ export function instructions(text) {
     const keyword = words[0].toUpperCase();
     if (!KEYWORDS.has(keyword)) throw new Error(`line ${number}: '${words[0]}' is not a Dockerfile instruction`);
     // A heredoc's body is data, not instructions: skip to the line that ends it, each heredoc of the line in turn.
-    for (const { name, strip } of heredocs(line, number, words, escape)) {
+    for (const { name, strip } of heredocs(line, number, words)) {
       while (index < lines.length && (strip ? lines[index].replace(/^\t+/, "") : lines[index]) !== name) index += 1;
       if (index >= lines.length) throw new Error(`the heredoc ${name} opened on line ${number} is never closed`);
       index += 1;

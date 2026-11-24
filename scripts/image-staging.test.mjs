@@ -83,6 +83,9 @@ test("a quoted or glued '<<' is not taken for a heredoc, and only the plain here
   assert.throws(() => pinnedImages("FROM scratch\nRUN x<<EOF\nFROM evil:latest\nEOF\n"), /line 2: .*plain form/);
   assert.throws(() => pinnedImages("FROM scratch\nRUN cat <<EOF \"$HOME\"\nEOF\n"), /line 2: .*plain form/);
   assert.throws(() => pinnedImages("FROM scratch\nRUN cat <<< word\n"), /line 2: .*plain form/);
+  // BuildKit splits a heredoc line with \ as its escape whatever the escape directive says (parser.go
+  // heredocsFromLine), so with ` as the escape, `a\ <<EOF` is one word and opens no heredoc.
+  assert.throws(() => pinnedImages(`# escape=\`\nFROM alpine@sha256:${D}\nRUN echo a\\ <<EOF\nFROM evil:latest AS evil\nRUN <<EOF\nEOF\n`), /line 3: .*plain form/);
   assert.deepEqual(pinnedImages("FROM scratch\nRUN 3<<EOF cat <&3\nFROM evil\nEOF\nONBUILD RUN <<EOF\nFROM evil\nEOF\n"), []);
 });
 
