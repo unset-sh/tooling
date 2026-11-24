@@ -5,10 +5,27 @@ import { constants, closeSync, fstatSync, openSync, readSync, lstatSync, mkdtemp
 import { dirname, isAbsolute, join, parse, relative, resolve, sep } from "node:path";
 import { exportDocs } from "./export-docs.mjs";
 
-const sources = Object.freeze({
+// Every other source publishes from its own main through .github/workflows/docs-export.yml, into
+// a section named after the repository. Only lexicons and agent-kit keep their pages in docs/
+// itself; the rest use docs/site (export-docs.mjs holds the same selection).
+const organisationSource = (name, directory = "docs/site") => Object.freeze({ repository: `unset-sh/${name}`, directory, section: name, workflow: ".github/workflows/docs-export.yml" });
+const sources = Object.freeze(Object.assign(Object.create(null), {
   tooling: Object.freeze({ repository: "unset-sh/tooling", directory: "docs", section: "tooling", workflow: ".github/workflows/automation-docs-self.yml" }),
   github: Object.freeze({ repository: "unset-sh/.github", directory: "docs/site", section: "github", workflow: ".github/workflows/docs-export.yml" }),
-});
+  brand: organisationSource("brand"),
+  rendering: organisationSource("rendering"),
+  lexicons: organisationSource("lexicons", "docs"),
+  "agent-kit": organisationSource("agent-kit", "docs"),
+  web: organisationSource("web"),
+  backend: organisationSource("backend"),
+  deployment: organisationSource("deployment"),
+  pds: organisationSource("pds"),
+  modules: organisationSource("modules"),
+}));
+export const importSourceKeys = Object.freeze(Object.keys(sources));
+// Keys are lowercase kebab names, so the alternation needs no escaping.
+export const importSourcePattern = importSourceKeys.join("|");
+export const importRepositories = Object.freeze(importSourceKeys.map(key => sources[key].repository));
 // unset-sh/docs has no staging branch: imports target and record its main branch (org-0010).
 export const docsBase = "main";
 export const importLimits = Object.freeze({ files: 256, fileBytes: 1024 * 1024, totalBytes: 8 * 1024 * 1024, snapshotBytes: 12 * 1024 * 1024 });

@@ -18,8 +18,17 @@ This is an unreleased capability at version 0.0.0. PR creation and supplemental 
 | --- | --- | --- | --- | --- |
 | `tooling` | `unset-sh/tooling:main` | `docs/` | `tooling/` | `.github/workflows/automation-docs-self.yml` |
 | `github` | `unset-sh/.github:main` | `docs/site/` | `github/` | `.github/workflows/docs-export.yml` |
+| `brand` | `unset-sh/brand:main` | `docs/site/` | `brand/` | `.github/workflows/docs-export.yml` |
+| `rendering` | `unset-sh/rendering:main` | `docs/site/` | `rendering/` | `.github/workflows/docs-export.yml` |
+| `lexicons` | `unset-sh/lexicons:main` | `docs/` | `lexicons/` | `.github/workflows/docs-export.yml` |
+| `agent-kit` | `unset-sh/agent-kit:main` | `docs/` | `agent-kit/` | `.github/workflows/docs-export.yml` |
+| `web` | `unset-sh/web:main` | `docs/site/` | `web/` | `.github/workflows/docs-export.yml` |
+| `backend` | `unset-sh/backend:main` | `docs/site/` | `backend/` | `.github/workflows/docs-export.yml` |
+| `deployment` | `unset-sh/deployment:main` | `docs/site/` | `deployment/` | `.github/workflows/docs-export.yml` |
+| `pds` | `unset-sh/pds:main` | `docs/site/` | `pds/` | `.github/workflows/docs-export.yml` |
+| `modules` | `unset-sh/modules:main` | `docs/site/` | `modules/` | `.github/workflows/docs-export.yml` |
 
-These mappings are fixed in the reviewed central helper. The `.github` alias cannot overwrite the documentation framework's `.github/` directory. Adding another source requires a reviewed helper and caller change; an input cannot select an arbitrary repository, directory, branch, or destination.
+These mappings are fixed in the reviewed central helper. A source is imported only once docs lists its key in the receiver's matrix and the source's `main` has a successful export; repositories that use a staging branch publish only after promotion to `main`. The `.github` alias cannot overwrite the documentation framework's `.github/` directory. Adding another source requires a reviewed helper and caller change; an input cannot select an arbitrary repository, directory, branch, or destination.
 
 The docs-owned caller runs hourly at minute 41 and on demand from its default `main` branch (docs has no staging branch, org-0010), with non-cancelling concurrency. Each source is processed independently. The source must have a successful, completed `push` export run on `main` for the exact resolved source commit. A successful pull-request export does not make that revision eligible.
 
@@ -27,7 +36,7 @@ The docs-owned caller runs hourly at minute 41 and on demand from its default `m
 
 1. **Prepare with read-only permissions.** The receiver resolves source `main` once, checks the successful source run, and checks out that exact revision. The pinned tooling exporter reads committed documentation and the root licence through Git. It runs no source commands, package installation, hooks, or build scripts. The snapshot records the exact docs main base and is uploaded as `docs-import-<source>-<run-id>-<run-attempt>` for seven days.
 2. **Validate before writing.** A separate job loads only the pinned central helper and the same-run snapshot. It checks the fixed mapping, complete file set, licence, index, paths, file hashes and provenance. It compares every document's Git blob identity with the immutable source tree and verifies the successful export run again. Source `main` and docs `main` must still match their selected commits.
-3. **Prepare an owned PR.** The writer replaces only that source's section using Git objects. It uses `automation/docs-tooling` or `automation/docs-github` and targets `main`. An existing branch must contain a verifiable generated import and no changes outside its section. The writer rechecks both source and destination before updating the ref without force.
+3. **Prepare an owned PR.** The writer replaces only that source's section using Git objects. It uses `automation/docs-<source key>` (for example `automation/docs-tooling`) and targets `main`. An existing branch must contain a verifiable generated import and no changes outside its section. The writer rechecks both source and destination before updating the ref without force.
 4. **Request supplemental validation.** A separate Actions-writing job validates the actual bot PR and requests only docs `ci.yml` and `branch-policy.yml` on its exact branch. Each request passes the PR number, expected head and expected main base. It binds GitHub's returned run ID to the intended workflow, repository, event and commit. Both adapters verify the actual open bot PR, head/base, section-only diff and source proof before running validation. The documentation job runs tests, workflow lint and both site builds. Follow the run URLs for these results; even successful dispatched runs do not clear PR ruleset requirements.
 5. **Run the eligible PR checks before review and merge.** A user with write access can select **Approve workflows to run** on the generated PR to start its ordinary `pull_request` runs. Confirm that those required checks appear in the PR checks section and pass for its current revision. The receiver does not approve withheld runs, or merge a PR. A person merges it into `main`, which publishes the site.
 

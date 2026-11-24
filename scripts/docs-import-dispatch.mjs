@@ -1,10 +1,13 @@
-import { docsBase, importSource, isCommit, refuseImport } from "./docs-import-data.mjs";
+import { docsBase, importSource, importSourcePattern, isCommit, refuseImport } from "./docs-import-data.mjs";
+
+const dispatchRef = new RegExp(`^refs\\/heads\\/automation\\/docs-(${importSourcePattern})$`);
+const importBranch = new RegExp(`^automation\\/docs-(${importSourcePattern})$`);
 import { readImportRef } from "./docs-import-github.mjs";
 import { validateImportPr, verifyDocsImportHead } from "./docs-import-publication.mjs";
 
 /** Verify a real bot PR and its exact source/base before a dispatched check executes repository code. */
 export async function validateDocsImportDispatch({ context, number, expectedHead, expectedBase, api }) {
-  const match = typeof context?.ref === "string" && /^refs\/heads\/automation\/docs-(tooling|github)$/.exec(context.ref);
+  const match = typeof context?.ref === "string" && dispatchRef.exec(context.ref);
   if (context?.repository !== "unset-sh/docs" || context.event !== "workflow_dispatch" || !match
     || !isCommit(expectedHead) || !isCommit(expectedBase) || expectedHead === expectedBase || context.sha !== expectedHead
     || typeof number !== "string" || !/^[1-9][0-9]*$/.test(number) || number.length > 16
@@ -13,7 +16,7 @@ export async function validateDocsImportDispatch({ context, number, expectedHead
 }
 
 export async function validateDocsImportTarget({ number, expectedHead, expectedBase, branch, api }) {
-  const match = typeof branch === "string" && /^automation\/docs-(tooling|github)$/.exec(branch);
+  const match = typeof branch === "string" && importBranch.exec(branch);
   if (!match || !isCommit(expectedHead) || !isCommit(expectedBase) || expectedHead === expectedBase
     || typeof number !== "string" || !/^[1-9][0-9]*$/.test(number) || number.length > 16
     || String(Number(number)) !== number || !Number.isSafeInteger(Number(number))) refuseImport("Invalid documentation target identity");

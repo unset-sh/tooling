@@ -2,7 +2,7 @@
 // package command, force update, merge or repository setting is used here.
 // https://docs.github.com/en/rest/git/trees#create-a-tree
 // https://docs.github.com/en/rest/git/refs#update-a-reference
-import { decodeImportFiles, docsBase, gitBlobHash, importLimits, importSource, isCommit, refuseImport, sha256, validateDocsImport, validateImportPaths, DocsImportError } from "./docs-import-data.mjs";
+import { decodeImportFiles, docsBase, gitBlobHash, importLimits, importSource, importSourcePattern, isCommit, refuseImport, sha256, validateDocsImport, validateImportPaths, DocsImportError } from "./docs-import-data.mjs";
 import { readImportRef, verifyImportSource, verifyImportTree } from "./docs-import-github.mjs";
 
 const repository = "unset-sh/docs";
@@ -10,6 +10,7 @@ const signoff = "Signed-off-by: github-actions[bot] <41898282+github-actions[bot
 const branchFor = key => `automation/docs-${key}`;
 const titleFor = key => `Import ${key} documentation`;
 const messageFor = snapshot => `${titleFor(snapshot.source.key)}\n\nSource revision: ${snapshot.source.revision}\nExport run: ${snapshot.source.runId}\nDocs base: ${snapshot.target.baseCommit}\n\n${signoff}`;
+const generatedMessage = new RegExp(`^Import (${importSourcePattern}) documentation\\n\\nSource revision: ([a-f0-9]{40})\\nExport run: ([1-9][0-9]*)\\nDocs base: ([a-f0-9]{40})\\n\\nSigned-off-by: github-actions\\[bot\\] <41898282\\+github-actions\\[bot\\]@users\\.noreply\\.github\\.com>$`);
 const canonicalTree = entries => JSON.stringify(entries.map(({ path, mode, type, sha }) => ({ path, mode, type, sha })).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
 async function commitAt(api, sha) {
@@ -76,7 +77,7 @@ async function validRetainedProvenance(api, base, entries, snapshot, section) {
 }
 
 async function previousSnapshot(api, commit, sourceKey, baseRoot, currentBase) {
-  const match = /^Import (tooling|github) documentation\n\nSource revision: ([a-f0-9]{40})\nExport run: ([1-9][0-9]*)\nDocs base: ([a-f0-9]{40})\n\nSigned-off-by: github-actions\[bot\] <41898282\+github-actions\[bot\]@users\.noreply\.github\.com>$/.exec(commit.message);
+  const match = generatedMessage.exec(commit.message);
   if (!match || match[1] !== sourceKey || !Array.isArray(commit.parents) || ![1, 2].includes(commit.parents.length)
     || commit.parents.some(parent => !isCommit(parent.sha))) refuseImport("Existing import branch is not an owned generated commit");
   const [, key, revision, run, previousBase] = match;

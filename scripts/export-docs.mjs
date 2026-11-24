@@ -9,7 +9,8 @@ const defaultRoot = fileURLToPath(new URL("../", import.meta.url));
 const defaultRepository = "unset-sh/tooling";
 // Tooling moved its maintained human pages to docs/. Existing consumers keep their pinned docs/site contract.
 // This selection is code-reviewed, never read from consumer configuration or guessed from available files.
-const sourceDirectories = new Map([["unset-sh/tooling", "docs"]]);
+// lexicons and agent-kit publish all of docs/ (docs-import-data.mjs holds the same selection).
+const sourceDirectories = new Map([["unset-sh/tooling", "docs"], ["unset-sh/lexicons", "docs"], ["unset-sh/agent-kit", "docs"]]);
 // unset-sh/docs reserves these framework and generated directories (scripts/prepare.mjs).
 // The github section belongs to unset-sh/.github, not a second repository of that name.
 // Its publication guard also rejects the retired legacy unset application mirror.
