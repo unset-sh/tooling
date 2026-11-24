@@ -23,6 +23,7 @@ test("the generated workflows include the shared workflows and their callers", (
     ".github/workflows/ci-repository-policy-self.yml",
     ".github/workflows/ci-repository-policy.yml",
     ".github/workflows/ci-self.yml",
+    ".github/workflows/image-staging.yml",
     ".github/workflows/releases-channel.yml",
     ".github/workflows/releases-package.yml",
     ".github/workflows/releases-self.yml",
