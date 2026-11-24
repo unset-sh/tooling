@@ -59,15 +59,17 @@ test("payload verification compares complete file sets and actual bytes to immut
   await assert.rejects(verifyImportSource({ snapshot: fixture.snapshot, api: remote(fixture, { head: "f".repeat(40) }) }), /moved/i);
 });
 
-test("the API sends its token only to docs and cannot write another repository or follow redirects", async () => {
+test("the API sends its token only to api.github.com for allowlisted repositories and cannot write another repository or follow redirects", async () => {
   const requests = [];
   const api = createDocsApi({ githubToken: "test-token", fetchImpl: async (url, options) => {
     requests.push({ url, options }); return Response.json({ ok: true });
   } });
   await api("unset-sh/tooling", "GET", "/git/ref/heads/main");
   await api("unset-sh/docs", "GET", "/git/ref/heads/staging");
-  assert.equal(requests[0].options.headers.Authorization, undefined);
+  // Source reads carry the job token so they use its quota, not the runner's shared anonymous one.
+  assert.equal(requests[0].options.headers.Authorization, "Bearer test-token");
   assert.equal(requests[1].options.headers.Authorization, "Bearer test-token");
+  assert.ok(requests.every(request => new URL(request.url).origin === "https://api.github.com"));
   assert.equal(requests[0].options.redirect, "error");
   for (const args of [
     ["outside/repo", "GET", "/git/ref/heads/main"],
