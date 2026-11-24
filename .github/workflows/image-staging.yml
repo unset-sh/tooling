@@ -19,8 +19,10 @@ name: staging image
 #
 # Alex decided on 2026-11-23: one shared workflow; it runs on a push to staging and never on a pull request;
 # images go to ghcr.io/unset-sh/staging/<repository>, the path saying the channel; consumers use the digest,
-# so no tag of any kind is written, and never a production path; the run's own GITHUB_TOKEN is the only
-# credential. docs/build-staging-images.md describes the inputs, the package settings and the verify command.
+# so the image gets no tag, and never a production path; the run's own GITHUB_TOKEN is the only credential.
+# The attestation pushed beside the image does sit under the OCI referrers tag sha256-<image hex>, which
+# actions/attest writes because GHCR has no referrers API. docs/build-staging-images.md describes the inputs,
+# the package settings and the verify command.
 #
 # What runs where (the split releases-package.yml uses):
 #   - `build` runs the calling repository's code: a Dockerfile's RUN steps are that repository's commands. It
