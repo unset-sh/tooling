@@ -52,7 +52,6 @@ test("earlier stages and scratch need no digest, a later or unknown stage name d
 test("images pulled by COPY --from and RUN --mount from= are held to the same rule", () => {
   assert.deepEqual(pinnedImages(`FROM scratch\nCOPY --chown=1 --from=alpine@sha256:${E} /a /a\n`), [`alpine@sha256:${E}`]);
   assert.throws(() => pinnedImages("FROM scratch\nCOPY --from=alpine:3 /a /a\n"), /line 2: COPY --from 'alpine:3'/);
-  assert.throws(() => pinnedImages('FROM scratch\nCOPY --from="alpine" /a /a\n'), /COPY --from 'alpine'/);
   assert.throws(() => pinnedImages("FROM scratch\nRUN --mount=type=bind,from=alpine:3,target=/x true\n"), /RUN --mount from 'alpine:3'/);
   assert.deepEqual(pinnedImages(`FROM scratch\nRUN --mount=type=cache,target=/c --mount=type=bind,from=alpine@sha256:${E},target=/x true\n`), [`alpine@sha256:${E}`]);
 });
@@ -74,6 +73,57 @@ test("a heredoc body is not read as instructions, and an unclosed heredoc is ref
   const text = `FROM scratch\nRUN <<EOF\nFROM oven/bun:latest\nEOF\nCOPY <<-"A" <<'B' /x\n\tFROM a\n\tA\nFROM b\nB\n`;
   assert.deepEqual(pinnedImages(text), []);
   assert.throws(() => pinnedImages("FROM scratch\nRUN <<EOF\necho\n"), /heredoc EOF opened on line 2 is never closed/);
+});
+
+// Each Dockerfile below passed the check at b548b96 while BuildKit v0.35.0 pulled the unpinned image (review of
+// tooling PR 26, 2026-11-24, and frontend/dockerfile/parser/*.go at v0.35.0). The check now reads each shape as
+// BuildKit does or refuses it.
+test("a quoted or glued '<<' is not taken for a heredoc, and only the plain heredoc forms are read", () => {
+  assert.throws(() => pinnedImages(`FROM alpine@sha256:${D}\nRUN echo "<<EOF"\nFROM evil:latest AS evil\nRUN <<EOF\nEOF\n`), /line 2: .*plain form/);
+  assert.throws(() => pinnedImages("FROM scratch\nRUN x<<EOF\nFROM evil:latest\nEOF\n"), /line 2: .*plain form/);
+  assert.throws(() => pinnedImages("FROM scratch\nRUN cat <<EOF \"$HOME\"\nEOF\n"), /line 2: .*plain form/);
+  assert.throws(() => pinnedImages("FROM scratch\nRUN cat <<< word\n"), /line 2: .*plain form/);
+  assert.deepEqual(pinnedImages("FROM scratch\nRUN 3<<EOF cat <&3\nFROM evil\nEOF\nONBUILD RUN <<EOF\nFROM evil\nEOF\n"), []);
+});
+
+test("a heredoc ends where BuildKit ends it, at a line that is its name once line ends are trimmed", () => {
+  assert.throws(() => pinnedImages("FROM scratch\nRUN <<EOF\nEOF\r\r\nFROM evil:latest\nRUN <<EOF\nEOF\n"), /line 4: FROM 'evil:latest'/);
+});
+
+test("a #! first line is refused, because BuildKit skips it before it reads the syntax directive", () => {
+  assert.throws(() => pinnedImages("#!/usr/bin/env docker-build\n# syntax=docker/dockerfile:1\nFROM scratch\n"), /line 1: .*#!/);
+});
+
+test("a syntax line in another comment style, or a Dockerfile in JSON, is refused", () => {
+  assert.throws(() => pinnedImages("// syntax=evil:latest\nFROM scratch\n"), /line 1: '\/\/' is not a Dockerfile instruction/);
+  assert.throws(() => pinnedImages('{"syntax": "evil:latest"}\n'), /line 1: .* is not a Dockerfile instruction/);
+});
+
+test("a flag with a quote, an escape character or a non-ASCII character is refused", () => {
+  for (const flag of ["--fr\\om=evil:latest", '--"from"=evil:latest', "--from='evil'", "--fr`om=evil", "--chown=1\u00e0--from=evil:latest"]) {
+    assert.throws(() => pinnedImages(`FROM scratch\nCOPY ${flag} /a /b\n`), /line 2: the flag .* may not contain/, flag);
+  }
+  assert.throws(() => pinnedImages('FROM scratch\nRUN --mount=type=bind,"from=evil:latest",target=/x true\n'), /line 2: the flag/);
+  assert.throws(() => pinnedImages('FROM scratch\nCOPY --from="alpine" /a /b\n'), /line 2: the flag/);
+});
+
+test("continued lines are joined as BuildKit joins them: no space added, empty lines skipped, an escaped escape ends the line", () => {
+  assert.throws(() => pinnedImages("FROM scratch\nCOPY --fr\\\nom=evil:latest /a /b\n"), /line 2: COPY --from 'evil:latest'/);
+  assert.throws(() => pinnedImages("FROM scratch\nCOPY --fr\\\n\n  \nom=evil:latest /a /b\n"), /line 2: COPY --from 'evil:latest'/);
+  assert.throws(() => pinnedImages("FROM scratch\nRUN echo \\\\\nFROM evil:latest\n"), /line 3: FROM 'evil:latest'/);
+  assert.throws(() => pinnedImages("FROM scratch\nRUN echo hi\nom=evil:latest\n"), /line 3: 'om=evil:latest' is not a Dockerfile instruction/);
+});
+
+test("parser directives are read as BuildKit reads them, indented too, and odd whitespace is refused", () => {
+  assert.throws(() => pinnedImages(" # escape=`\nFROM scratch\nRUN echo \\\nFROM evil:latest\n"), /line 4: FROM 'evil:latest'/);
+  assert.throws(() => pinnedImages("#\u0085escape=`\nFROM scratch\nRUN echo \\\nFROM evil:latest\n"), /line 1: .*whitespace/);
+  assert.throws(() => pinnedImages("FROM scratch\nRUN echo\u00a0hi\n"), /line 2: .*whitespace/);
+});
+
+test("FROM and RUN --mount name earlier stages only by name; only COPY --from takes a stage number", () => {
+  assert.throws(() => pinnedImages(`FROM alpine@sha256:${D}\nFROM 0\n`), /line 2: FROM '0' is not pinned/);
+  assert.throws(() => pinnedImages(`FROM alpine@sha256:${D}\nRUN --mount=from=0,target=/x true\n`), /line 2: RUN --mount from '0' is not pinned/);
+  assert.deepEqual(pinnedImages(`FROM alpine@sha256:${D}\nFROM scratch\nCOPY --from=0 /a /a\n`), [`alpine@sha256:${D}`]);
 });
 
 test("a Dockerfile with no FROM, or with an instruction before the first FROM, is refused", () => {

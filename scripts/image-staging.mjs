@@ -55,12 +55,28 @@ export function inside(repository, path, what) {
   return { target, stat };
 }
 
+// What follows reads a Dockerfile the way BuildKit v0.35.0 does (frontend/dockerfile/parser/parser.go,
+// directives.go and split_command.go at that tag, read 2026-11-24), and refuses every shape where a smaller
+// reader could see something else: a check that says "pinned" while BuildKit pulls a moving tag is worse than
+// none. Shapes it refuses are rare in practice, and each refusal says how to write the line instead.
+const KEYWORDS = new Set(["ADD", "ARG", "CMD", "COPY", "ENTRYPOINT", "ENV", "EXPOSE", "FROM", "HEALTHCHECK", "LABEL",
+  "MAINTAINER", "ONBUILD", "RUN", "SHELL", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"]);
+// Whitespace other than space and tab. Go's unicode.IsSpace and JavaScript's \s disagree on some of these, and
+// split_command.go tests single bytes, so a byte inside a UTF-8 character can split a flag there.
+const ODD_SPACE = /[\v\f\r\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]/;
+// A directive is a comment `# name=value` before anything else; directives.go `directiveRegexp`.
+const DIRECTIVE = /^[ \t]*#[ \t]*([a-zA-Z][a-zA-Z0-9]*)[ \t]*=[ \t]*(.+?)[ \t]*$/;
+// The heredoc forms this check reads (parser.go `reHeredoc`, narrowed): an optional descriptor, an optional
+// dash, and a plain name, quoted whole or not at all.
+const HEREDOC = /^(\d*)<<(-?)(["']?)([A-Za-z_][A-Za-z0-9_]*)\3$/;
+const HEREDOC_KEYWORDS = new Set(["RUN", "COPY", "ADD"]);
+
 /** The parser directives at the top of a Dockerfile, lower-cased names (Dockerfile reference, "Parser directives"). */
 function directives(lines) {
   const found = {};
   let index = 0;
   for (; index < lines.length; index += 1) {
-    const match = /^#\s*([A-Za-z]+)\s*=\s*(.*?)\s*$/.exec(lines[index]);
+    const match = DIRECTIVE.exec(lines[index]);
     if (match === null) break;
     const name = match[1].toLowerCase();
     // An unknown directive is a comment, and no directive is looked for after a comment.
@@ -68,48 +84,74 @@ function directives(lines) {
     if (name in found) throw new Error(`the parser directive '${name}' appears twice`);
     found[name] = match[2];
   }
-  return { found, rest: lines.slice(index), offset: index };
+  return found;
+}
+
+/** The names of the heredocs a RUN, COPY or ADD line opens, in order, or an error for a form not read here. */
+function heredocs(line, number, words, escape) {
+  const keyword = words[0].toUpperCase() === "ONBUILD" ? words[1]?.toUpperCase() : words[0].toUpperCase();
+  if (!HEREDOC_KEYWORDS.has(keyword) || !line.includes("<<")) return [];
+  const names = [];
+  let plain = true;
+  for (const word of words) {
+    const match = HEREDOC.exec(word);
+    if (match !== null) names.push({ name: match[4], strip: match[2] === "-" });
+    else if (word.includes("<<") || /["'$`]/.test(word) || word.includes(escape)) plain = false;
+  }
+  if (!plain) {
+    throw new Error(
+      `line ${number}: '<<' on a ${keyword} line is read only in the plain form <<NAME, <<-NAME, <<"NAME" or <<'NAME', ` +
+        `with no other quote, ${escape}, backtick or $ on the line; move the rest of the command into the heredoc`,
+    );
+  }
+  return names;
 }
 
 /** The instructions of a Dockerfile: continuation lines joined, comments and heredoc bodies left out. */
 export function instructions(text) {
-  const lines = text.replace(/^﻿/, "").split(/\r?\n/);
-  const { found, rest, offset } = directives(lines);
+  // Lines end at \n, and every trailing \r or \n is trimmed (parser.go `scanLines`, `trimNewline`).
+  const lines = text.replace(/^\uFEFF/, "").split("\n").map((line) => line.replace(/\r+$/, ""));
+  for (const [index, line] of lines.entries()) {
+    if (ODD_SPACE.test(line)) throw new Error(`line ${index + 1}: write whitespace as spaces and tabs only`);
+  }
+  // DetectSyntax drops a #! first line, then reads the syntax directive; the parser reads that line as a comment.
+  if (lines[0].startsWith("#!")) throw new Error("line 1: a #! line changes which syntax directive BuildKit reads; remove it");
+  const found = directives(lines);
   const escape = found.escape ?? "\\";
   if (escape !== "\\" && escape !== "`") throw new Error(`the escape directive '${escape}' is neither \\ nor \``);
-  const continued = new RegExp(`${escape === "\\" ? "\\\\" : "`"}[ \\t]*$`);
+  const e = escape === "\\" ? "\\\\" : "`";
+  // An escape character at the end, not itself escaped, continues the line (parser.go `setEscapeToken`).
+  const continued = new RegExp(`(^|[^${e}])${e}[ \\t]*$`);
+  const blank = /^[ \t]*$/;
+  const comment = /^[ \t]*#/;
   const result = [];
   let index = 0;
-  while (index < rest.length) {
-    const start = index + offset + 1;
-    let line = rest[index];
+  while (index < lines.length) {
+    const number = index + 1;
+    let line = lines[index].replace(/^[ \t]+/, "");
     index += 1;
-    if (/^\s*(?:#|$)/.test(line)) continue;
+    if (blank.test(line) || comment.test(line)) continue;
     while (continued.test(line)) {
-      line = line.replace(continued, "");
-      // Comment lines inside a continued instruction are dropped; the instruction goes on after them.
-      while (index < rest.length && /^\s*#/.test(rest[index])) index += 1;
-      if (index >= rest.length) break;
-      line += ` ${rest[index]}`;
+      line = line.replace(continued, "$1");
+      // Comment lines and empty lines inside a continued instruction are dropped; the rest is joined as it is.
+      while (index < lines.length && (comment.test(lines[index]) || blank.test(lines[index]))) index += 1;
+      if (index >= lines.length) break;
+      line += lines[index];
       index += 1;
     }
-    const keyword = /^\s*([A-Za-z]+)/.exec(line)?.[1]?.toUpperCase();
-    if (keyword === undefined) throw new Error(`line ${start} is not an instruction`);
-    // A heredoc's body is data, not instructions: skip to the line that ends it (BuildKit 0.35 dockerfile
-    // parser, heredocs on RUN, COPY and ADD), each heredoc of the line in turn.
-    if (["RUN", "COPY", "ADD"].includes(keyword)) {
-      for (const [, strip, , word] of line.matchAll(/<<(-?)(["']?)([A-Za-z_][A-Za-z0-9_]*)\2/g)) {
-        while (index < rest.length && (strip ? rest[index].replace(/^\t+/, "") : rest[index]) !== word) index += 1;
-        if (index >= rest.length) throw new Error(`the heredoc ${word} opened on line ${start} is never closed`);
-        index += 1;
-      }
+    const words = line.trim().split(/[ \t]+/);
+    const keyword = words[0].toUpperCase();
+    if (!KEYWORDS.has(keyword)) throw new Error(`line ${number}: '${words[0]}' is not a Dockerfile instruction`);
+    // A heredoc's body is data, not instructions: skip to the line that ends it, each heredoc of the line in turn.
+    for (const { name, strip } of heredocs(line, number, words, escape)) {
+      while (index < lines.length && (strip ? lines[index].replace(/^\t+/, "") : lines[index]) !== name) index += 1;
+      if (index >= lines.length) throw new Error(`the heredoc ${name} opened on line ${number} is never closed`);
+      index += 1;
     }
-    result.push({ line: start, keyword, words: line.trim().split(/\s+/).slice(1) });
+    result.push({ line: number, keyword, words: words.slice(1) });
   }
   return { syntax: found.syntax, instructions: result };
 }
-
-const unquote = (value) => value.replace(/^(["'])(.*)\1$/, "$2");
 
 /** Every image a Dockerfile would pull, each refused unless pinned by digest. Returns the pinned ones. */
 export function pinnedImages(text) {
@@ -121,10 +163,11 @@ export function pinnedImages(text) {
       `line ${line}: ${what} '${reference}' is not pinned by digest; write it as name:tag@sha256:<64 hex> or name@sha256:<64 hex>`,
     );
   };
-  const image = (line, what, reference, stageAllowed) => {
+  // An earlier stage, named; COPY --from also takes an earlier stage's number (dockerfile2llb convert.go).
+  const image = (line, what, reference, byNumber = false) => {
     if (reference.includes("$")) throw new Error(`line ${line}: ${what} '${reference}' uses a build argument; name the image itself`);
-    const folded = reference.toLowerCase();
-    if (stageAllowed && (stages.includes(folded) || (/^[0-9]+$/.test(reference) && Number(reference) < stages.length))) return;
+    if (stages.includes(reference.toLowerCase())) return;
+    if (byNumber && /^[0-9]+$/.test(reference) && Number(reference) < stages.length) return;
     if (!PINNED_IMAGE.test(reference)) refuse(line, what, reference);
     images.push(reference);
   };
@@ -139,6 +182,12 @@ export function pinnedImages(text) {
     const flags = [];
     let position = 0;
     while (position < words.length && words[position].startsWith("--")) flags.push(words[position++]);
+    // Without quotes and escapes, BuildKit's flag reader (split_command.go) and a split at spaces agree.
+    for (const flag of flags) {
+      if (!/^[\x21-\x7e]+$/.test(flag) || /["'`\\]/.test(flag)) {
+        throw new Error(`line ${line}: the flag '${flag}' may not contain a quote, a backslash, a backtick or a non-ASCII character`);
+      }
+    }
     if (keyword === "FROM") {
       const reference = words[position];
       if (reference === undefined) throw new Error(`line ${line}: FROM names no image`);
@@ -146,20 +195,21 @@ export function pinnedImages(text) {
       if (!(rest.length === 0 || (rest.length === 2 && rest[0].toUpperCase() === "AS"))) {
         throw new Error(`line ${line}: FROM has words after the image other than AS <name>`);
       }
-      if (reference.toLowerCase() !== "scratch") image(line, "FROM", reference, true);
+      if (reference.toLowerCase() !== "scratch") image(line, "FROM", reference);
       stages.push(rest.length === 2 ? rest[1].toLowerCase() : `\u0000${stages.length}`);
     } else if (keyword === "COPY") {
       for (const flag of flags) {
         const match = /^--from=(.*)$/.exec(flag);
-        if (match !== null) image(line, "COPY --from", unquote(match[1]), true);
+        if (match !== null) image(line, "COPY --from", match[1], true);
       }
     } else if (keyword === "RUN") {
       for (const flag of flags) {
         const match = /^--mount=(.*)$/.exec(flag);
         if (match === null) continue;
-        for (const option of unquote(match[1]).split(",")) {
+        // Keys are lower-cased and not trimmed (instructions/commands_runmount.go `parseMount`).
+        for (const option of match[1].split(",")) {
           const [key, ...value] = option.split("=");
-          if (key.trim().toLowerCase() === "from") image(line, "RUN --mount from", unquote(value.join("=").trim()), true);
+          if (key.toLowerCase() === "from") image(line, "RUN --mount from", value.join("="));
         }
       }
     }
