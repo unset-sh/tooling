@@ -23,7 +23,7 @@ On 2026-11-23 Alex decided: one shared workflow in tooling, with a thin caller i
 - **Every image the Dockerfile pulls is pinned by digest**: `FROM name:tag@sha256:<64 hex>` or `FROM name@sha256:<64 hex>`, and the same for `COPY --from=`, `RUN --mount=...,from=` and a `# syntax=` directive. Earlier stages and `scratch` need no digest. An image named through a build argument (`FROM ${BASE}`) is refused, because its value is not in the file. Downloads made by `RUN` or `ADD` are not checked.
 - **The Dockerfile is written plainly.** The check reads the file as BuildKit v0.35.0 does and refuses what it cannot read the same way: a `#!` first line, whitespace other than spaces and tabs, a flag (`--from=`, `--mount=` and the rest) holding a quote, backslash, backtick or non-ASCII character, and `<<` on a `RUN`, `COPY` or `ADD` line other than a plain heredoc (`<<NAME`, `<<-NAME`, `<<"NAME"`, `<<'NAME'`) on a line with no other quote, backslash, backtick or `$`. Put such commands inside the heredoc or a script. A stage is named by its `AS` name; only `COPY --from=` also takes its number.
 - **`package.json` has a `license` field** holding a plain SPDX expression, such as `AGPL-3.0-only` for a product repository. It becomes the `org.opencontainers.image.licenses` label.
-- **The build needs no credential.** The build job has no package token and passes no build argument or secret, so a Dockerfile cannot install `@unset-sh` packages from GitHub Packages yet. Adding that is a reviewed change to this workflow.
+- **The build needs no credential of its own.** The build job passes no build argument, and only one secret: with `read-packages: true`, the run's own token, which can read packages, as the BuildKit secret `github_packages_token`, for a Dockerfile that installs `@unset-sh` packages (below).
 - **The organisation's Actions policy allows this workflow.** If it lists allowed actions and reusable workflows, add `unset-sh/tooling/.github/workflows/image-staging.yml` at the reviewed commit.
 
 ## Add the caller
@@ -57,6 +57,7 @@ On 2026-11-23 Alex decided: one shared workflow in tooling, with a thin caller i
 | `context` | `.` | The build context, a folder of the repository. |
 | `dockerfile` | `Dockerfile` | The Dockerfile, as a path from the repository root. |
 | `platform` | `linux/amd64` | The one platform built: `linux/amd64` on `ubuntu-24.04`, or `linux/arm64` on `ubuntu-24.04-arm`. Anything else fails. |
+| `read-packages` | `false` | Hand the run's token, which can read packages, to the build as the BuildKit secret `github_packages_token`. Set it only when the Dockerfile installs `@unset-sh` packages from GitHub Packages. |
 | `timeout-minutes` | `30` | How long the build job may run. |
 
 There is no input for the registry, the path or a tag: the path is fixed by Alex's decision. Paths must be plain relative paths inside the repository, reached without a symbolic link.
@@ -66,11 +67,12 @@ There is no input for the registry, the path or a tag: the path is fixed by Alex
 | Permission | Job | Why |
 | --- | --- | --- |
 | `contents: read` | `build`, `publish` | Check out the repository at the pushed commit, and tooling's own scripts. |
+| `packages: read` | `build` | Read `@unset-sh` packages, for a caller that sets `read-packages`. The caller's `packages: write` covers it. |
 | `packages: write` | `publish` | Push the image and the attestation to `ghcr.io/unset-sh/staging/<repository>`. |
 | `id-token: write` | `publish` | Sign the attestation with a short-lived Sigstore certificate. |
 | `attestations: write` | `publish` | Store the attestation with GitHub. |
 
-The caller grants the four; each job takes only what its row shows. `build` runs the repository's code, because a Dockerfile's `RUN` steps are its commands, so it holds a read-only token and pushes nothing. `publish` runs no code of the repository: it checks what `build` wrote, then pushes and attests it. `actions/attest` can also write an artifact storage record, which needs `artifact-metadata: write`; Alex did not approve that permission, so the workflow turns the record off.
+The caller grants the four; each job takes only what its row shows. `build` runs the repository's code, because a Dockerfile's `RUN` steps are its commands, so it holds a read-only token and pushes nothing. A job's permissions cannot depend on an input, so every build's token can read packages, but the workflow hands that token to the repository's code only when the caller sets `read-packages` (Alex, 2026-11-24: an opt-in read token, only for repositories that ask, never in the image). `publish` runs no code of the repository: it checks what `build` wrote, then pushes and attests it. `actions/attest` can also write an artifact storage record, which needs `artifact-metadata: write`; Alex did not approve that permission, so the workflow turns the record off.
 
 ## What a run produces
 
@@ -128,3 +130,15 @@ A pushed image cannot be taken back by this workflow, and it deletes nothing. Be
 ## Source and evidence
 
 Checked against [`workflows/shared/image/staging.yml`](https://github.com/unset-sh/tooling/blob/449027b9b49d5e0f29ab1c9a17191d47b6c8bcdb/workflows/shared/image/staging.yml), [`scripts/image-staging.mjs`](https://github.com/unset-sh/tooling/blob/449027b9b49d5e0f29ab1c9a17191d47b6c8bcdb/scripts/image-staging.mjs) and their tests in `scripts/image-staging.test.mjs` and `checks/image-staging-workflow.test.mjs`. Behaviour of the tools was read, all on 2026-11-24, in BuildKit v0.35.0 (`frontend/dockerfile/parser/parser.go`, `directives.go`, `split_command.go`, `instructions/commands_runmount.go`, `instructions/bflag.go`), `actions/attest` v4.2.2 (`README.md`, `src/attest.ts`, `dist/index.js`), go-containerregistry v0.22.1 (`cmd/crane/cmd/push.go`), BuildKit's [`docs/build-repro.md`](https://github.com/moby/buildkit/blob/master/docs/build-repro.md) and Docker's [OCI exporter page](https://github.com/docker/docs/blob/main/content/manuals/build/exporters/oci-docker.md). A local build with BuildKit v0.35.0 and a push by digest to a local registry with crane v0.22.1 confirmed the layout shape, the same digest on a second build, and that crane created no tag (the attestation's `sha256-` tag comes from `actions/attest`, which did not run locally). Each Dockerfile shape the check refuses was built with that BuildKit, which tried to pull the unpinned image. The push to GHCR, its package creation and the attestation have not run.
+
+## Install `@unset-sh` packages in the build
+
+Set `read-packages: true` in the caller's `with:`, then mount the secret in the one `RUN` that installs, as an environment variable that `bunfig.toml` names for the `@unset-sh` scope:
+
+```dockerfile
+RUN --mount=type=secret,id=github_packages_token,env=GITHUB_PACKAGES_TOKEN,required=true \
+  bun install --frozen-lockfile --ignore-scripts
+```
+
+BuildKit mounts a secret only for the `RUN` that asks for it and writes it into no layer and no image setting ([Docker's build secrets guide](https://docs.docker.com/build/building/secrets/), read 2026-11-24). `required=true` makes a build without it fail at that step. Give the package read access for the calling repository in its settings, as for its check.
+

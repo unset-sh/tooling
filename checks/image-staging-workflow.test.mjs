@@ -20,13 +20,13 @@ const granted = (job) => {
 
 test("the workflow can only be called, and its inputs leave the registry path out", () => {
   assert.equal(topLevel(workflow, "on").split("\n").filter((line) => /^ {2}\S/.test(line)).join(), "  workflow_call:");
-  assert.deepEqual(inputsOf(workflow), ["context", "dockerfile", "platform", "timeout-minutes"]);
+  assert.deepEqual(inputsOf(workflow), ["context", "dockerfile", "platform", "read-packages", "timeout-minutes"]);
   assert.match(workflow, /^permissions: \{\}$/m);
 });
 
 test("two jobs: build holds a read-only token, and publish, after it, holds exactly the approved permissions", () => {
   assert.deepEqual(Object.keys(jobs), ["build", "publish"]);
-  assert.deepEqual(granted(jobs.build), ["contents: read"]);
+  assert.deepEqual(granted(jobs.build), ["contents: read", "packages: read"]);
   assert.doesNotMatch(jobs.build, /: write/);
   assert.match(jobs.publish, /^ {4}needs: build$/m);
   assert.doesNotMatch(jobs.publish, /^ {4}if:/m, "publish runs only when build succeeded");
@@ -107,7 +107,12 @@ test("the build checks the Dockerfile before it builds, with a pinned BuildKit, 
   for (const flag of ["--no-cache", "--provenance=false", "--sbom=false", '--output "type=oci,dest=$out,tar=false,rewrite-timestamp=true"']) {
     assert.ok(build.includes(flag), flag);
   }
-  assert.doesNotMatch(build, /--build-arg|--secret|--ssh|--cache-from|--cache-to|--build-context|--allow/);
+  assert.doesNotMatch(build, /--build-arg|--ssh|--cache-from|--cache-to|--build-context|--allow/);
+  // One secret, the package token, and only when the caller asked for it.
+  assert.equal(build.match(/--secret/g)?.length, 1);
+  assert.ok(build.includes('if [ -n "$PACKAGES_TOKEN" ]; then secret=(--secret id=github_packages_token,env=PACKAGES_TOKEN); fi'));
+  assert.ok(build.includes("PACKAGES_TOKEN: ${{ inputs.read-packages && github.token || '' }}"));
+  assert.equal(build.match(/github\.token/g)?.length, 1, "the token reaches only the build step, and only by that line");
   assert.match(build, /SOURCE_DATE_EPOCH: \$\{\{ steps\.labels\.outputs\.epoch \}\}/);
   for (const label of ["source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY", "revision=$GITHUB_SHA", "licenses=$LICENSE"]) {
     assert.ok(build.includes(`--label "org.opencontainers.image.${label}"`), label);
