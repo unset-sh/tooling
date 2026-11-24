@@ -343,3 +343,50 @@ test("the check runs Postgres only from an image pinned by digest, and points th
     assert.equal(written, "", JSON.stringify(image));
   }
 });
+
+test("the check starts OpenFGA only from an image pinned by digest, on loopback, and points the check at it", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const text = readText(".github/workflows/ci-check.yml");
+  assert.match(inputsOf(text).join(","), /openfga-image/);
+  const step = text.slice(text.indexOf("- name: Start OpenFGA from an image pinned by digest"));
+  assert.match(step, /^ {8}if: inputs\.openfga-image != ''$/m);
+  const script = runBlocks(step)[0];
+  assert.match(script, /--publish 127\.0\.0\.1:8080:8080/, "OpenFGA is published on the runner's loopback only");
+  assert.match(script, /OPENFGA_DATASTORE_ENGINE=memory/);
+  const digest = "a".repeat(64);
+  // Stand-ins for docker, curl and openssl record what the step asks of them; nothing is started.
+  const run = (image) => {
+    const dir = mkdtempSync(join(tmpdir(), "fga-image-"));
+    try {
+      const bin = join(dir, "bin");
+      spawnSync("mkdir", [bin]);
+      for (const [name, body] of [["docker", `echo "$@" > "${dir}/docker"`], ["curl", "exit 0"], ["openssl", "echo k3y"]]) {
+        writeFileSync(join(bin, name), `#!/bin/bash\n${body}\n`);
+        chmodSync(join(bin, name), 0o755);
+      }
+      const env = join(dir, "env");
+      const result = spawnSync("bash", ["-eo", "pipefail", "-c", script], {
+        env: { PATH: `${bin}:${process.env.PATH}`, OPENFGA_IMAGE: image, GITHUB_ENV: env }, encoding: "utf8",
+      });
+      const read = (f) => { try { return readFileSync(join(dir, f), "utf8"); } catch { return ""; } };
+      return { status: result.status, written: read("env"), docker: read("docker") };
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  };
+  for (const image of [`openfga/openfga:v1.22.1@sha256:${digest}`, `docker.io/openfga/openfga:v1.22.1@sha256:${digest}`]) {
+    const { status, written, docker } = run(image);
+    assert.equal(status, 0, image);
+    assert.equal(written, "FGA_URL=http://127.0.0.1:8080\nFGA_KEY=k3y\n");
+    assert.ok(docker.trimEnd().endsWith(`${image} run`), docker);
+  }
+  for (const image of ["openfga/openfga:v1.22.1", "openfga/openfga:latest", `openfga/openfga@sha256:${digest}`,
+    `evil/openfga:v1@sha256:${digest}`, `openfga/openfga:v1@sha256:${"A".repeat(64)}`,
+    `openfga/openfga:v1@sha256:${digest}\nFGA_URL=evil`, `openfga/openfga:v1@sha256:${digest} --privileged`]) {
+    const { status, written, docker } = run(image);
+    assert.notEqual(status, 0, JSON.stringify(image));
+    assert.equal(written, "", JSON.stringify(image));
+    assert.equal(docker, "", JSON.stringify(image));
+  }
+});

@@ -35,6 +35,10 @@ on:
         description: A Postgres image pinned by digest (`postgres:<tag>@sha256:<64 hex>`) to run beside the check, with no password and reachable only from the job, at the address the PG* variables name. Empty runs none.
         type: string
         default: ""
+      openfga-image:
+        description: An OpenFGA image pinned by digest (`openfga/openfga:v<version>@sha256:<64 hex>`) to run beside the check, in memory and reachable only from the job, at the address FGA_URL names with the throwaway key FGA_KEY. Empty runs none.
+        type: string
+        default: ""
 
 permissions: {}
 
@@ -83,6 +87,36 @@ jobs:
             echo "PGPORT=5432"
             echo "PGUSER=postgres"
             echo "PGDATABASE=postgres"
+          } >> "$GITHUB_ENV"
+      - name: Start OpenFGA from an image pinned by digest
+        if: inputs.openfga-image != ''
+        env:
+          OPENFGA_IMAGE: ${{ inputs.openfga-image }}
+        # A service cannot take a command, and OpenFGA's image needs `run`, so the job starts it itself. It keeps
+        # its data in memory and listens on the runner's loopback only. The preshared key is made for this run,
+        # masked, and dies with the runner; it guards nothing but this throwaway server.
+        run: |
+          [[ "$OPENFGA_IMAGE" =~ ^(docker\.io/)?openfga/openfga:v[0-9][0-9A-Za-z.-]*@sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::openfga-image must be openfga/openfga:v<version>@sha256:<64 hex>."
+            exit 1
+          }
+          key="$(openssl rand -hex 32)"
+          echo "::add-mask::$key"
+          docker run --detach --name openfga --publish 127.0.0.1:8080:8080 \
+            --env OPENFGA_DATASTORE_ENGINE=memory --env OPENFGA_AUTHN_METHOD=preshared \
+            --env OPENFGA_AUTHN_PRESHARED_KEYS="$key" --env OPENFGA_PLAYGROUND_ENABLED=false \
+            "$OPENFGA_IMAGE" run > /dev/null
+          for _ in $(seq 60); do
+            curl --silent --fail http://127.0.0.1:8080/healthz > /dev/null && break
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:8080/healthz > /dev/null || {
+            echo "::error::OpenFGA did not become healthy within 60 seconds."
+            exit 1
+          }
+          {
+            echo "FGA_URL=http://127.0.0.1:8080"
+            echo "FGA_KEY=$key"
           } >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

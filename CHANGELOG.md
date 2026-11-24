@@ -5,6 +5,11 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **An OpenFGA server for the check:** `ci-check.yml` takes an optional `openfga-image`, an OpenFGA image pinned
+  by digest (`openfga/openfga:v<version>@sha256:<64 hex>`). When it is set, the job starts that image with `run`
+  on the runner's loopback, in memory, with a preshared key made for the run, refuses any image not in that form,
+  and sets `FGA_URL` and `FGA_KEY` for the check. Empty, the default, starts nothing, so existing callers are
+  unchanged. First caller: `unset-sh/unset`, whose authorization tests need a real OpenFGA (org-0022).
 - **The staging image build can read `@unset-sh` packages, when asked:** `image-staging.yml` takes
   `read-packages` (default `false`). When set, the build hands the run's own token, which now holds
   `packages: read` in the build job, to the Dockerfile as the BuildKit secret `github_packages_token`, never as
