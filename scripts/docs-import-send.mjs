@@ -9,8 +9,21 @@ import { validateDocsImportTarget } from "./docs-import-dispatch.mjs";
 const repository = "unset-sh/docs";
 const workflowNames = Object.freeze(["ci.yml", "branch-policy.yml"]);
 const positive = value => Number.isSafeInteger(value) && value > 0;
+// The dispatch response names a run that GET /actions/runs/{id} can still answer 404 for a moment later
+// (observed on docs run 45309438728, 2026-11-24). Read it again a bounded number of times.
+const runReads = 10, runDelay = 2_000;
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function dispatchDocsImportChecks({ number, expectedHead, expectedBase, branch, api }) {
+async function requestedRun(api, id, wait) {
+  for (let read = 0; read < runReads; read++) {
+    if (read > 0) await wait(runDelay);
+    const run = await api(repository, "GET", `/actions/runs/${id}`, undefined, [200, 404]);
+    if (run !== null) return run;
+  }
+  refuseImport("Requested documentation check run is not visible; inspect existing runs before retrying");
+}
+
+export async function dispatchDocsImportChecks({ number, expectedHead, expectedBase, branch, api, wait = pause }) {
   const target = { number, expectedHead, expectedBase, branch, api };
   await validateDocsImportTarget(target);
   const workflows = [];
@@ -35,7 +48,7 @@ export async function dispatchDocsImportChecks({ number, expectedHead, expectedB
       refuseImport("Documentation check dispatch did not return a valid unique run identity; inspect existing runs before retrying");
     }
     // Never follow a response-supplied URL. The API call uses the checked numeric ID.
-    const run = await api(repository, "GET", `/actions/runs/${id}`);
+    const run = await requestedRun(api, id, wait);
     if (run?.id !== id || run.url !== runUrl || run.html_url !== url || run.workflow_id !== workflow.id
       || run.path !== workflow.path || run.event !== "workflow_dispatch" || run.head_branch !== branch || run.head_sha !== expectedHead
       || run.repository?.full_name !== repository || run.head_repository?.full_name !== repository) {

@@ -5,6 +5,9 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Docs import dispatch waits for its requested runs to appear:** GitHub can answer 404 for a check run it
+  has just reported creating, which stopped the agent-kit and tooling dispatches on 2026-11-24. The sender now
+  reads a requested run up to ten times, two seconds apart, and still refuses a run it never sees.
 - **The docs import workflow accepts every registered source:** its three identity checks still allowed only
   tooling and github, so a docs caller listing agent-kit failed before preparing anything. They now match the
   same source list, and a test keeps them in step.
