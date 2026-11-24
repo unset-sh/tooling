@@ -5,6 +5,11 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Installs get the package token as `GITHUB_PACKAGES_TOKEN`, not `NPM_CONFIG_TOKEN`:** Bun also sends
+  `NPM_CONFIG_TOKEN` to the default registry, so the install steps of `ci-check.yml`, `releases-package.yml` and
+  `releases-channel.yml` were sending the job's package-read token to registry.npmjs.org. A caller that installs
+  `@unset-sh` packages changes its `bunfig.toml` scope token to `"$GITHUB_PACKAGES_TOKEN"` when it moves its pin.
+  Publishing still uses `NPM_CONFIG_TOKEN`, the name `bun publish` reads, in its stripped environment.
 - **Docs import dispatch waits for its requested runs to appear:** GitHub can answer 404 for a check run it
   has just reported creating, which stopped the agent-kit and tooling dispatches on 2026-11-24. The sender now
   reads a requested run up to ten times, two seconds apart, and still refuses a run it never sees.

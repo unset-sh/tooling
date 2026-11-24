@@ -16,7 +16,14 @@ The implementation described here is **unreleased, at version 0.0.0**. Use this 
 
 You need write access to the consuming repository, a `.bun-version` naming its exact Bun version, and a check command that runs from its root. GitHub Actions settings must allow the shared workflow. Before replacing an existing workflow, record its required check names, extra build steps, reports, and dependency-installation requirements.
 
-The shared check grants `contents: read` and `packages: read` and accepts no stored secrets. Its optional install runs `bun install --frozen-lockfile --ignore-scripts` with the job's read-only token in `NPM_CONFIG_TOKEN`, for that step only, so `@unset-sh` packages can be read from GitHub Packages when the repository's `bunfig.toml` names `$NPM_CONFIG_TOKEN` for that scope and the package grants the repository Actions access. The check command never sees the token. A repository that needs dependency lifecycle scripts needs a reviewed workflow adaptation before switching.
+The shared check grants `contents: read` and `packages: read` and accepts no stored secrets. Its optional install runs `bun install --frozen-lockfile --ignore-scripts` with the job's read-only token in `GITHUB_PACKAGES_TOKEN`, for that step only, so `@unset-sh` packages can be read from GitHub Packages when the repository's `bunfig.toml` names it for that scope:
+
+```toml
+[install.scopes]
+"@unset-sh" = { url = "https://npm.pkg.github.com", token = "$GITHUB_PACKAGES_TOKEN" }
+```
+
+The package must also grant the repository Actions access. Do not name `$NPM_CONFIG_TOKEN` there, and do not set that variable for an install: Bun also sends it to the default registry, so the token would reach registry.npmjs.org (Bun 1.4.4 `docs/pm/npmrc.mdx`). The check command never sees the token. A repository that needs dependency lifecycle scripts needs a reviewed workflow adaptation before switching.
 
 ## Configure the check caller
 

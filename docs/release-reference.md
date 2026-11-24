@@ -54,7 +54,7 @@ An npm package must be named `@unset-sh/...`, use `https://npm.pkg.github.com` a
 
 ## Permissions and publication boundary
 
-The caller grants `contents: write`, `packages: write`, `id-token: write`, `attestations: write`, and `actions: read`. The workflow narrows those permissions per job. `plan` and `build` have read access; `build` gives its install step alone a token that reads packages, in `NPM_CONFIG_TOKEN`, for `@unset-sh` dependencies on GitHub Packages. Only `publish` writes and enters the protected environment.
+The caller grants `contents: write`, `packages: write`, `id-token: write`, `attestations: write`, and `actions: read`. The workflow narrows those permissions per job. `plan` and `build` have read access; `build` gives its install step alone a token that reads packages, in `GITHUB_PACKAGES_TOKEN`, for `@unset-sh` dependencies on GitHub Packages. `publish` alone holds `NPM_CONFIG_TOKEN`, the name `bun publish` reads. Only `publish` writes and enters the protected environment.
 
 The consumer's commands run in `build`. The publish job checks out the central helper scripts at the called workflow's revision, rechecks the environment, validates the downloaded artifacts, and runs no consumer code. It uses no stored secret. These controls protect this publication path; they do not stop a person or another workflow with write permission from publishing by a different path.
 
