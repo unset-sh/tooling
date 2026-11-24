@@ -114,9 +114,13 @@ async function previousSnapshot(api, commit, sourceKey, baseRoot, currentBase) {
   return { root, entries, base: previousBase };
 }
 
-export function validateImportPr(pr, branch, head, base) {
+// GitHub leaves base.sha where it was when the PR was opened or its head last moved, so an
+// open import PR still records the previous docs base after main advances. Callers name every
+// base they accept; dispatch passes only the current one.
+export function validateImportPr(pr, branch, head, bases) {
+  const accepted = Array.isArray(bases) ? bases : [bases];
   if (!Number.isSafeInteger(pr?.number) || pr.number <= 0 || pr.state !== "open" || pr.head?.sha !== head || pr.head.ref !== branch
-    || pr.head.repo?.full_name !== repository || pr.base?.ref !== docsBase || pr.base.sha !== base || pr.base.repo?.full_name !== repository
+    || pr.head.repo?.full_name !== repository || pr.base?.ref !== docsBase || !accepted.includes(pr.base.sha) || pr.base.repo?.full_name !== repository
     || pr.user?.login !== "github-actions[bot]" || pr.user.id !== 41898282 || pr.user.type !== "Bot") refuseImport("Import pull request identity or ownership changed");
   return pr;
 }
@@ -152,7 +156,7 @@ export async function publishDocsImport({ snapshot, api }) {
   const prs = await api(repository, "GET", `/pulls?state=all&head=unset-sh%3Aautomation%2Fdocs-${snapshot.source.key}&sort=created&direction=desc&per_page=100`);
   if (!Array.isArray(prs) || prs.length >= 100 || prs.filter(pr => pr.state === "open").length > 1) refuseImport("Ambiguous import pull request history");
   let pr = prs.find(pr => pr.state === "open");
-  if (pr) validateImportPr(pr, branch, existing?.object.sha, base);
+  if (pr) validateImportPr(pr, branch, existing?.object.sha, previous ? [base, previous.base] : base);
   else if (prs.some(item => item.state !== "closed" || !item.merged_at || item.user?.login !== "github-actions[bot]")) refuseImport("A previous import was closed without merging; review it before retrying");
   let head = existing?.object.sha;
   let changed = !(previous && previous.base === base && canonicalTree(previous.root.filter(entry => entry.path !== source.section)) === canonicalTree(baseRoot.filter(entry => entry.path !== source.section)) && sameFiles(previous.entries, snapshot));
@@ -206,6 +210,6 @@ Only ${source.section}/ changes. Authored source documentation stays in its sour
   const existed = Boolean(pr);
   if (!pr) pr = await api(repository, "POST", "/pulls", { title: titleFor(snapshot.source.key), head: branch, base: docsBase, body }, [201]);
   else if (changed) pr = await api(repository, "PATCH", `/pulls/${pr.number}`, { title: titleFor(snapshot.source.key), body });
-  validateImportPr(pr, branch, head, base);
+  validateImportPr(pr, branch, head, previous ? [base, previous.base] : base);
   return { status: changed ? (existed ? "updated" : "opened") : "pending", number: pr.number, branch, head, url: `https://github.com/${repository}/pull/${pr.number}` };
 }
