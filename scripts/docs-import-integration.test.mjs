@@ -57,10 +57,13 @@ test("updating a checked import after docs main advances keeps its real three-do
   const docs = repository(join(directory, "docs"), "main");
   docs.put("README.md", "Framework\n"); docs.put("other/_index.md", "Another section\n");
   const initialBase = docs.commit("Initial framework");
-  const runs = new Map(); let pr = null, sequence = 0;
+  const runs = new Map(); let pr = null, prBase = null, sequence = 0;
   const changes = () => docs.git(["diff", "--name-only", `${docs.head()}...${pr.head.ref}`]).split("\n").filter(Boolean);
+  // GitHub keeps a pull request's base.sha where it was when the PR was opened or its head last
+  // moved; base-branch pushes alone leave it behind (docs PR 15 kept 9816c3b after main reached
+  // d58601d, 2026-11-24). Model that instead of always reporting the current base head.
   const currentPr = () => pr && { ...pr, draft: false, changed_files: changes().length,
-    head: { ...pr.head, sha: docs.git(["rev-parse", `refs/heads/${pr.head.ref}`]) }, base: { ...pr.base, sha: docs.head() } };
+    head: { ...pr.head, sha: docs.git(["rev-parse", `refs/heads/${pr.head.ref}`]) }, base: { ...pr.base, sha: prBase } };
   const api = async (name, method, path, body) => {
     const repo = name === "unset-sh/tooling" ? source : docs;
     assert.ok(["unset-sh/tooling", "unset-sh/docs"].includes(name));
@@ -111,11 +114,13 @@ test("updating a checked import after docs main advances keeps its real three-do
       const before = docs.git(["rev-parse", ref]);
       docs.git(["merge-base", "--is-ancestor", before, body.sha]);
       docs.git(["update-ref", ref, body.sha, before]);
+      if (pr && ref === `refs/heads/${pr.head.ref}`) prBase = docs.head();
       return { ref, object: { type: "commit", sha: body.sha } };
     }
     if (method === "POST" && path === "/pulls") {
       pr = { number: 1, state: "open", user: { login: "github-actions[bot]", id: 41898282, type: "Bot" },
         head: { ref: body.head, repo: { full_name: name } }, base: { ref: body.base, repo: { full_name: name } } };
+      prBase = docs.head();
       return currentPr();
     }
     if (method === "PATCH" && path === "/pulls/1") return currentPr();

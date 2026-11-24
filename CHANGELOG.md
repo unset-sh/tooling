@@ -5,6 +5,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Docs imports survive a moved docs `main`:** an open import PR keeps GitHub's `base.sha` from when it was opened
+  or last pushed, so after docs `main` advanced, the publisher refused the PR as foreign and the import stalled
+  (docs PR 15). The publisher now also accepts the base recorded in the import branch's own verified head, then
+  reconciles as before. Dispatch still requires the current base. Callers move their docs-import pin to take it.
 - **A Postgres service for the check:** `ci-check.yml` takes an optional `postgres-image`, a Postgres image pinned
   by digest (`postgres:<tag>@sha256:<64 hex>`). When it is set, the job runs that image as a service on the
   runner's loopback with no password, refuses any image not in that form, and sets `PGHOST`, `PGPORT`, `PGUSER`
