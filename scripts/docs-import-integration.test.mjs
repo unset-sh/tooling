@@ -57,13 +57,19 @@ test("updating a checked import after docs main advances keeps its real three-do
   const docs = repository(join(directory, "docs"), "main");
   docs.put("README.md", "Framework\n"); docs.put("other/_index.md", "Another section\n");
   const initialBase = docs.commit("Initial framework");
-  const runs = new Map(); let pr = null, prBase = null, sequence = 0;
+  const runs = new Map(); let pr = null, prBase = null, stale = null, sequence = 0;
   const changes = () => docs.git(["diff", "--name-only", `${docs.head()}...${pr.head.ref}`]).split("\n").filter(Boolean);
   // GitHub keeps a pull request's base.sha where it was when the PR was opened or its head last
   // moved; base-branch pushes alone leave it behind (docs PR 15 kept 9816c3b after main reached
   // d58601d, 2026-11-24). Model that instead of always reporting the current base head.
-  const currentPr = () => pr && { ...pr, draft: false, changed_files: changes().length,
-    head: { ...pr.head, sha: docs.git(["rev-parse", `refs/heads/${pr.head.ref}`]) }, base: { ...pr.base, sha: prBase } };
+  // GitHub also updates a pull request from a head push asynchronously: the next read (here, the
+  // PATCH /pulls response) can still report the old head and base (docs PR 15, run 45301633681).
+  const currentPr = () => {
+    if (!pr) return pr;
+    const view = stale ?? { head: docs.git(["rev-parse", `refs/heads/${pr.head.ref}`]), base: prBase };
+    stale = null;
+    return { ...pr, draft: false, changed_files: changes().length, head: { ...pr.head, sha: view.head }, base: { ...pr.base, sha: view.base } };
+  };
   const api = async (name, method, path, body) => {
     const repo = name === "unset-sh/tooling" ? source : docs;
     assert.ok(["unset-sh/tooling", "unset-sh/docs"].includes(name));
@@ -113,8 +119,8 @@ test("updating a checked import after docs main advances keeps its real three-do
       const ref = `refs/heads/${path.slice("/git/refs/heads/".length)}`;
       const before = docs.git(["rev-parse", ref]);
       docs.git(["merge-base", "--is-ancestor", before, body.sha]);
+      if (pr && ref === `refs/heads/${pr.head.ref}`) { stale = { head: before, base: prBase }; prBase = docs.head(); }
       docs.git(["update-ref", ref, body.sha, before]);
-      if (pr && ref === `refs/heads/${pr.head.ref}`) prBase = docs.head();
       return { ref, object: { type: "commit", sha: body.sha } };
     }
     if (method === "POST" && path === "/pulls") {

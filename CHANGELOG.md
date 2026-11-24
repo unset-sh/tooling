@@ -5,6 +5,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Docs imports wait for GitHub to show a pushed head:** GitHub applies a head push to its pull request
+  asynchronously, so the PR update right after moving an import branch could still report the old head, and the
+  publisher refused its own PR (docs PR 15, run 45301633681). It now re-reads the PR up to 10 times, 2 seconds
+  apart, and still refuses a PR that never shows the new head. Callers move their pins to take it.
 - **Docs import refusals name their reason:** the importer and the generated-PR verifier printed one generic
   line for every refusal, so a failed run could not say whether the PR, a hash or a GitHub request (and its HTTP
   status) was at fault. They now add `Reason: <message>` for the importer's own refusals, whose messages are fixed

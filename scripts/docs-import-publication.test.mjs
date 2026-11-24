@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { baseCommit, blob, importFixture, sourceCommit, sourceTree } from "../checks/docs-import-fixture.mjs";
-import { publishDocsImport, validateImportPr } from "./docs-import-publication.mjs";
+import { publishDocsImport, settledPr, validateImportPr } from "./docs-import-publication.mjs";
 
 function remote(fixture, overrides = {}) {
   const writes = [];
@@ -156,4 +156,21 @@ test("an open import PR is accepted only at a base the caller names", () => {
   assert.equal(validateImportPr(pr(previous), "automation/docs-github", head, [current, previous]).number, 15);
   assert.throws(() => validateImportPr(pr(previous), "automation/docs-github", head, current), /identity or ownership/);
   assert.throws(() => validateImportPr(pr(other), "automation/docs-github", head, [current, previous]), /identity or ownership/);
+});
+
+test("an updated import PR is re-read until GitHub shows the new head, within a fixed bound", async () => {
+  const head = "c".repeat(40), old = { number: 7, head: { sha: "d".repeat(40) } };
+  const reads = [], waits = [];
+  const lagging = after => async (repository, method, path) => {
+    reads.push(`${repository} ${method} ${path}`);
+    return reads.length >= after ? { number: 7, head: { sha: head } } : old;
+  };
+  assert.equal((await settledPr({ api: lagging(1), number: 7, pr: { number: 7, head: { sha: head } }, head, wait: async ms => waits.push(ms) })).head.sha, head);
+  assert.deepEqual(reads, []);
+  assert.equal((await settledPr({ api: lagging(3), number: 7, pr: old, head, wait: async ms => waits.push(ms) })).head.sha, head);
+  assert.deepEqual(reads, Array(3).fill("unset-sh/docs GET /pulls/7")); assert.equal(waits.length, 2);
+  reads.length = 0; waits.length = 0;
+  assert.equal((await settledPr({ api: lagging(Infinity), number: 7, pr: old, head, wait: async ms => waits.push(ms) })).head.sha, old.head.sha);
+  assert.equal(reads.length, 10); assert.equal(waits.length, 9);
+  await assert.rejects(settledPr({ api: lagging(1), number: 0, pr: old, head }), /Invalid import pull request number/);
 });
