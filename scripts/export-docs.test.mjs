@@ -120,6 +120,16 @@ test("a caller repository selects its own section and provenance", (t) => {
   }
 });
 
+test("lexicons and agent-kit export their whole docs root", (t) => {
+  for (const [repository, section] of [["unset-sh/lexicons", "lexicons"], ["unset-sh/agent-kit", "agent-kit"]]) {
+    const f = fixture(t, "docs");
+    const provenance = exportDocs({ ...f, repository });
+    assert.deepEqual(readdirSync(f.out), [section]);
+    assert.equal(provenance.directory, "docs");
+    assert.equal(provenance.section, section);
+  }
+});
+
 test("tooling requires its explicit docs root and never guesses a legacy layout", (t) => {
   const f = fixture(t, "docs/site");
   assert.throws(() => exportDocs(f), /docs\/_index\.md/);

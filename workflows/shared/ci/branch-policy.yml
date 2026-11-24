@@ -93,7 +93,7 @@ jobs:
             echo "::error::Invalid generated dispatch or helper identity."
             exit 1
           fi
-          if ! { [ "$GITHUB_REPOSITORY" = unset-sh/docs ] && [[ "$GITHUB_REF" =~ ^refs/heads/automation/docs-(tooling|github)$ ]]; } && ! { [ "$GITHUB_REPOSITORY" = unset-sh/.github ] && [ "$GITHUB_REF" = "refs/heads/automation/map-$EXPECTED_BASE" ]; }; then
+          if ! { [ "$GITHUB_REPOSITORY" = unset-sh/docs ] && [[ "$GITHUB_REF" =~ ^refs/heads/automation/docs-(tooling|github|brand|rendering|lexicons|agent-kit|web|backend|deployment|pds|modules)$ ]]; } && ! { [ "$GITHUB_REPOSITORY" = unset-sh/.github ] && [ "$GITHUB_REF" = "refs/heads/automation/map-$EXPECTED_BASE" ]; }; then
             echo "::error::Unsupported generated dispatch repository or branch."
             exit 1
           fi

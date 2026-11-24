@@ -71,11 +71,11 @@ Inspect the downloaded artifact's `source.json` before preparing an import. A pu
 
 ## Import through a documentation pull request
 
-The [docs-owned automatic receiver](import-docs.md) can prepare checked pull requests into docs `main` for the two allowlisted stable sources. It requires a successful exact-commit main export and independently re-exports immutable Git data; it does not download cross-repository artifacts with the docs token.
+The [docs-owned automatic receiver](import-docs.md) can prepare checked pull requests into docs `main` for the allowlisted stable sources. It requires a successful exact-commit main export and independently re-exports immutable Git data; it does not download cross-repository artifacts with the docs token.
 
 For a manual import, import only the exported section through a pull request in `unset-sh/docs`. Preserve its provenance and licence. Keep the renderer, its `.github` directory, and other repository sections intact.
 
-The source mappings are `unset-sh/tooling:docs/` to `unset-sh/docs:tooling/` and `unset-sh/.github:docs/site/` to `unset-sh/docs:github/`. The exporter selects tooling's `docs/` root explicitly; other consumers retain their existing `docs/site/` contract. It never guesses a directory from available files or reads a consumer-controlled export configuration. Verify the current framework contribution policy when reviewing an import, then run its documented checks and production build before merging. A successful source export and a successful website deployment are separate results.
+The source mappings are `unset-sh/tooling:docs/` to `unset-sh/docs:tooling/` and `unset-sh/.github:docs/site/` to `unset-sh/docs:github/`. The exporter selects the `docs/` root explicitly for tooling, lexicons and agent-kit; other consumers use `docs/site/`. The full list of sources is in [Import reviewed documentation](import-docs.md). It never guesses a directory from available files or reads a consumer-controlled export configuration. Verify the current framework contribution policy when reviewing an import, then run its documented checks and production build before merging. A successful source export and a successful website deployment are separate results.
 
 ## Source and evidence
 

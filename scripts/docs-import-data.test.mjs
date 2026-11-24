@@ -5,7 +5,7 @@ import { linkSync, symlinkSync, truncateSync, mkdirSync, mkdtempSync, readFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { importSource, readDocsImport, stageDocsImport, validateDocsImport } from "./docs-import-data.mjs";
+import { importSource, importSourceKeys, importSourcePattern, readDocsImport, stageDocsImport, validateDocsImport } from "./docs-import-data.mjs";
 
 const base = "b".repeat(40);
 const workflow = base;
@@ -131,4 +131,18 @@ test("snapshot reading refuses links, oversized files, malformed JSON and unknow
   writeFileSync(large, "{invalid}"); assert.throws(() => readDocsImport(large), /JSON/);
   const snapshot = JSON.parse(readFileSync(f.out)); snapshot.extra = "untrusted";
   writeFileSync(large, JSON.stringify(snapshot)); assert.throws(() => readDocsImport(large), /identity/);
+});
+
+test("every organisation repository with published docs has one fixed source mapping", () => {
+  assert.deepEqual(importSourceKeys, ["tooling", "github", "brand", "rendering", "lexicons", "agent-kit", "web", "backend", "deployment", "pds", "modules"]);
+  for (const key of importSourceKeys.slice(2)) {
+    assert.deepEqual({ ...importSource(key) }, { repository: `unset-sh/${key}`, directory: ["lexicons", "agent-kit"].includes(key) ? "docs" : "docs/site",
+      section: key, workflow: ".github/workflows/docs-export.yml" });
+  }
+  for (const key of ["outside", "unset", "docs", "Brand", "brand\n", "__proto__", "toString"]) assert.throws(() => importSource(key), /Unknown documentation source/);
+});
+
+test("the branch-policy verifier accepts exactly the registered import branches", () => {
+  const policy = readFileSync(new URL("../workflows/shared/ci/branch-policy.yml", import.meta.url), "utf8");
+  assert.ok(policy.includes(`^refs/heads/automation/docs-(${importSourcePattern})$ ]]`));
 });

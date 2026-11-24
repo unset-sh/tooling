@@ -5,6 +5,12 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Docs imports know every organisation repository:** the receiver's fixed source list now also maps brand,
+  rendering, lexicons, agent-kit, web, backend, deployment, pds and modules, each from its own `main` through
+  `.github/workflows/docs-export.yml` into a section named after the repository (`docs/` for lexicons and
+  agent-kit, `docs/site/` for the rest). Branch, raw-read and commit-message patterns are derived from that one
+  list, and the branch-policy verifier accepts the same `automation/docs-<key>` branches. A source is imported only
+  when docs adds its key to the receiver matrix. Callers move their pins to take it.
 - **Docs imports read their sources with the job token:** source reads were anonymous, so they shared the
   runner's per-address quota and GitHub refused them with HTTP 403 (docs-import run 45302302882). The importer and
   verifier now send the docs job token on every `api.github.com` request for the allowlisted repositories. Writes

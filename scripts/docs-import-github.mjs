@@ -7,9 +7,11 @@
 // https://docs.github.com/en/actions/concepts/security/github_token
 // https://docs.github.com/en/rest/actions/workflow-runs#list-workflow-runs-for-a-workflow
 // https://docs.github.com/en/rest/git/trees#get-a-tree
-import { decodeImportFiles, gitBlobHash, importLimits, importSource, isCommit, refuseImport, validateDocsImport, validateImportPaths } from "./docs-import-data.mjs";
+import { decodeImportFiles, gitBlobHash, importLimits, importRepositories, importSource, importSourcePattern, isCommit, refuseImport, validateDocsImport, validateImportPaths } from "./docs-import-data.mjs";
 
-const allowedRepositories = new Set(["unset-sh/docs", "unset-sh/tooling", "unset-sh/.github"]);
+const allowedRepositories = new Set(["unset-sh/docs", ...importRepositories]);
+const rawPath = new RegExp(`^\\/raw\\/([a-f0-9]{40})\\/(${importSourcePattern})\\/(.+)$`);
+const importRefPatch = new RegExp(`^\\/(?:git\\/refs\\/heads\\/automation\\/docs-(?:${importSourcePattern})|pulls\\/[1-9][0-9]*)$`);
 const maximumResponse = 10 * 1024 * 1024;
 
 async function boundedJson(response) {
@@ -30,7 +32,7 @@ async function boundedJson(response) {
 }
 
 async function readRawDocs(fetchImpl, repository, path) {
-  const match = /^\/raw\/([a-f0-9]{40})\/(tooling|github)\/(.+)$/.exec(path);
+  const match = rawPath.exec(path);
   if (repository !== "unset-sh/docs" || !match || match[0] !== path) refuseImport("Invalid raw documentation identity");
   validateImportPaths([{ path: match[3] }]);
   const address = `https://raw.githubusercontent.com/unset-sh/docs/${match[1]}/${match[2]}/${match[3].split("/").map(encodeURIComponent).join("/")}`;
@@ -66,7 +68,7 @@ export function createDocsApi({ githubToken, fetchImpl = fetch } = {}) {
     const url = new URL(address);
     if (`${url.pathname}${url.search}` !== `/repos/${repository}${path}`) refuseImport("Invalid documentation API path");
     if (method === "POST" && !/^\/(?:git\/(?:blobs|trees|commits|refs)|pulls|actions\/workflows\/(?:ci|branch-policy)\.yml\/dispatches)$/.test(path)) refuseImport("Unsupported documentation mutation");
-    if (method === "PATCH" && !/^\/(?:git\/refs\/heads\/automation\/docs-(?:tooling|github)|pulls\/[1-9][0-9]*)$/.test(path)) refuseImport("Unsupported documentation update");
+    if (method === "PATCH" && !importRefPatch.test(path)) refuseImport("Unsupported documentation update");
     if (method !== "GET" && !githubToken) refuseImport("Documentation publication requires its job token");
     const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2026-03-10", "Content-Type": "application/json" };
     if (githubToken) headers.Authorization = `Bearer ${githubToken}`;
