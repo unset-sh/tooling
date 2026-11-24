@@ -5,6 +5,18 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **Docs imports wait for GitHub to show a pushed head:** GitHub applies a head push to its pull request
+  asynchronously, so the PR update right after moving an import branch could still report the old head, and the
+  publisher refused its own PR (docs PR 15, run 45301633681). It now re-reads the PR up to 10 times, 2 seconds
+  apart, and still refuses a PR that never shows the new head. Callers move their pins to take it.
+- **Docs import refusals name their reason:** the importer and the generated-PR verifier printed one generic
+  line for every refusal, so a failed run could not say whether the PR, a hash or a GitHub request (and its HTTP
+  status) was at fault. They now add `Reason: <message>` for the importer's own refusals, whose messages are fixed
+  text with at most an HTTP status. Other errors stay hidden. Callers move their pins to take it.
+- **Docs imports survive a moved docs `main`:** an open import PR keeps GitHub's `base.sha` from when it was opened
+  or last pushed, so after docs `main` advanced, the publisher refused the PR as foreign and the import stalled
+  (docs PR 15). The publisher now also accepts the base recorded in the import branch's own verified head, then
+  reconciles as before. Dispatch still requires the current base. Callers move their docs-import pin to take it.
 - **Staging images (Alex, 2026-11-23):** new reusable `image-staging.yml`. Called from a repository's push to
   `staging`, it builds the repository's `Dockerfile` with BuildKit pinned by digest, pushes the image by digest
   and with no tag to `ghcr.io/unset-sh/staging/<repository>`, and attests its build provenance, with the run's
@@ -14,14 +26,6 @@ approved release raises `package.json` and renames the heading to that version.
   digest, and an image whose pushed digest differs from the one built. A caller grants `contents: read`,
   `packages: write`, `id-token: write` and `attestations: write`. Nothing has been pushed by it yet; the
   package settings Alex sets after the first push are in `docs/build-staging-images.md`.
-- **Docs import refusals name their reason:** the importer and the generated-PR verifier printed one generic
-  line for every refusal, so a failed run could not say whether the PR, a hash or a GitHub request (and its HTTP
-  status) was at fault. They now add `Reason: <message>` for the importer's own refusals, whose messages are fixed
-  text with at most an HTTP status. Other errors stay hidden. Callers move their pins to take it.
-- **Docs imports survive a moved docs `main`:** an open import PR keeps GitHub's `base.sha` from when it was opened
-  or last pushed, so after docs `main` advanced, the publisher refused the PR as foreign and the import stalled
-  (docs PR 15). The publisher now also accepts the base recorded in the import branch's own verified head, then
-  reconciles as before. Dispatch still requires the current base. Callers move their docs-import pin to take it.
 - **A Postgres service for the check:** `ci-check.yml` takes an optional `postgres-image`, a Postgres image pinned
   by digest (`postgres:<tag>@sha256:<64 hex>`). When it is set, the job runs that image as a service on the
   runner's loopback with no password, refuses any image not in that form, and sets `PGHOST`, `PGPORT`, `PGUSER`

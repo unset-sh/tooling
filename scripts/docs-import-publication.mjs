@@ -135,7 +135,22 @@ export async function verifyDocsImportHead({ api, key, head, base }) {
   return source;
 }
 
-export async function publishDocsImport({ snapshot, api }) {
+// GitHub applies a head push to its pull request asynchronously, so a read right after the ref
+// update can still show the old head. Re-read a bounded number of times; the caller still
+// validates whatever the last read returns, so a PR that never settles is refused.
+const settleReads = 10, settleDelay = 2_000;
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+export async function settledPr({ api, number, pr, head, wait = pause }) {
+  if (!Number.isSafeInteger(number) || number <= 0) refuseImport("Invalid import pull request number");
+  for (let read = 0; pr?.head?.sha !== head && read < settleReads; read++) {
+    if (read > 0) await wait(settleDelay);
+    pr = await api(repository, "GET", `/pulls/${number}`);
+  }
+  return pr;
+}
+
+export async function publishDocsImport({ snapshot, api, wait = pause }) {
   snapshot = structuredClone(validateDocsImport(snapshot));
   const source = await verifyImportSource({ snapshot, api });
   const base = snapshot.target.baseCommit;
@@ -209,7 +224,10 @@ Source export: https://github.com/${source.repository}/actions/runs/${snapshot.s
 Only ${source.section}/ changes. Authored source documentation stays in its source repository; source.json records the imported revision and hashes.`;
   const existed = Boolean(pr);
   if (!pr) pr = await api(repository, "POST", "/pulls", { title: titleFor(snapshot.source.key), head: branch, base: docsBase, body }, [201]);
-  else if (changed) pr = await api(repository, "PATCH", `/pulls/${pr.number}`, { title: titleFor(snapshot.source.key), body });
+  else if (changed) {
+    const updated = await api(repository, "PATCH", `/pulls/${pr.number}`, { title: titleFor(snapshot.source.key), body });
+    pr = await settledPr({ api, number: pr.number, pr: updated, head, wait });
+  }
   validateImportPr(pr, branch, head, previous ? [base, previous.base] : base);
   return { status: changed ? (existed ? "updated" : "opened") : "pending", number: pr.number, branch, head, url: `https://github.com/${repository}/pull/${pr.number}` };
 }
