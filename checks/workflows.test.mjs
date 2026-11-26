@@ -438,3 +438,60 @@ test("the check starts Valkey only from an image pinned by digest, on loopback, 
     assert.equal(docker, "", JSON.stringify(image));
   }
 });
+
+test("the check starts Garage only from an image pinned by digest, unprivileged, on loopback, and points the check at it", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const text = readText(".github/workflows/ci-check.yml");
+  assert.match(inputsOf(text).join(","), /garage-image/);
+  const step = text.slice(text.indexOf("- name: Start Garage from an image pinned by digest"));
+  assert.match(step, /^ {8}if: inputs\.garage-image != ''$/m);
+  const script = runBlocks(step)[0];
+  assert.match(script, /--publish 127\.0\.0\.1:3900:3900 /, "only the S3 port, on the runner's loopback");
+  assert.doesNotMatch(script, /--publish (?!127\.0\.0\.1:3900:3900 )/, "no other port is published");
+  assert.match(script, /--user 65534:65534 --read-only --cap-drop ALL/, "Garage runs unprivileged");
+  assert.match(script, /--tmpfs \/var\/lib\/garage:/, "Garage keeps its data in memory");
+  const digest = "a".repeat(64);
+  // Stand-ins for docker and openssl record what the step asks of them; nothing is started.
+  const run = (image) => {
+    const dir = mkdtempSync(join(tmpdir(), "garage-image-"));
+    try {
+      const bin = join(dir, "bin");
+      mkdirSync(bin);
+      const docker = `if [ "$1" = run ]; then echo "$@" > "${dir}/docker"; fi`;
+      for (const [name, body] of [["docker", docker], ["openssl", 'echo "r$3"']]) {
+        writeFileSync(join(bin, name), `#!/bin/bash\n${body}\n`);
+        chmodSync(join(bin, name), 0o755);
+      }
+      const env = join(dir, "env");
+      const result = spawnSync("bash", ["-eo", "pipefail", "-c", script], {
+        env: { PATH: `${bin}:${process.env.PATH}`, GARAGE_IMAGE: image, GITHUB_ENV: env, RUNNER_TEMP: dir },
+        encoding: "utf8",
+      });
+      const read = (f) => { try { return readFileSync(join(dir, f), "utf8"); } catch { return ""; } };
+      return { status: result.status, written: read("env"), docker: read("docker"), config: read("garage.toml") };
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  };
+  for (const image of [`dxflrs/garage:v2.5.0@sha256:${digest}`, `docker.io/dxflrs/garage:v2.6.0@sha256:${digest}`]) {
+    const { status, written, docker, config } = run(image);
+    assert.equal(status, 0, image);
+    assert.equal(written, [
+      "S3_ENDPOINT=http://127.0.0.1:3900", "S3_REGION=garage", "S3_BUCKET=check", "S3_ACCESS_KEY_ID=GKr12",
+      "S3_SECRET_ACCESS_KEY=r32", "",
+    ].join("\n"));
+    assert.ok(docker.includes(`${image} /garage server --single-node --default-bucket`), docker);
+    assert.match(config, /^replication_factor = 1$/m);
+    assert.doesNotMatch(config, /secret|token/i, "no secret is written to the config file");
+  }
+  for (const image of ["dxflrs/garage:v2.5.0", "dxflrs/garage:latest", `dxflrs/garage@sha256:${digest}`,
+    `evil/garage:v2@sha256:${digest}`, `dxflrs/garage:2.5.0@sha256:${digest}`,
+    `dxflrs/garage:v2@sha256:${"A".repeat(64)}`, `dxflrs/garage:v2@sha256:${digest}\nS3_ENDPOINT=evil`,
+    `dxflrs/garage:v2@sha256:${digest} --privileged`]) {
+    const { status, written, docker } = run(image);
+    assert.notEqual(status, 0, JSON.stringify(image));
+    assert.equal(written, "", JSON.stringify(image));
+    assert.equal(docker, "", JSON.stringify(image));
+  }
+});
