@@ -39,6 +39,10 @@ on:
         description: An OpenFGA image pinned by digest (`openfga/openfga:v<version>@sha256:<64 hex>`) to run beside the check, in memory and reachable only from the job, at the address FGA_URL names with the throwaway key FGA_KEY. Empty runs none.
         type: string
         default: ""
+      valkey-image:
+        description: A Valkey image pinned by digest (`valkey/valkey:<tag>@sha256:<64 hex>`) to run beside the check, in memory and reachable only from the job, at the address VALKEY_URL names with the throwaway password VALKEY_PASSWORD. Empty runs none.
+        type: string
+        default: ""
 
 permissions: {}
 
@@ -117,6 +121,35 @@ jobs:
           {
             echo "FGA_URL=http://127.0.0.1:8080"
             echo "FGA_KEY=$key"
+          } >> "$GITHUB_ENV"
+      - name: Start Valkey from an image pinned by digest
+        if: inputs.valkey-image != ''
+        env:
+          VALKEY_IMAGE: ${{ inputs.valkey-image }}
+        # Started by the job, like OpenFGA, so the image is refused before anything runs and the server gets a
+        # password: Valkey's protected mode would refuse a passwordless client that reaches it through Docker's port
+        # mapping. It keeps its data in memory only (no snapshot, no append-only file) and listens on the runner's
+        # loopback. The password is made for this run, masked, and dies with the runner.
+        run: |
+          [[ "$VALKEY_IMAGE" =~ ^(docker\.io/)?valkey/valkey:[0-9][0-9A-Za-z.-]*@sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::valkey-image must be valkey/valkey:<tag>@sha256:<64 hex>."
+            exit 1
+          }
+          password="$(openssl rand -hex 32)"
+          echo "::add-mask::$password"
+          docker run --detach --name valkey --publish 127.0.0.1:6379:6379 \
+            "$VALKEY_IMAGE" valkey-server --requirepass "$password" --save "" --appendonly no > /dev/null
+          for _ in $(seq 60); do
+            docker exec valkey valkey-cli --no-auth-warning -a "$password" ping 2> /dev/null | grep -q PONG && break
+            sleep 1
+          done
+          docker exec valkey valkey-cli --no-auth-warning -a "$password" ping 2> /dev/null | grep -q PONG || {
+            echo "::error::Valkey did not answer within 60 seconds."
+            exit 1
+          }
+          {
+            echo "VALKEY_URL=redis://127.0.0.1:6379"
+            echo "VALKEY_PASSWORD=$password"
           } >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
