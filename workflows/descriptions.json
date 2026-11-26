@@ -1179,6 +1179,27 @@
       "path": ".github/workflows/ci-check.yml",
       "purpose": "Provide a reusable Bun-based check job that each calling repository configures with its own validation command.",
       "repository": "tooling",
+      "reviewedCommit": "d8ae4d2bedef6cfa61799a80b7c9a96a2090776c",
+      "reviewedSha256": "644564edcc075681a5f774bfcd9de8f4298cead9490774645feea560a7617027",
+      "steps": [
+        "When the caller sets postgres-image, run that Postgres image as a service on the runner's loopback with trust authentication, refuse the job unless the image is postgres:<tag>@sha256:<64 hex>, and set PGHOST, PGPORT, PGUSER and PGDATABASE for the check; with it empty, start no service.",
+        "When the caller sets openfga-image, refuse the job unless the image is openfga/openfga:v<version>@sha256:<64 hex>, start it with run, in memory, on the runner's loopback with a preshared key made for the run and masked, wait up to 60 seconds for it to be healthy, and set FGA_URL and FGA_KEY for the check; with it empty, start nothing.",
+        "When the caller sets valkey-image, refuse the job unless the image is valkey/valkey:<tag>@sha256:<64 hex>, start it as valkey-server on the runner's loopback with a password made for the run and masked, keeping nothing on disk, wait up to 60 seconds for it to answer, and set VALKEY_URL and VALKEY_PASSWORD for the check; with it empty, start nothing.",
+        "When the caller sets garage-image, refuse the job unless the image is dxflrs/garage:v<version>@sha256:<64 hex>, start it with Garage's own single-node start as an unprivileged, read-only node with its data in memory and only its S3 port on the runner's loopback, with an RPC secret and access key made for the run and masked, wait up to 60 seconds for its bucket, and set S3_ENDPOINT, S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY for the check; with it empty, start nothing.",
+        "Check out the caller, install the exact Bun version its .bun-version names, and refuse any other version.",
+        "Optionally install dependencies from the committed bun.lock with bun install --frozen-lockfile --ignore-scripts, failing when bun.lock is missing; only that step holds the job’s package-read token, as GITHUB_PACKAGES_TOKEN, a name only the repository’s bunfig.toml reads, for @unset-sh packages on GitHub Packages.",
+        "Run the caller’s check command, defaulting to bun run check.",
+        "If the caller specifies an output path, attempt to retain it even when the check fails."
+      ]
+    },
+    {
+      "outputs": [
+        "The check result for the calling repository.",
+        "An optional check-output artifact retained for 14 days when a path is configured and files are available."
+      ],
+      "path": ".github/workflows/ci-check.yml",
+      "purpose": "Provide a reusable Bun-based check job that each calling repository configures with its own validation command.",
+      "repository": "tooling",
       "reviewedCommit": "ad21195ac1f1b8f4c7fbfbb381bfe3b12170fff3",
       "reviewedSha256": "14623c834d5790e70ced4753c7e07dec7b48eccf95a3be51bee95fe4d70a2a51",
       "steps": [
