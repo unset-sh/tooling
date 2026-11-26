@@ -390,3 +390,51 @@ test("the check starts OpenFGA only from an image pinned by digest, on loopback,
     assert.equal(docker, "", JSON.stringify(image));
   }
 });
+
+test("the check starts Valkey only from an image pinned by digest, on loopback, with a password, and points the check at it", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const text = readText(".github/workflows/ci-check.yml");
+  assert.match(inputsOf(text).join(","), /valkey-image/);
+  const step = text.slice(text.indexOf("- name: Start Valkey from an image pinned by digest"));
+  assert.match(step, /^ {8}if: inputs\.valkey-image != ''$/m);
+  const script = runBlocks(step)[0];
+  assert.match(script, /--publish 127\.0\.0\.1:6379:6379/, "Valkey is published on the runner's loopback only");
+  assert.match(script, /--save "" --appendonly no/, "Valkey keeps nothing on disk");
+  const digest = "a".repeat(64);
+  // Stand-ins for docker and openssl record what the step asks of them; nothing is started.
+  const run = (image) => {
+    const dir = mkdtempSync(join(tmpdir(), "valkey-image-"));
+    try {
+      const bin = join(dir, "bin");
+      mkdirSync(bin);
+      const docker = `if [ "$1" = run ]; then echo "$@" > "${dir}/docker"; else echo PONG; fi`;
+      for (const [name, body] of [["docker", docker], ["openssl", "echo pa55"]]) {
+        writeFileSync(join(bin, name), `#!/bin/bash\n${body}\n`);
+        chmodSync(join(bin, name), 0o755);
+      }
+      const env = join(dir, "env");
+      const result = spawnSync("bash", ["-eo", "pipefail", "-c", script], {
+        env: { PATH: `${bin}:${process.env.PATH}`, VALKEY_IMAGE: image, GITHUB_ENV: env }, encoding: "utf8",
+      });
+      const read = (f) => { try { return readFileSync(join(dir, f), "utf8"); } catch { return ""; } };
+      return { status: result.status, written: read("env"), docker: read("docker") };
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  };
+  for (const image of [`valkey/valkey:9.0.8@sha256:${digest}`, `docker.io/valkey/valkey:9-alpine@sha256:${digest}`]) {
+    const { status, written, docker } = run(image);
+    assert.equal(status, 0, image);
+    assert.equal(written, "VALKEY_URL=redis://127.0.0.1:6379\nVALKEY_PASSWORD=pa55\n");
+    assert.ok(docker.includes(`${image} valkey-server --requirepass pa55 `), docker);
+  }
+  for (const image of ["valkey/valkey:9.0.8", "valkey/valkey:latest", `valkey/valkey@sha256:${digest}`,
+    `evil/valkey:9@sha256:${digest}`, `valkey/valkey:9@sha256:${"A".repeat(64)}`,
+    `valkey/valkey:9@sha256:${digest}\nVALKEY_URL=evil`, `valkey/valkey:9@sha256:${digest} --privileged`]) {
+    const { status, written, docker } = run(image);
+    assert.notEqual(status, 0, JSON.stringify(image));
+    assert.equal(written, "", JSON.stringify(image));
+    assert.equal(docker, "", JSON.stringify(image));
+  }
+});

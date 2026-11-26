@@ -5,6 +5,11 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **A Valkey server for the check:** `ci-check.yml` takes an optional `valkey-image`, a Valkey image pinned by
+  digest (`valkey/valkey:<tag>@sha256:<64 hex>`). When it is set, the job refuses any image not in that form, starts
+  it on the runner's loopback with a password made for the run, nothing kept on disk, and sets `VALKEY_URL` and
+  `VALKEY_PASSWORD` for the check. Empty, the default, starts nothing, so existing callers are unchanged. First
+  caller: `unset-sh/unset`, whose shared rate limits are tested against a real Valkey.
 - **An OpenFGA server for the check:** `ci-check.yml` takes an optional `openfga-image`, an OpenFGA image pinned
   by digest (`openfga/openfga:v<version>@sha256:<64 hex>`). When it is set, the job starts that image with `run`
   on the runner's loopback, in memory, with a preshared key made for the run, refuses any image not in that form,
