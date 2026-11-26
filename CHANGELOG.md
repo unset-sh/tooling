@@ -5,6 +5,12 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **A Garage server for the check:** `ci-check.yml` takes an optional `garage-image`, a Garage image pinned by
+  digest (`dxflrs/garage:v<version>@sha256:<64 hex>`). When it is set, the job refuses any image not in that form,
+  starts it as one unprivileged node with its data in memory and only its S3 port on the runner's loopback, with
+  one bucket and an access key made for the run, and sets `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`,
+  `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` for the check. Empty, the default, starts nothing, so existing
+  callers are unchanged. First caller: `unset-sh/unset`, whose object store adapter is tested against a real Garage.
 - **A Valkey server for the check:** `ci-check.yml` takes an optional `valkey-image`, a Valkey image pinned by
   digest (`valkey/valkey:<tag>@sha256:<64 hex>`). When it is set, the job refuses any image not in that form, starts
   it on the runner's loopback with a password made for the run, nothing kept on disk, and sets `VALKEY_URL` and

@@ -43,6 +43,10 @@ on:
         description: A Valkey image pinned by digest (`valkey/valkey:<tag>@sha256:<64 hex>`) to run beside the check, in memory and reachable only from the job, at the address VALKEY_URL names with the throwaway password VALKEY_PASSWORD. Empty runs none.
         type: string
         default: ""
+      garage-image:
+        description: A Garage image pinned by digest (`dxflrs/garage:v<version>@sha256:<64 hex>`) to run beside the check as a single node, in memory and reachable only from the job, with one bucket and one access key made for the run, at the S3 endpoint S3_ENDPOINT names. Empty runs none.
+        type: string
+        default: ""
 
 permissions: {}
 
@@ -150,6 +154,50 @@ jobs:
           {
             echo "VALKEY_URL=redis://127.0.0.1:6379"
             echo "VALKEY_PASSWORD=$password"
+          } >> "$GITHUB_ENV"
+      - name: Start Garage from an image pinned by digest
+        if: inputs.garage-image != ''
+        env:
+          GARAGE_IMAGE: ${{ inputs.garage-image }}
+        # Garage's own single-node start (Garage v2.5.0 `garage server --help`: --single-node lays out one node and
+        # --default-bucket creates the bucket and key that GARAGE_DEFAULT_* name). It runs as nobody, read-only, with
+        # no capabilities and its data in memory, and publishes only the S3 port on the runner's loopback. The RPC
+        # secret and the access key are made for this run, masked, and die with the runner.
+        run: |
+          [[ "$GARAGE_IMAGE" =~ ^(docker\.io/)?dxflrs/garage:v[0-9][0-9A-Za-z.-]*@sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::garage-image must be dxflrs/garage:v<version>@sha256:<64 hex>."
+            exit 1
+          }
+          rpc_secret="$(openssl rand -hex 32)"
+          key_id="GK$(openssl rand -hex 12)"
+          secret_key="$(openssl rand -hex 32)"
+          echo "::add-mask::$rpc_secret"
+          echo "::add-mask::$secret_key"
+          config="$RUNNER_TEMP/garage.toml"
+          printf '%s\n' 'metadata_dir = "/var/lib/garage/meta"' 'data_dir = "/var/lib/garage/data"' \
+            'db_engine = "sqlite"' 'replication_factor = 1' 'rpc_bind_addr = "0.0.0.0:3901"' \
+            'rpc_public_addr = "127.0.0.1:3901"' '[s3_api]' 's3_region = "garage"' \
+            'api_bind_addr = "0.0.0.0:3900"' > "$config"
+          docker run --detach --name garage --user 65534:65534 --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --tmpfs /var/lib/garage:uid=65534,gid=65534 \
+            --publish 127.0.0.1:3900:3900 --volume "$config:/etc/garage.toml:ro" \
+            --env GARAGE_RPC_SECRET="$rpc_secret" --env GARAGE_DEFAULT_ACCESS_KEY="$key_id" \
+            --env GARAGE_DEFAULT_SECRET_KEY="$secret_key" --env GARAGE_DEFAULT_BUCKET=check \
+            "$GARAGE_IMAGE" /garage server --single-node --default-bucket > /dev/null
+          for _ in $(seq 60); do
+            docker exec garage /garage bucket info check > /dev/null 2>&1 && break
+            sleep 1
+          done
+          docker exec garage /garage bucket info check > /dev/null 2>&1 || {
+            echo "::error::Garage did not have its bucket within 60 seconds."
+            exit 1
+          }
+          {
+            echo "S3_ENDPOINT=http://127.0.0.1:3900"
+            echo "S3_REGION=garage"
+            echo "S3_BUCKET=check"
+            echo "S3_ACCESS_KEY_ID=$key_id"
+            echo "S3_SECRET_ACCESS_KEY=$secret_key"
           } >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
