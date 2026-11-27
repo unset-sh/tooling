@@ -5,6 +5,12 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **App image names for monorepos:** `image-staging.yml` takes an optional `image-name`, validated in both
+  jobs as lower-case letters and digits with single dashes between groups. `api` and `web` select
+  `ghcr.io/unset-sh/staging/api` and `/web`; omitted or empty, the input preserves the calling repository's
+  name. Registry, staging channel, digest-only publication, permissions and provenance checks stay the same.
+  Use separate caller workflow files for apps so their same-run artifact names cannot collide.
+
 - **RustFS readiness no longer fails on successful startup logs:** the check consumes each complete log
   snapshot when looking for bucket creation, so a matching line cannot close the pipe early and make Docker
   fail with SIGPIPE. Missing readiness and Docker failures still fail the check.

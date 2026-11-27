@@ -18,9 +18,11 @@ const granted = (job) => {
   return [...block.matchAll(/^ {6}([\w-]+): (\w+)/gm)].map(([, scope, level]) => `${scope}: ${level}`);
 };
 
-test("the workflow can only be called, and its inputs leave the registry path out", () => {
+test("the workflow can only be called, and its image name defaults empty and its inputs leave the registry and channel out", () => {
   assert.equal(topLevel(workflow, "on").split("\n").filter((line) => /^ {2}\S/.test(line)).join(), "  workflow_call:");
-  assert.deepEqual(inputsOf(workflow), ["context", "dockerfile", "platform", "read-packages", "timeout-minutes"]);
+  assert.deepEqual(inputsOf(workflow), ["image-name", "context", "dockerfile", "platform", "read-packages", "timeout-minutes"]);
+  assert.match(workflow, /image-name:\n\s+description: [^\n]*\n\s+type: string\n\s+default: ""/);
+  for (const job of Object.values(jobs)) assert.ok(steps(job)[0].includes("IMAGE_NAME: ${{ inputs.image-name }}"));
   assert.match(workflow, /^permissions: \{\}$/m);
 });
 
@@ -86,11 +88,33 @@ test("only a push to staging of a plainly named unset-sh repository builds or pu
   assert.equal(guard(jobs.publish, { REPOSITORY: "unset-sh/web-2" }).written, "repository=ghcr.io/unset-sh/staging/web-2\n");
 });
 
+test("a simple app image name selects its package, and an empty input preserves the repository default", () => {
+  for (const name of ["api", "web", "worker-2"]) {
+    assert.equal(guard(jobs.build, { REPOSITORY: "unset-sh/unset", IMAGE_NAME: name }).status, 0, name);
+    const published = guard(jobs.publish, { REPOSITORY: "unset-sh/unset", IMAGE_NAME: name });
+    assert.equal(published.status, 0, name);
+    assert.equal(published.written, `repository=ghcr.io/unset-sh/staging/${name}\n`, name);
+  }
+  assert.equal(guard(jobs.publish, { IMAGE_NAME: "" }).written, "repository=ghcr.io/unset-sh/staging/backend\n");
+});
+
+test("both jobs refuse image names that can change the registry, path or reference syntax", () => {
+  for (const job of [jobs.build, jobs.publish]) {
+    for (const name of ["../api", "/api", "api/web", "ghcr.io/unset-sh/api", "evil.example/api", "api:latest",
+      "api@sha256:" + "a".repeat(64), "api%2fweb", "api\\web", ".", "..", "API", "api_name", "api.name",
+      "-api", "api-", "api--web", " api", "api ", "api\nrepository=evil", "api\n", "api\r", "api\t", "$(id)", "`id`", "api;id"]) {
+      const result = guard(job, { IMAGE_NAME: name });
+      assert.notEqual(result.status, 0, JSON.stringify(name));
+      assert.equal(result.written, "", JSON.stringify(name));
+    }
+  }
+});
+
 test("nothing is tagged, nothing is pushed from the build, and no path outside staging is written", () => {
   for (const block of runBlocks(workflow)) {
     assert.doesNotMatch(block, /--push|push=true|type=image|type=registry|docker push|crane (tag|copy|cp|mutate|append)|--tag\b| -t /, block);
     for (const [reference] of block.matchAll(/ghcr\.io\/\S*/g)) {
-      assert.match(reference, /^ghcr\.io\/unset-sh\/staging\/\$\{REPOSITORY#unset-sh\/\}"$|^ghcr\.io$/, block);
+      assert.match(reference, /^ghcr\.io\/unset-sh\/staging\/\$image_name"$|^ghcr\.io$/, block);
     }
   }
   assert.doesNotMatch(workflow, /:latest|staging-\$\{\{|staging-<sha>/);

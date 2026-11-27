@@ -2,7 +2,7 @@
 name: staging image
 
 # Builds a repository's container image when a change merges into its staging branch, pushes it by digest to
-# ghcr.io/unset-sh/staging/<repository>, and attests its build provenance. Called from that repository:
+# ghcr.io/unset-sh/staging/<image-name>, and attests its build provenance. Called from that repository:
 #
 #   on:
 #     push:
@@ -22,6 +22,7 @@ name: staging image
 # Alex decided on 2026-11-23: one shared workflow; it runs on a push to staging and never on a pull request;
 # images go to ghcr.io/unset-sh/staging/<repository>, the path saying the channel; consumers use the digest,
 # so the image gets no tag, and never a production path; the run's own GITHUB_TOKEN is the only credential.
+# org-0020 adds an optional validated app image-name for monorepos; omitted, it remains the repository name.
 # The attestation pushed beside the image does sit under the OCI referrers tag sha256-<image hex>, which
 # actions/attest writes because GHCR has no referrers API. docs/build-staging-images.md describes the inputs,
 # the package settings and the verify command.
@@ -48,6 +49,10 @@ name: staging image
 on:
   workflow_call:
     inputs:
+      image-name:
+        description: Optional app image name (lower-case letters, digits and single dashes). Empty uses the calling repository name.
+        type: string
+        default: ""
       context:
         description: The build context, a folder of the repository.
         type: string
@@ -75,7 +80,7 @@ on:
         description: The pushed image's digest, sha256:<64 hex>.
         value: ${{ jobs.publish.outputs.digest }}
       image:
-        description: The full image reference with the digest, ghcr.io/unset-sh/staging/<repository>@sha256:<64 hex>.
+        description: The full image reference with the digest, ghcr.io/unset-sh/staging/<image-name>@sha256:<64 hex>.
         value: ${{ jobs.publish.outputs.image }}
 
 permissions: {}
@@ -105,6 +110,7 @@ jobs:
           REF: ${{ github.ref }}
           OWNER: ${{ github.repository_owner }}
           REPOSITORY: ${{ github.repository }}
+          IMAGE_NAME: ${{ inputs.image-name }}
           PLATFORM: ${{ inputs.platform }}
         run: |
           if [ "$EVENT" != push ] || [ "$REF" != refs/heads/staging ]; then
@@ -113,6 +119,10 @@ jobs:
           fi
           if [ "$OWNER" != unset-sh ] || ! [[ "$REPOSITORY" =~ ^unset-sh/[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
             echo "::error::Expected a repository of unset-sh named in lower-case letters, digits and dashes, got '$REPOSITORY'."
+            exit 1
+          fi
+          if [ -n "$IMAGE_NAME" ] && ! [[ "$IMAGE_NAME" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "::error::Expected image-name to contain lower-case letters, digits and single dashes, with no leading or trailing dash."
             exit 1
           fi
           if [ "$PLATFORM" != linux/amd64 ] && [ "$PLATFORM" != linux/arm64 ]; then
@@ -245,7 +255,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      packages: write # push to ghcr.io/unset-sh/staging/<repository> with the workflow's own token
+      packages: write # push to ghcr.io/unset-sh/staging/<image-name> with the workflow's own token
       id-token: write # sign the attestation
       attestations: write # store the attestation
     outputs:
@@ -260,7 +270,8 @@ jobs:
           REF: ${{ github.ref }}
           OWNER: ${{ github.repository_owner }}
           REPOSITORY: ${{ github.repository }}
-        # The registry path is fixed here and nowhere else: the staging channel, then the repository's name.
+          IMAGE_NAME: ${{ inputs.image-name }}
+        # The registry and channel are fixed; only the validated final name may differ from the repository.
         run: |
           if [ "$EVENT" != push ] || [ "$REF" != refs/heads/staging ]; then
             echo "::error::A staging image is pushed only from a push to staging. This run is $EVENT on $REF."
@@ -270,7 +281,12 @@ jobs:
             echo "::error::Expected a repository of unset-sh named in lower-case letters, digits and dashes, got '$REPOSITORY'."
             exit 1
           fi
-          echo "repository=ghcr.io/unset-sh/staging/${REPOSITORY#unset-sh/}" >> "$GITHUB_OUTPUT"
+          if [ -n "$IMAGE_NAME" ] && ! [[ "$IMAGE_NAME" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "::error::Expected image-name to contain lower-case letters, digits and single dashes, with no leading or trailing dash."
+            exit 1
+          fi
+          image_name="${IMAGE_NAME:-${REPOSITORY#unset-sh/}}"
+          echo "repository=ghcr.io/unset-sh/staging/$image_name" >> "$GITHUB_OUTPUT"
       - name: This workflow knows where its own scripts are
         env:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
