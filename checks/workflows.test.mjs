@@ -495,3 +495,61 @@ test("the check starts Garage only from an image pinned by digest, unprivileged,
     assert.equal(docker, "", JSON.stringify(image));
   }
 });
+
+test("the check starts RustFS only from an image pinned by digest, on loopback, and points the check at it", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const text = readText(".github/workflows/ci-check.yml");
+  assert.match(inputsOf(text).join(","), /rustfs-image/);
+  const step = text.slice(text.indexOf("- name: Start RustFS from an image pinned by digest"));
+  assert.match(step, /^ {8}if: inputs\.rustfs-image != ''$/m);
+  const script = runBlocks(step)[0];
+  assert.match(script, /--publish 127\.0\.0\.1:9000:9000 /, "only the S3 port, on the runner's loopback");
+  assert.doesNotMatch(script, /--publish (?!127\.0\.0\.1:9000:9000 )/, "no other port is published");
+  assert.match(script, /--read-only --cap-drop ALL/, "RustFS runs with no capabilities");
+  assert.match(script, /--tmpfs \/data:/, "RustFS keeps its data in memory");
+  assert.match(script, /RUSTFS_CONSOLE_ENABLE=false/);
+  assert.match(script, /RUSTFS_CHECK_UPDATE=false/);
+  const digest = "b".repeat(64);
+  const run = (image) => {
+    const dir = mkdtempSync(join(tmpdir(), "rustfs-image-"));
+    try {
+      const bin = join(dir, "bin");
+      mkdirSync(bin);
+      const docker = `if [ "$1" = run ]; then echo "$@" > "${dir}/docker"; fi\nif [ "$1" = logs ]; then echo bucket_created; fi`;
+      for (const [name, body] of [["docker", docker], ["openssl", 'echo "r$3"']]) {
+        writeFileSync(join(bin, name), `#!/bin/bash\n${body}\n`);
+        chmodSync(join(bin, name), 0o755);
+      }
+      const env = join(dir, "env");
+      const result = spawnSync("bash", ["-eo", "pipefail", "-c", script], {
+        env: { PATH: `${bin}:${process.env.PATH}`, RUSTFS_IMAGE: image, GITHUB_ENV: env, RUNNER_TEMP: dir },
+        encoding: "utf8",
+      });
+      const read = (f) => { try { return readFileSync(join(dir, f), "utf8"); } catch { return ""; } };
+      return { status: result.status, written: read("env"), docker: read("docker"), buckets: read("rustfs-bootstrap/buckets.json") };
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  };
+  for (const image of [`rustfs/rustfs:1.0.7@sha256:${digest}`, `docker.io/rustfs/rustfs:1.0.7@sha256:${digest}`]) {
+    const { status, written, docker, buckets } = run(image);
+    assert.equal(status, 0, image);
+    assert.equal(written, [
+      "S3_ENDPOINT=http://127.0.0.1:9000", "S3_REGION=us-east-1", "S3_BUCKET=check", "S3_ACCESS_KEY_ID=r16",
+      "S3_SECRET_ACCESS_KEY=r32", "",
+    ].join("\n"));
+    assert.ok(docker.includes(`--publish 127.0.0.1:9000:9000 `), docker);
+    assert.ok(docker.includes(image), docker);
+    assert.equal(buckets, '["check"]\n');
+  }
+  for (const image of ["rustfs/rustfs:1.0.7", "rustfs/rustfs:latest", `rustfs/rustfs@sha256:${digest}`,
+    `evil/rustfs:1@sha256:${digest}`, `rustfs/rustfs:v1.0.7@sha256:${digest}`,
+    `rustfs/rustfs:1@sha256:${"B".repeat(64)}`, `rustfs/rustfs:1@sha256:${digest}\nS3_ENDPOINT=evil`,
+    `rustfs/rustfs:1@sha256:${digest} --privileged`]) {
+    const { status, written, docker } = run(image);
+    assert.notEqual(status, 0, JSON.stringify(image));
+    assert.equal(written, "", JSON.stringify(image));
+    assert.equal(docker, "", JSON.stringify(image));
+  }
+});

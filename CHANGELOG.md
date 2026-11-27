@@ -5,6 +5,13 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **A RustFS server for the check:** `ci-check.yml` takes an optional `rustfs-image`, a RustFS image pinned by
+  digest (`rustfs/rustfs:<version>@sha256:<64 hex>`). When it is set, the job refuses any image not in that form,
+  starts it with its data in memory and only its S3 port on the runner's loopback, the console and the other
+  protocol listeners off, one bucket and an access key made for the run, and sets `S3_ENDPOINT`, `S3_REGION`
+  (`us-east-1`), `S3_BUCKET`, `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` for the check. Empty, the default,
+  starts nothing, so existing callers are unchanged. Do not set it together with `garage-image`; both write the
+  same variables. First caller: `unset-sh/unset`, whose object store tests are moving from Garage to RustFS.
 - **A Garage server for the check:** `ci-check.yml` takes an optional `garage-image`, a Garage image pinned by
   digest (`dxflrs/garage:v<version>@sha256:<64 hex>`). When it is set, the job refuses any image not in that form,
   starts it as one unprivileged node with its data in memory and only its S3 port on the runner's loopback, with
