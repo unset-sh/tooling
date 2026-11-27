@@ -48,6 +48,10 @@ on:
         description: A Garage image pinned by digest (`dxflrs/garage:v<version>@sha256:<64 hex>`) to run beside the check as a single node, in memory and reachable only from the job, with one bucket and one access key made for the run, at the S3 endpoint S3_ENDPOINT names. Empty runs none.
         type: string
         default: ""
+      rustfs-image:
+        description: A RustFS image pinned by digest (`rustfs/rustfs:<version>@sha256:<64 hex>`) to run beside the check, in memory and reachable only from the job, with one bucket and one access key made for the run, at the S3 endpoint S3_ENDPOINT names. Empty runs none. Do not set this and garage-image together; both write the S3_* variables.
+        type: string
+        default: ""
 
 permissions: {}
 
@@ -198,6 +202,63 @@ jobs:
             echo "S3_REGION=garage"
             echo "S3_BUCKET=check"
             echo "S3_ACCESS_KEY_ID=$key_id"
+            echo "S3_SECRET_ACCESS_KEY=$secret_key"
+          } >> "$GITHUB_ENV"
+      - name: Start RustFS from an image pinned by digest
+        if: inputs.rustfs-image != ''
+        env:
+          RUSTFS_IMAGE: ${{ inputs.rustfs-image }}
+        # RustFS 1.0.7 (https://docs.rustfs.com/en/reference/environment-variables). The S3 API is :9000 and also
+        # carries admin RPC; only that port is published, on the runner's loopback. The console, update check and
+        # the other protocol listeners are off. The image's built-in root key is never used. There is no documented
+        # bucket auto-create; the 1.0.7 entrypoint creates names in /etc/rustfs/bootstrap/buckets.json when
+        # RUSTFS_BOOTSTRAP_ENDPOINT is set (the image's /etc/rustfs/bootstrap/README.md). Data is in memory. The
+        # access key is made for this run, masked, and dies with the runner.
+        run: |
+          [[ "$RUSTFS_IMAGE" =~ ^(docker\.io/)?rustfs/rustfs:[0-9][0-9A-Za-z.-]*@sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::rustfs-image must be rustfs/rustfs:<version>@sha256:<64 hex>."
+            exit 1
+          }
+          access_key="$(openssl rand -hex 16)"
+          secret_key="$(openssl rand -hex 32)"
+          echo "::add-mask::$access_key"
+          echo "::add-mask::$secret_key"
+          boot="$RUNNER_TEMP/rustfs-bootstrap"
+          mkdir -p "$boot"
+          printf '%s\n' '["check"]' > "$boot/buckets.json"
+          printf '%s\n' '{' \
+            '  "block_public_acls": true,' \
+            '  "ignore_public_acls": true,' \
+            '  "block_public_policy": true,' \
+            '  "restrict_public_buckets": true' \
+            '}' > "$boot/public-access-block.json"
+          docker run --detach --name rustfs --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --tmpfs /tmp \
+            --tmpfs /data:uid=10001,gid=10001,mode=0700 \
+            --publish 127.0.0.1:9000:9000 \
+            --volume "$boot/buckets.json:/etc/rustfs/bootstrap/buckets.json:ro" \
+            --volume "$boot/public-access-block.json:/etc/rustfs/bootstrap/public-access-block.json:ro" \
+            --env RUSTFS_ACCESS_KEY="$access_key" --env RUSTFS_SECRET_KEY="$secret_key" \
+            --env RUSTFS_ADDRESS=:9000 --env RUSTFS_REGION=us-east-1 \
+            --env RUSTFS_CONSOLE_ENABLE=false --env RUSTFS_CHECK_UPDATE=false \
+            --env RUSTFS_WEBDAV_ENABLE=false --env RUSTFS_FTP_ENABLE=false \
+            --env RUSTFS_FTPS_ENABLE=false --env RUSTFS_SFTP_ENABLE=false \
+            --env RUSTFS_KEYSTONE_ENABLE=false --env RUSTFS_OBS_LOG_DIRECTORY= \
+            --env RUSTFS_VOLUMES=/data --env RUSTFS_BOOTSTRAP_ENDPOINT=http://127.0.0.1:9000 \
+            "$RUSTFS_IMAGE" > /dev/null
+          for _ in $(seq 60); do
+            docker logs rustfs 2>&1 | grep -q bucket_created && break
+            sleep 1
+          done
+          docker logs rustfs 2>&1 | grep -q bucket_created || {
+            echo "::error::RustFS did not create its bucket within 60 seconds."
+            exit 1
+          }
+          {
+            echo "S3_ENDPOINT=http://127.0.0.1:9000"
+            echo "S3_REGION=us-east-1"
+            echo "S3_BUCKET=check"
+            echo "S3_ACCESS_KEY_ID=$access_key"
             echo "S3_SECRET_ACCESS_KEY=$secret_key"
           } >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
