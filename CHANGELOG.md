@@ -5,6 +5,10 @@ approved release raises `package.json` and renames the heading to that version.
 
 ## Unreleased
 
+- **RustFS readiness no longer fails on successful startup logs:** the check consumes each complete log
+  snapshot when looking for bucket creation, so a matching line cannot close the pipe early and make Docker
+  fail with SIGPIPE. Missing readiness and Docker failures still fail the check.
+
 - **A RustFS server for the check:** `ci-check.yml` takes an optional `rustfs-image`, a RustFS image pinned by
   digest (`rustfs/rustfs:<version>@sha256:<64 hex>`). When it is set, the job refuses any image not in that form,
   starts it with its data in memory and only its S3 port on the runner's loopback, the console and the other

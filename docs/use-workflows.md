@@ -70,6 +70,10 @@ The shared workflow checks out the consuming repository, takes Bun from its `.bu
 
 Open a pull request containing the caller change. Check that the run uses the intended central commit and that every previous required test or report still runs. With the caller job named `check` and the shared job named `Check`, the expected check label is `check / Check`; confirm the actual label before changing repository rulesets.
 
+When using `rustfs-image`, the check waits for the bucket-creation log before exporting the S3 settings.
+It consumes the complete log snapshot, so a successful match cannot interrupt Docker's output with SIGPIPE;
+a missing creation event or a Docker error still fails readiness.
+
 A failed check command must fail the run. If you set `keep`, inspect the retained report as well as the job status. The workflow adds no result outputs; consumers use its job conclusion and optional artifact.
 
 ## Recover from an adoption problem

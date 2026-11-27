@@ -245,11 +245,13 @@ jobs:
             --env RUSTFS_KEYSTONE_ENABLE=false --env RUSTFS_OBS_LOG_DIRECTORY= \
             --env RUSTFS_VOLUMES=/data --env RUSTFS_BOOTSTRAP_ENDPOINT=http://127.0.0.1:9000 \
             "$RUSTFS_IMAGE" > /dev/null
+          # grep -q closes the pipe at its first match, so docker logs can receive SIGPIPE and fail pipefail.
+          # Consume the complete snapshot (GNU grep manual, "Usage", pipefail example).
           for _ in $(seq 60); do
-            docker logs rustfs 2>&1 | grep -q bucket_created && break
+            docker logs rustfs 2>&1 | grep bucket_created > /dev/null && break
             sleep 1
           done
-          docker logs rustfs 2>&1 | grep -q bucket_created || {
+          docker logs rustfs 2>&1 | grep bucket_created > /dev/null || {
             echo "::error::RustFS did not create its bucket within 60 seconds."
             exit 1
           }

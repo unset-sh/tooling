@@ -553,3 +553,25 @@ test("the check starts RustFS only from an image pinned by digest, on loopback, 
     assert.equal(docker, "", JSON.stringify(image));
   }
 });
+
+test("RustFS readiness consumes large logs and still refuses missing readiness or Docker failures", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const text = readText(".github/workflows/ci-check.yml");
+  const step = text.slice(text.indexOf("- name: Start RustFS from an image pinned by digest"));
+  const probes = runBlocks(step)[0].split("\n").map((line) => line.trim())
+    .filter((line) => line.startsWith("docker logs rustfs "))
+    .map((line) => line.replace(/ (?:&& break|\|\| \{)$/, ""));
+  assert.equal(probes.length, 2);
+  for (const probe of probes) {
+    for (const [logs, succeeds] of [
+      ["printf 'bucket_created\\n'; head -c 1048576 /dev/zero | tr '\\000' x", true],
+      ["printf 'still starting\\n'", false],
+      ["printf 'bucket_created\\n'; return 1", false],
+    ]) {
+      const result = spawnSync("bash", ["-eo", "pipefail", "-c", `docker() { ${logs}; }; ${probe}`], {
+        encoding: "utf8",
+      });
+      assert.equal(result.status === 0, succeeds, `probe exited ${result.status}: ${result.stderr}`);
+    }
+  }
+});
